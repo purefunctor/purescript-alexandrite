@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+marker :: Alexandrite.StyleX.Marker
+marker = defineMarker
+
+visible :: Prim.Int
+visible = 1

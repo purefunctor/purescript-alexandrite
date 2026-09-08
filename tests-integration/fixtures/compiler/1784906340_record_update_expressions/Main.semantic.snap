@@ -1,0 +1,31 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+identity :: forall a. a -> a
+identity = \value -> value
+
+record :: { first :: Prim.Int, nested :: { value :: Prim.Int }, transform :: Prim.Int -> Prim.Int }
+record = { first: 1, nested: { value: 2 }, transform: identity }
+
+leaf :: { first :: Prim.Int, nested :: { value :: Prim.Int }, transform :: Prim.Int -> Prim.Int }
+leaf = record { first = 2 }
+
+typeChanging :: { first :: Prim.String, nested :: { value :: Prim.Int }, transform :: Prim.Int -> Prim.Int }
+typeChanging = record { first = "two" }
+
+multiple :: forall t0. { first :: Prim.Int, nested :: { value :: Prim.Int }, transform :: t0 -> t0 }
+multiple = record { first = 2, transform = identity }
+
+nested :: { first :: Prim.Int, nested :: { value :: Prim.Int }, transform :: Prim.Int -> Prim.Int }
+nested = record { nested { value = 3 } }
+
+accessValue :: { first :: Prim.Int, nested :: { value :: Prim.Int }, transform :: Prim.Int -> Prim.Int }
+accessValue = record { first = record.nested.value }
+
+applicationBase :: { first :: Prim.Int, nested :: { value :: Prim.Int }, transform :: Prim.Int -> Prim.Int }
+applicationBase = (identity record) { first = 2 }
+
+argument :: { first :: Prim.Int, nested :: { value :: Prim.Int }, transform :: Prim.Int -> Prim.Int }
+argument = identity record { first = 2 }

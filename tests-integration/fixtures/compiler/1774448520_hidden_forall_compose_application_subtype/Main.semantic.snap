@@ -1,0 +1,26 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface Semigroupoid :: forall k. (k -> k -> Prim.Type) -> Prim.Constraint
+interface Semigroupoid f where
+  compose :: forall (a :: k) (b :: k) (c :: k). f b c -> f a b -> f a c
+
+newtype Tagged :: Prim.Int -> Prim.Type -> Prim.Type
+newtype Tagged @n @a
+  | Tagged :: a -> Main.Tagged n a
+
+newtype ConcreteNewtype :: Prim.Type -> Prim.Type
+newtype ConcreteNewtype @a
+  | ConcreteNewtype :: Main.ConcreteTagged a -> Main.ConcreteNewtype a
+
+dictionary semigroupoidFn :: Main.Semigroupoid @Prim.Type Prim.Function where
+  compose :: forall a b c. Prim.Function b c -> Prim.Function a b -> Prim.Function a c
+  compose = \f -> \g -> \x -> f (g x)
+
+make :: forall a. a -> Main.HiddenTagged a
+make = \n -> Tagged n
+
+test :: forall a. a -> Main.ConcreteNewtype a
+test = compose {semigroupoidFn} ConcreteNewtype make

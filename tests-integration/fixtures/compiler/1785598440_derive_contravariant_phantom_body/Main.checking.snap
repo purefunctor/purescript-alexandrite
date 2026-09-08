@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+Constant :: forall t0 @value (@a :: t0). value -> Main.Constant @t0 value (a :: t0)
+
+Types
+Constant :: forall t0. Prim.Type -> t0 -> Prim.Type
+
+Derived
+derive forall value. Data.Functor.Contravariant.Contravariant (Main.Constant @Prim.Type value)
+
+Roles
+Constant = [Representational, Phantom]

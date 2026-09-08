@@ -1,0 +1,26 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Pair/3
+
+@export instance bifoldablePair = {
+  bifoldr:
+    \firstFunction%0 secondFunction%1 accumulator%2 value%3 ->
+      case value%3 of
+        Pair field0%4 field1%5 field2%6 ->
+          firstFunction%0 field0%4 (secondFunction%1 field2%6 accumulator%2),
+  bifoldl:
+    \firstFunction%7 secondFunction%8 accumulator%9 value%10 ->
+      case value%10 of
+        Pair field0%11 field1%12 field2%13 ->
+          secondFunction%8 (firstFunction%7 accumulator%9 field0%11) field2%13,
+  bifoldMap:
+    \monoidMDict%20 ->
+      \firstFunction%14 secondFunction%15 value%16 ->
+        case value%16 of
+          Pair field0%17 field1%18 field2%19 ->
+            append (monoidMDict%20."Semigroup0"()) (firstFunction%14 field0%17)
+              (secondFunction%15 field2%19)
+}

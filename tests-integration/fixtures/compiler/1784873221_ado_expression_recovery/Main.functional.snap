@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export foreign pure
+
+@export foreign map
+
+@export foreign apply
+
+@export emptyAdo = <error>
+
+@export missingAdoAction = (<error>) (<error>)
+
+@export missingAdoResult = map (\value%0 -> <error>) (pure 1)
+
+@export missingAdoActionBeforeValidAction = map (\value%1 -> <error>) (pure 1)

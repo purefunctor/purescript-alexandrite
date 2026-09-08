@@ -1,0 +1,23 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Proxy :: forall k. k -> Prim.Type
+data Proxy @a
+  | Proxy :: Main.Proxy a
+
+interface ShowP :: forall k. k -> Prim.Constraint
+interface ShowP a where
+  showP :: Main.Proxy @k a -> Prim.String
+
+dictionary showPFirst :: forall k a. Main.ShowP @k a where
+  showP :: Main.Proxy @k a -> Prim.String
+  showP = \_ -> "first"
+
+dictionary showPSecond :: forall k a. Main.ShowP @k a where
+  showP :: Main.Proxy @k a -> Prim.String
+  showP = \_ -> "second"
+
+value :: Prim.String
+value = showP {showPFirst} Proxy

@@ -1,0 +1,21 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export add = \left%0 right%1 -> left%0
+
+@export multiply = \left%3 right%2 -> right%2
+
+@export precedence = add 1 (multiply 2 3)
+
+@export leftAssociative = add (add 1 2) 3
+
+@export append = \left%4 right%5 -> left%4
+
+@export rightAssociative = append 1 (append 2 3)
+
+@export foreign interleaved
+
+@export implicitApplications = \firstADict%7 secondBDict%6 ->
+  \left%8 right%9 -> interleaved firstADict%7 left%8 secondBDict%6 right%9

@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface First :: forall k0. k0 -> Prim.Constraint
+interface First a where
+
+foreign import combine :: forall result. (Main.First @Prim.Type Prim.Int => Prim.Int) -> result -> result
+
+foreign import constrainedValue :: Main.First @Prim.Type Prim.Int => Prim.Int
+
+foreign import needsFirst :: Main.First @Prim.Type Prim.Int => Prim.Int
+
+test :: Prim.Int
+test = combine (\{firstDict} -> constrainedValue {firstDict}) (needsFirst {error})

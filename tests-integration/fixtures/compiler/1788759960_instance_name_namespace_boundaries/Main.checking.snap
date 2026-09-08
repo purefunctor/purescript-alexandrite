@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 297
+expression: checking_report
+---
+Terms
+dictionary :: Prim.Int
+classString :: Prim.Int
+test :: Prim.Int
+shadow :: Prim.Int -> Prim.Int
+record :: { local :: Prim.Int }
+
+Types
+Class :: Prim.Type -> Prim.Constraint
+
+Classes
+class forall (a :: Prim.Type). Main.Class a
+
+Instances
+instance Main.Class Prim.Int
+instance Main.Class Prim.String
+instance Main.Class Prim.Boolean

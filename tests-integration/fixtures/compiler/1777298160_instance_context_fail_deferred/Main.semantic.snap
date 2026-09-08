@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface LazyFail :: Prim.Type -> Prim.Constraint
+interface LazyFail a where
+  lazyFail :: a
+
+dictionary lazyFailInt ::
+  { failDict :: Prim.TypeError.Fail (Prim.TypeError.Text "LazyFail") } =>
+  Main.LazyFail Prim.Int
+  where
+  lazyFail :: Prim.Int
+  lazyFail = 42

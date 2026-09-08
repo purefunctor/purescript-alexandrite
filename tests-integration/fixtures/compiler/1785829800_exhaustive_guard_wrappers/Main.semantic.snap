@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+parenthesized :: forall t0. t0 -> t0
+parenthesized = \x -> | true -> x
+
+typed :: forall t0. t0 -> t0
+typed = \x -> | true -> x

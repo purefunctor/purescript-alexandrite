@@ -1,0 +1,49 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+foreign import equalInt :: Prim.Int -> Prim.Int -> Prim.Boolean
+
+foreign import decrementInt :: Prim.Int -> Prim.Int
+
+foreign import constructTick :: Prim.Int -> Effect.Effect Data.Unit.Unit
+
+effectTail :: Prim.Int -> Effect.Effect Prim.Int
+effectTail = \value ->
+  if equalInt value 0 then
+    pure {applicativeEffect} value
+  else
+    discard {discardUnit} {bindEffect} (constructTick value) \_ -> effectTail (decrementInt value)
+
+effectMutualEven :: Prim.Int -> Effect.Effect Prim.Boolean
+effectMutualEven = \value ->
+  if equalInt value 0 then
+    pure {applicativeEffect} true
+  else
+    discard {discardUnit} {bindEffect} (constructTick value) \_ ->
+      effectMutualOdd (decrementInt value)
+
+effectMutualOdd :: Prim.Int -> Effect.Effect Prim.Boolean
+effectMutualOdd = \value ->
+  if equalInt value 0 then
+    pure {applicativeEffect} false
+  else
+    discard {discardUnit} {bindEffect} (constructTick value) \_ ->
+      effectMutualEven (decrementInt value)
+
+effectMixedShort :: Prim.Int -> Effect.Effect Prim.Int
+effectMixedShort = \value ->
+  if equalInt value 0 then
+    pure {applicativeEffect} value
+  else
+    discard {discardUnit} {bindEffect} (constructTick value) \_ ->
+      effectMixedLong (decrementInt value) 0
+
+effectMixedLong :: Prim.Int -> Prim.Int -> Effect.Effect Prim.Int
+effectMixedLong = \value -> \accumulator ->
+  if equalInt value 0 then
+    pure {applicativeEffect} accumulator
+  else
+    discard {discardUnit} {bindEffect} (constructTick value) \_ ->
+      effectMixedShort (decrementInt value)

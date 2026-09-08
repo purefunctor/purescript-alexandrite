@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+foreign import constructEffect :: forall a. Prim.String -> a -> Effect.Effect a
+
+timedAdo :: Prim.String -> Effect.Effect { first :: Prim.String, second :: { seed :: Prim.String } }
+timedAdo = \seed ->
+  apply {applyEffect}
+    (map {functorEffect} (\first second -> { first, second }) (constructEffect "ado-first" seed))
+    (constructEffect "ado-second" { seed })

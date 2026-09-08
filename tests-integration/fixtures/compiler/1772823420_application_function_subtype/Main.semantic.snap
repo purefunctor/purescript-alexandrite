@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface Category :: forall k. (k -> k -> Prim.Type) -> Prim.Constraint
+interface Category a where
+  identity :: forall (t :: k). a t t
+
+dictionary categoryFn :: Main.Category @Prim.Type Prim.Function where
+  identity :: forall t. Prim.Function t t
+  identity = \x -> x
+
+test :: Prim.Function Prim.Int Prim.Int
+test = identity {categoryFn}
+
+test' :: Prim.Int -> Prim.Int
+test' = identity {categoryFn}

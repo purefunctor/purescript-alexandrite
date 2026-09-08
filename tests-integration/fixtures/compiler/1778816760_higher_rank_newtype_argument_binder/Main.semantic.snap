@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+newtype Z3 :: Prim.Type -> Prim.Type -> Prim.Type -> Prim.Type
+newtype Z3 @r @mode @a
+  | Z3 :: Main.Aff a -> Main.Z3 r mode a
+
+newtype Box :: Prim.Type -> Prim.Type
+newtype Box @a
+  | Box :: a -> Main.Box a
+
+run :: forall a. (forall r mode. Main.Z3 r mode a) -> Main.Aff a
+run = \(Z3 m) -> m
+
+unbox :: (forall a. Main.Box a) -> (forall a1. a1)
+unbox = \(Box x) -> x

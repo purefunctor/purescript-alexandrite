@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+describe :: Prim.Array Prim.Int -> Prim.Int
+describe = \[] -> 0
+describe = \[value] -> value
+describe = \[first, second] -> first
+describe = \_ -> 3

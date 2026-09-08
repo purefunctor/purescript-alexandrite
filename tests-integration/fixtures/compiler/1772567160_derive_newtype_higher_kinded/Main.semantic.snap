@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface Empty :: (Prim.Type -> Prim.Type) -> Prim.Constraint
+interface Empty f where
+  empty :: f Prim.Int
+
+newtype Wrapper :: Prim.Type -> Prim.Type
+newtype Wrapper @a
+  | Wrapper :: Prim.Array a -> Main.Wrapper a
+
+dictionary emptyArray :: Main.Empty Prim.Array where
+  empty :: Prim.Array Prim.Int
+  empty = []
+
+dictionary emptyWrapper :: Main.Empty Main.Wrapper = emptyArray

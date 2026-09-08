@@ -1,0 +1,26 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+Tuple :: forall @first @second. first -> second -> Main.Tuple first second
+pure :: forall value. value -> Main.Effect value
+map :: forall value result. (value -> result) -> Main.Effect value -> Main.Effect result
+apply ::
+  forall value result. Main.Effect (value -> result) -> Main.Effect value -> Main.Effect result
+zero :: Main.Effect Prim.Int
+zeroWithLet :: Main.Effect Prim.Int
+one :: Main.Effect Prim.Int
+multiple :: Main.Effect (Main.Tuple Prim.Int Prim.String)
+discarded :: Main.Effect Prim.String
+withLet :: Main.Effect (Main.Tuple Prim.Int Prim.Int)
+nested :: Main.Effect Prim.Int
+
+Types
+Effect :: Prim.Type -> Prim.Type
+Tuple :: Prim.Type -> Prim.Type -> Prim.Type
+
+Roles
+Effect = [Nominal]
+Tuple = [Representational, Representational]

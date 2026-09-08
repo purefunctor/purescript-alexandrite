@@ -1,0 +1,26 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+interface Class :: Prim.Type -> Prim.Constraint
+interface Class a where
+
+dictionary imported :: Main.Class Prim.Int
+
+dictionary classString1 :: Main.Class Prim.String
+
+dictionary local :: Main.Class Prim.Boolean
+
+foreign import dictionary :: Prim.Int
+
+foreign import classString :: Prim.Int
+
+test :: Prim.Int
+test = imported
+
+shadow :: Prim.Int -> Prim.Int
+shadow = \local -> local
+
+record :: { local :: Prim.Int }
+record = { local: dictionary }

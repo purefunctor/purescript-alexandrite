@@ -1,0 +1,30 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export foreign lessThan
+
+@export test = \x%0 ->
+  case x%0 of
+    n%1 ->
+      | lessThan n%1 0 -> 0
+      | otherwise -> n%1
+
+@export test' = \x%2 ->
+  case x%2 of
+    n%3 ->
+      | lessThan n%3 0 -> 0
+      | otherwise -> n%3
+
+@export test2 = \x%4 ->
+  case x%4 of
+    n%5 ->
+      | lessThan n%5 0 -> 0
+      | true -> n%5
+
+@export test2' = \x%6 ->
+  case x%6 of
+    n%7 ->
+      | lessThan n%7 0 -> 0
+      | true -> n%7

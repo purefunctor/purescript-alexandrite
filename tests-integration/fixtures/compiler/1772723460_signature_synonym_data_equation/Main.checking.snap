@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Box :: forall @a. a -> Main.Box a
+
+Types
+UnaryKind :: Prim.Type
+Box :: Main.UnaryKind
+
+Synonyms
+type UnaryKind = Prim.Type -> Prim.Type
+
+Roles
+Box = [Representational]

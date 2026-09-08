@@ -1,0 +1,27 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export instance eqMu = \eq1FDict%0 ->
+  {
+    eq:
+      \left%1 right%2 ->
+        case left%1, right%2 of
+          left0%3, right0%4 ->
+            if eq1 eq1FDict%0 (eqMu eq1FDict%0) left0%3 right0%4 then true else false
+  }
+
+@export instance ordMu = \ord1FDict%5 ->
+  {
+    "Eq0": \() -> eqMu (ord1FDict%5."Eq10"()),
+    compare:
+      \left%6 right%7 ->
+        case left%6, right%7 of
+          left0%8, right0%9 ->
+            case compare1 ord1FDict%5 (ordMu ord1FDict%5) left0%8 right0%9 of
+              EQ ->
+                "EQ"
+              ordering%10 ->
+                ordering%10
+  }

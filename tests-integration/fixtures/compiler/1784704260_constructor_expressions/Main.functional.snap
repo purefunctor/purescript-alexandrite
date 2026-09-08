@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Just/1
+
+@export constructor Nothing/0
+
+@export nothing = "Nothing"

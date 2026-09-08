@@ -1,0 +1,29 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Proxy :: forall kind. kind -> Prim.Type
+data Proxy @value
+  | Proxy :: Main.Proxy value
+
+generatedIdentity :: forall t0. t0 -> t0
+generatedIdentity = \value -> value
+
+generatedConst :: forall t0 t1. t0 -> t1 -> t0
+generatedConst = \first -> \_ -> first
+
+generatedApply :: forall t0 t1. (t0 -> t1) -> t0 -> t1
+generatedApply = \function -> \value -> function value
+
+sourceIdentity :: forall value. value -> value
+sourceIdentity = \value -> value
+
+sourceConst :: forall first second. first -> second -> first
+sourceConst = \first -> \_ -> first
+
+sourceNumeric :: forall t0 t1. t0 -> t1 -> t0
+sourceNumeric = \first -> \_ -> first
+
+sourceShadowed :: forall value. value -> (forall value1. value1 -> value1) -> value
+sourceShadowed = \value -> \_ -> value

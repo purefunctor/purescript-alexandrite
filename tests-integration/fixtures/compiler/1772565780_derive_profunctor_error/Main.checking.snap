@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+WrongFirst :: forall @a @b. a -> b -> Main.WrongFirst a b
+WrongSecond :: forall @a @b. (b -> a) -> Main.WrongSecond a b
+
+Types
+WrongFirst :: Prim.Type -> Prim.Type -> Prim.Type
+WrongSecond :: Prim.Type -> Prim.Type -> Prim.Type
+
+Derived
+derive Data.Profunctor.Profunctor Main.WrongFirst
+derive Data.Profunctor.Profunctor Main.WrongSecond
+
+Roles
+WrongFirst = [Representational, Representational]
+WrongSecond = [Representational, Representational]

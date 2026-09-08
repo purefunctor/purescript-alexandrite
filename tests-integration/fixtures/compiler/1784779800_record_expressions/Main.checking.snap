@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+value :: Prim.Int
+empty :: {}
+explicit :: { a :: Prim.String, z :: Prim.Int }
+punned :: { value :: Prim.Int }
+nested :: { array :: Prim.Array Prim.Int, record :: { boolean :: Prim.Boolean } }
+consume :: { value :: Prim.Int } -> Prim.Int
+application :: Prim.Int
+
+Types

@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+newtype NonEmpty :: Prim.Type -> Prim.Type
+newtype NonEmpty @a
+  | NonEmpty :: Prim.Array a -> Main.NonEmpty a
+
+dictionary showNonEmpty ::
+  forall a.
+  { showDict :: Data.Show.Show a } =>
+  Data.Show.Show (Main.NonEmpty a) = showArray {showDict}

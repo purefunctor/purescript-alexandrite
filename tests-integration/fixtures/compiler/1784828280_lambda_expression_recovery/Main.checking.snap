@@ -1,0 +1,11 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+missingBinder :: Prim.Boolean
+missingBody :: forall t0 t1. t0 -> t1
+missingBinderAndBody :: forall t0. t0
+
+Types

@@ -1,0 +1,46 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Unit/0
+
+@export unit = \$unit%0 ->
+  case $unit%0 of
+    Unit ->
+      1
+    _ ->
+      2
+    Unit ->
+      3
+
+@export constructor Yes/0
+
+@export constructor No/0
+
+@export yes = \$yesNo%1 ->
+  case $yesNo%1 of
+    Yes ->
+      1
+    _ ->
+      2
+    Yes ->
+      3
+
+@export no = \$yesNo%2 ->
+  case $yesNo%2 of
+    Yes ->
+      1
+    _ ->
+      2
+    No ->
+      3
+
+@export yesNo = \$yesNo%3 ->
+  case $yesNo%3 of
+    Yes ->
+      1
+    No ->
+      2
+    _ ->
+      3

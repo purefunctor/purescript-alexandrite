@@ -1,0 +1,8 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export useLacksEmpty = \lacksNameRowDict%1 -> \$proxy%0@(_) -> 0
+
+@export forwardLacksEmpty = \p%2 -> useLacksEmpty <trivial evidence> p%2

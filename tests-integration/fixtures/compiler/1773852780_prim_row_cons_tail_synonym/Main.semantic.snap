@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+mk :: forall a r r' s.
+  Prim.Row.Cons @Prim.Type s a r' (Main.CombinedRow r) =>
+  Type.Proxy.Proxy @Prim.Symbol s ->
+  a ->
+  Type.Proxy.Proxy @(Prim.Row Prim.Type) (Main.CombinedRow r)
+mk = \{consDict} -> \_ -> \_ -> Proxy
+
+test :: forall r. Type.Proxy.Proxy @(Prim.Row Prim.Type) (Main.CombinedRow r)
+test = mk {trivial} Proxy ""
+
+forceSolve :: forall t0. { test :: Type.Proxy.Proxy @(Prim.Row Prim.Type) (Main.CombinedRow t0) }
+forceSolve = { test }

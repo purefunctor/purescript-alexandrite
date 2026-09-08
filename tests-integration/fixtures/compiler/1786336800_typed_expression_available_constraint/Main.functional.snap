@@ -1,0 +1,8 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export value = \dictionary%0 -> dictionary%0.value
+
+@export test = \valueIntDict%1 -> (\valueIntDict%2 -> value valueIntDict%2) valueIntDict%1

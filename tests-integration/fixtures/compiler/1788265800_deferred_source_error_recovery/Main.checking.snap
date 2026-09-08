@@ -1,0 +1,11 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 297
+expression: checking_report
+---
+Terms
+usable :: Prim.Int
+deferred :: Prim.Int -> Prim.Int
+nested :: Prim.Int -> Prim.Int -> Prim.Int
+
+Types

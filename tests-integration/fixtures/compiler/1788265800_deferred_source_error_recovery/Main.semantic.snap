@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+usable :: Prim.Int
+usable = 42
+
+deferred :: Prim.Int -> Prim.Int
+deferred = \_ -> <error>
+
+nested :: Prim.Int -> Prim.Int -> Prim.Int
+nested = \_ -> \_ -> <error>

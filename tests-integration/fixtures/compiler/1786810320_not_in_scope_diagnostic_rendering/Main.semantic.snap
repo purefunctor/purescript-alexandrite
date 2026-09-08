@@ -1,0 +1,31 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+missingVariable :: ?[missing expression]
+missingVariable = <error>
+
+missingConstructor :: ?[missing expression]
+missingConstructor = <error>
+
+missingOperator :: forall t0. t0
+missingOperator = <error>
+
+missingNegate :: ?[missing expression]
+missingNegate = <error>
+
+missingDo :: forall t0 t1. t0 t1
+missingDo = <error> <error> \value -> value
+
+missingDiscard :: forall t0 t1. t0 t1
+missingDiscard = <error> <error> \_ -> <error>
+
+missingAdo :: forall t0 t1. t0 t1
+missingAdo = <error> (<error> (\value second -> value) <error>) <error>
+
+missingPure :: forall t0. t0 Prim.Int
+missingPure = <error> 1
+
+missingType :: ?[missing constructor]
+missingType = <error>

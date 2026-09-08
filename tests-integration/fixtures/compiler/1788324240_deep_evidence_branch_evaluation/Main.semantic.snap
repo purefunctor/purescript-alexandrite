@@ -1,0 +1,51 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+data Proxy :: forall k. k -> Prim.Type
+data Proxy @a
+  | Proxy :: Main.Proxy a
+
+interface Build :: Prim.Int -> Prim.Constraint
+interface Build number where
+  built :: Prim.Int
+
+dictionary buildZero :: Main.Build 0 where
+  built :: Prim.Int
+  built = 0
+
+dictionary buildNext ::
+  forall previous current.
+  { addDict :: Prim.Int.Add previous 1 current } =>
+  { buildDict :: Main.Build previous } =>
+  Main.Build current
+  where
+  built :: Prim.Int
+  built = crash 0
+
+foreign import crash :: Prim.Int -> Prim.Int
+
+buildValue :: forall number. Main.Build number => Main.Proxy @Prim.Int number -> Prim.Int
+buildValue = \{buildDict} -> \_ -> built {buildDict}
+
+evaluateIf :: Prim.Boolean -> Prim.Int
+evaluateIf = \condition ->
+  if condition then
+    buildValue {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildZero}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
+      Proxy
+  else
+    0
+
+evaluateCase :: Prim.Boolean -> Prim.Int
+evaluateCase = \condition ->
+  case condition of
+    true -> buildValue {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildZero}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
+      Proxy
+    false -> 0
+
+evaluateGuard :: Prim.Boolean -> Prim.Int
+evaluateGuard = \condition ->
+  | condition -> buildValue {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildNext {trivial} {buildZero}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
+    Proxy
+  | true -> 0

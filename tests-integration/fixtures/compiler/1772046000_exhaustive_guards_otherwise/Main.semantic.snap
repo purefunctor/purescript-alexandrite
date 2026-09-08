@@ -1,0 +1,23 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Maybe :: Prim.Type -> Prim.Type
+data Maybe @a
+  | Just :: a -> Main.Maybe a
+  | Nothing :: Main.Maybe a
+
+test1 :: forall t0. Prim.Partial => Main.Maybe t0 -> Prim.Int
+test1 = \{partialDict} ->
+  \v21 ->
+    (case v21 of
+      (Just _)
+        | otherwise -> 1) {partialDict}
+
+test2 :: forall t0. Prim.Partial => Main.Maybe t0 -> Prim.Int
+test2 = \{partialDict} ->
+  \v38 ->
+    (case v38 of
+      Nothing
+        | true -> 2) {partialDict}

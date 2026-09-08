@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Unit/0
+
+@export foreign consume
+
+@export test = consume (\value%0 -> 0)

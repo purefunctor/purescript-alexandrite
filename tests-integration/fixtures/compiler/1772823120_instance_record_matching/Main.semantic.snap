@@ -1,0 +1,26 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface Make :: Prim.Type -> Prim.Type -> Prim.Constraint
+interface Make a b where
+  make :: a -> b
+
+interface Convert :: Prim.Type -> Prim.Type -> Prim.Constraint
+interface Convert a b where
+  convert :: a -> b
+
+dictionary makeRecordRecord :: forall r. Main.Make {| r } {| r } where
+  make :: {| r } -> {| r }
+  make = \x -> x
+
+testMake :: { a :: Prim.Int, b :: Prim.String } -> { a :: Prim.Int, b :: Prim.String }
+testMake = make {makeRecordRecord}
+
+dictionary convertRecordRecordRow :: forall r. Main.Convert {| r } { converted :: {| r } } where
+  convert :: {| r } -> { converted :: {| r } }
+  convert = \x -> { converted: x }
+
+testConvert :: { x :: Prim.Int } -> { converted :: { x :: Prim.Int } }
+testConvert = convert {convertRecordRecordRow}

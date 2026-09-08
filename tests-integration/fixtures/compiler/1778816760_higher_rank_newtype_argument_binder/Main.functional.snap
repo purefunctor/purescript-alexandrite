@@ -1,0 +1,8 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export run = \m%0 -> m%0
+
+@export unbox = \x%1 -> x%1

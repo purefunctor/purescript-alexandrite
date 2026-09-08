@@ -1,0 +1,21 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Nested/1
+
+@export instance profunctorNestedTypeType = \profunctorPDict%0 ->
+  {
+    dimap:
+      \firstFunction%1 secondFunction%2 value%3 ->
+        case value%3 of
+          Nested field0%4 ->
+            {
+              tag: "Nested",
+              _1:
+                dimap profunctorPDict%0 (\element%5 -> firstFunction%1 element%5)
+                  (\element%6 -> secondFunction%2 element%6)
+                  field0%4
+            }
+  }

@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface MyClass :: Prim.Type -> Prim.Constraint
+interface MyClass a where
+  method :: a -> Prim.Int
+
+dictionary myClassInt :: Main.MyClass Prim.Int where
+  method :: Prim.Int -> Prim.Int
+  method = \_ -> 42
+
+test :: forall a. Main.MyClass a => a -> Prim.Int
+test = \{myClassDict} -> \x ->
+  let
+    bar :: a -> Prim.Int
+    bar = \y -> method {myClassDict} y
+    baz :: Main.MyClass Prim.Int => Prim.Int
+    baz = \{myClassDict1} -> method {myClassDict1} 42
+  in
+    bar x

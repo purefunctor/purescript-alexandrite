@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Pair :: forall @a @b. a -> b -> Main.Pair a b
+Nested :: forall @a @b. Main.Pair a b -> Main.Nested a b
+
+Types
+Pair :: Prim.Type -> Prim.Type -> Prim.Type
+Nested :: Prim.Type -> Prim.Type -> Prim.Type
+
+Derived
+derive Data.Bifunctor.Bifunctor Main.Pair
+derive Data.Profunctor.Profunctor Main.Nested
+
+Roles
+Pair = [Representational, Representational]
+Nested = [Representational, Representational]

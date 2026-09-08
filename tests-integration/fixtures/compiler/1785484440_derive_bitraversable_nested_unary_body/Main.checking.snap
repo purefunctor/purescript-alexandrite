@@ -1,0 +1,34 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+Wrap ::
+  forall t0 t1 (@f :: t0 -> Prim.Type) (@g :: t1 -> Prim.Type) (@a :: t0) (@b :: t1).
+    (f :: t0 -> Prim.Type) (a :: t0) ->
+    (g :: t1 -> Prim.Type) (b :: t1) ->
+    Main.Wrap @t0 @t1 (f :: t0 -> Prim.Type) (g :: t1 -> Prim.Type) (a :: t0) (b :: t1)
+
+Types
+Wrap :: forall t0 t1. (t0 -> Prim.Type) -> (t1 -> Prim.Type) -> t0 -> t1 -> Prim.Type
+
+Derived
+derive forall (f :: Prim.Type -> Prim.Type) (g :: Prim.Type -> Prim.Type).
+  Data.Functor.Functor (f :: Prim.Type -> Prim.Type) =>
+  Data.Functor.Functor (g :: Prim.Type -> Prim.Type) =>
+  Data.Bifunctor.Bifunctor
+    (Main.Wrap @Prim.Type @Prim.Type (f :: Prim.Type -> Prim.Type) (g :: Prim.Type -> Prim.Type))
+derive forall (f :: Prim.Type -> Prim.Type) (g :: Prim.Type -> Prim.Type).
+  Data.Foldable.Foldable (f :: Prim.Type -> Prim.Type) =>
+  Data.Foldable.Foldable (g :: Prim.Type -> Prim.Type) =>
+  Data.Bifoldable.Bifoldable
+    (Main.Wrap @Prim.Type @Prim.Type (f :: Prim.Type -> Prim.Type) (g :: Prim.Type -> Prim.Type))
+derive forall (f :: Prim.Type -> Prim.Type) (g :: Prim.Type -> Prim.Type).
+  Data.Traversable.Traversable (f :: Prim.Type -> Prim.Type) =>
+  Data.Traversable.Traversable (g :: Prim.Type -> Prim.Type) =>
+  Data.Bitraversable.Bitraversable
+    (Main.Wrap @Prim.Type @Prim.Type (f :: Prim.Type -> Prim.Type) (g :: Prim.Type -> Prim.Type))
+
+Roles
+Wrap = [Representational, Representational, Nominal, Nominal]

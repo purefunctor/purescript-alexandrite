@@ -1,0 +1,23 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+termHole :: Prim.Int -> Prim.Int
+recordPunHole :: { punInt :: Prim.Int, punString :: Prim.String } -> Prim.Int
+instanceTypeHoleMember :: forall @implicit. Main.InstanceTypeHole implicit => implicit -> implicit
+
+Types
+TypeHole :: forall t0. t0 -> Prim.Type
+InstanceTypeHole :: Prim.Type -> Prim.Constraint
+
+Synonyms
+type TypeHole a = ?3
+
+Classes
+class forall (implicit :: Prim.Type). Main.InstanceTypeHole implicit
+  instanceTypeHoleMember :: forall @implicit. Main.InstanceTypeHole implicit => implicit -> implicit
+
+Instances
+instance forall implicit. Main.InstanceTypeHole implicit

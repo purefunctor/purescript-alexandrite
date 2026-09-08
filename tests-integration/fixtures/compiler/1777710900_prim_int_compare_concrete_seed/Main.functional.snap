@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export assertGreater = \compareLRGTDict%0 -> "Proxy"
+
+@export assertLesser = \compareLRLTDict%1 -> "Proxy"
+
+@export weakenZeroToNegOne = \compareHGTDict%2 -> assertGreater <trivial evidence>
+
+@export weakenZeroToNegTwo = \compareHGTDict%3 -> assertGreater <trivial evidence>
+
+@export weakenZeroLT = \compareHLTDict%4 -> assertLesser <trivial evidence>
+
+@export chainAbstractAndConcrete = \compareHKGTDict%5 compareKGTDict%6 ->
+  assertGreater <trivial evidence>

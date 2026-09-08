@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Error! · [NoInstanceFound] · Main.purs:44:1
+  •
+  │
+  • No instance found for: Discard (m :: Type -> Type)
+  │
+  │   testDoDiscard :: forall m. Monad m => m Int
+  │   ╰──────────────────────────────────────────
+  • while
+  │
+  │   Monad (m :: Type -> Type) is in scope
+  │   Bind (m :: Type -> Type) is in scope
+  │   Applicative (m :: Type -> Type) is in scope
+  │   Apply (m :: Type -> Type) is in scope
+  │   Functor (m :: Type -> Type) is in scope
+  •

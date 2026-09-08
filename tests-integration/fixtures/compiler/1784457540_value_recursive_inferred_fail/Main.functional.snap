@@ -1,0 +1,8 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export guardedFailure = \failTextDict%0 -> 0
+
+@export recursive[1] test = if true then test else guardedFailure (<error>)

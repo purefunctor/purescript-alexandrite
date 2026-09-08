@@ -1,0 +1,52 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Maybe :: Prim.Type -> Prim.Type
+data Maybe @a
+  | Just :: a -> Main.Maybe a
+  | Nothing :: Main.Maybe a
+
+data Id :: Prim.Type
+data Id
+  | MkId :: (forall a. a -> a) -> Main.Id
+
+identity :: forall a. Main.Maybe (a -> a)
+identity = Nothing
+
+test :: Prim.Partial => Prim.Int
+test = \{partialDict} ->
+  case identity of
+    (Just f) -> let
+      _ = f 42
+    in
+      f true
+
+test2 :: Main.Id -> Prim.Boolean
+test2 = \x ->
+  case x of
+    (MkId f) -> let
+      _ = f 42
+    in
+      f true
+
+test3 :: Prim.Partial => Prim.Int
+test3 = \{partialDict} ->
+  let
+    (Just f) = identity
+  in
+    let
+      _ = f 42
+    in
+      f true
+
+test4 :: Main.Id -> Prim.Boolean
+test4 = \x ->
+  let
+    (MkId f) = x
+  in
+    let
+      _ = f 42
+    in
+      f true

@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Cons/2
+
+@export constructor Nil/0
+
+@export first = \$list%1@(Cons value%0 _) -> value%0
+
+@export second = \$list%3@(Cons _ (Cons value%2 _)) -> value%2
+
+@export inferred = \partialDict%6 -> \$list%5@(Cons value%4 _) -> value%4
+
+@export constructor Empty/0
+
+@export constructor Snoc/2
+
+@export second' = \$snoc%8@(Snoc (Snoc _ value%7) _) -> value%7

@@ -1,0 +1,35 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Tuple/2
+
+@export instance eqTuple = \eqADict%0 eqBDict%1 ->
+  {
+    eq:
+      \left%2 right%3 ->
+        case left%2, right%3 of
+          Tuple left0%4 left1%5, Tuple right0%6 right1%7 ->
+            if eq eqADict%0 left0%4 right0%6
+              then if eq eqBDict%1 left1%5 right1%7 then true else false
+              else false
+  }
+
+@export instance ordTuple = \ordADict%8 ordBDict%9 ->
+  {
+    "Eq0": \() -> eqTuple (ordADict%8."Eq0"()) (ordBDict%9."Eq0"()),
+    compare:
+      \left%10 right%11 ->
+        case left%10, right%11 of
+          Tuple left0%12 left1%13, Tuple right0%14 right1%15 ->
+            case compare ordADict%8 left0%12 right0%14 of
+              EQ ->
+                case compare ordBDict%9 left1%13 right1%15 of
+                  EQ ->
+                    "EQ"
+                  ordering%16 ->
+                    ordering%16
+              ordering%17 ->
+                ordering%17
+  }

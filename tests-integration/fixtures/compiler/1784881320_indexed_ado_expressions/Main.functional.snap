@@ -1,0 +1,32 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export instance onZero = {  }
+
+@export instance onTwo = {  }
+
+@export instance onDefault = {  }
+
+@export foreign map
+
+@export foreign apply
+
+@export foreign pure
+
+@export foreign stepZero
+
+@export foreign stepOne
+
+@export foreign stepTwo
+
+@export foreign stepThree
+
+@export indexedApply = apply onDefault
+  (apply onTwo
+    (apply onDefault (map onZero (\zero%0 one%1 two%2 three%3 -> three%3) stepZero) stepOne)
+    stepTwo)
+  stepThree
+
+@export indexedPure = pure onTwo 1

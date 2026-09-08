@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface First :: forall k0. k0 -> Prim.Constraint
+interface First a where
+
+interface Second :: forall k0. k0 -> Prim.Constraint
+interface Second a where
+
+dictionary firstTypeInt :: Main.First @Prim.Type Prim.Int
+
+dictionary secondTypeBoolean :: Main.Second @Prim.Type Prim.Boolean
+
+foreign import interleaved :: forall a. Main.First @Prim.Type a => (forall b. Main.Second @Prim.Type b => a -> b -> Prim.String)
+
+test :: Prim.String
+test = interleaved {firstTypeInt} {secondTypeBoolean} 1 true

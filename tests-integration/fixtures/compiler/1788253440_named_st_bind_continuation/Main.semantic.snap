@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+namedContinuation :: forall region. Data.Unit.Unit -> Control.Monad.ST.Internal.ST region Prim.Int
+namedContinuation = \_ -> pure {applicativeST} 42
+
+namedBind :: forall region. Data.Unit.Unit -> Control.Monad.ST.Internal.ST region Prim.Int
+namedBind = \_ -> bind {bindST} (pure {applicativeST} unit) namedContinuation
+
+runNamedBind :: Data.Unit.Unit -> Prim.Int
+runNamedBind = \_ -> run (namedBind unit)

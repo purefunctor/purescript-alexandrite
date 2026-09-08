@@ -1,0 +1,39 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Box/1
+
+@export instance eqBox = {
+  eq:
+    \left%0 right%1 ->
+      case left%0, right%1 of
+        Box left0%2, Box right0%3 ->
+          if eq
+            (eqRec
+              <trivial evidence>
+              (eqRowCons eqRowNil <trivial evidence> (symbol "value") eqInt))
+            left0%2
+            right0%3
+            then true
+            else false
+}
+
+@export instance ordBox = {
+  "Eq0": \() -> eqBox,
+  compare:
+    \left%4 right%5 ->
+      case left%4, right%5 of
+        Box left0%6, Box right0%7 ->
+          case compare
+            (ordRecord
+              <trivial evidence>
+              (ordRecordCons ordRecordNil <trivial evidence> (symbol "value") ordInt))
+            left0%6
+            right0%7 of
+            EQ ->
+              "EQ"
+            ordering%8 ->
+              ordering%8
+}

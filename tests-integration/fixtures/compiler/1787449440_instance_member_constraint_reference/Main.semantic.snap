@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+newtype Wrapper :: Prim.Type -> Prim.Type
+newtype Wrapper @a
+  | Wrapper :: a -> Main.Wrapper a
+
+unwrap :: forall a. Main.Wrapper a -> a
+unwrap = \(Wrapper value) -> value
+
+dictionary eqWrapper :: forall a. { eqDict :: Data.Eq.Eq a } => Data.Eq.Eq (Main.Wrapper a) where
+  eq :: Main.Wrapper a -> Main.Wrapper a -> Prim.Boolean
+  eq = on (eq {eqDict}) unwrap

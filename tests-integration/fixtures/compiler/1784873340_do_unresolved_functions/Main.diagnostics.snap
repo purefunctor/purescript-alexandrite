@@ -1,0 +1,49 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: diagnostics_report
+---
+Error! · [NotInScope] · Main.purs:3:18
+  •
+  │
+  • 'bind' is not in scope
+  │
+  │   unresolvedBind = do
+  │                    ╰─
+  •
+
+Error! · [NotInScope] · Main.purs:7:21
+  •
+  │
+  • 'discard' is not in scope
+  │
+  │   unresolvedDiscard = do
+  │                       ╰─
+  •
+
+Error! · [CannotUnify] · Main.purs:4:3
+  •
+  │
+  • Cannot unify 'Int' with '(t0 :: Type -> Type) ((t0 :: Type -> Type) t1)'
+  │
+  │     value <- 1
+  │     ╰─────────
+  •
+
+Error! · [CannotUnify] · Main.purs:8:3
+  •
+  │
+  • Cannot unify 'Int' with '(t2 :: Type -> Type) ?15'
+  │
+  │     1
+  │     ╰
+  •
+
+Error! · [CannotUnify] · Main.purs:9:3
+  •
+  │
+  • Cannot unify 'Int' with '(t2 :: Type -> Type) t3'
+  │
+  │     2
+  │     ╰
+  •

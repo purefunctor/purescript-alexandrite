@@ -1,0 +1,21 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+nonAssociative :: forall t0 t1. t0 -> t1 -> t0
+<=> :: forall t0 t1. t0 -> t1 -> t0
+singleNonAssociative :: Prim.Int
+ambiguousNonAssociative :: Prim.Int
+leftAssociative :: forall t0 t1. t0 -> t1 -> t0
+rightAssociative :: forall t0 t1. t0 -> t1 -> t1
+<+> :: forall t0 t1. t0 -> t1 -> t0
+<*> :: forall t0 t1. t0 -> t1 -> t1
+<**> :: forall t0 t1. t0 -> t1 -> t1
+validLeftAssociative :: Prim.Int
+validRightAssociative :: Prim.Int
+validMixedPrecedence :: Prim.Int
+ambiguousMixedAssociativity :: Prim.Int
+
+Types

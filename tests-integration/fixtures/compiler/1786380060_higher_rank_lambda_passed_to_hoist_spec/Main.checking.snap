@@ -1,0 +1,60 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+# :: forall a b. a -> (a -> b) -> b
+Unit :: Main.Unit
+First :: forall @a. Main.First a
+Second :: forall @a. Main.Second a
+Third :: forall @a. Main.Third a
+SpecT ::
+  forall (@effect :: Prim.Type -> Prim.Type) (@monad :: Prim.Type -> Prim.Type).
+    Main.SpecT (effect :: Prim.Type -> Prim.Type) (monad :: Prim.Type -> Prim.Type)
+identity :: forall a. a -> a
+apply :: forall a b. a -> (a -> b) -> b
+describe ::
+  forall (effect :: Prim.Type -> Prim.Type) (monad :: Prim.Type -> Prim.Type).
+    Prim.String ->
+    Main.SpecT (effect :: Prim.Type -> Prim.Type) (monad :: Prim.Type -> Prim.Type) ->
+    Main.SpecT (effect :: Prim.Type -> Prim.Type) (monad :: Prim.Type -> Prim.Type)
+it ::
+  forall (effect :: Prim.Type -> Prim.Type) (monad :: Prim.Type -> Prim.Type).
+    Prim.String ->
+    (effect :: Prim.Type -> Prim.Type) Main.Unit ->
+    Main.SpecT (effect :: Prim.Type -> Prim.Type) (monad :: Prim.Type -> Prim.Type)
+hoistSpec ::
+  forall (first :: Prim.Type -> Prim.Type) (second :: Prim.Type -> Prim.Type)
+    (monad :: Prim.Type -> Prim.Type) (monad' :: Prim.Type -> Prim.Type).
+    Main.NaturalTransformation @Prim.Type
+      (monad :: Prim.Type -> Prim.Type)
+      (monad' :: Prim.Type -> Prim.Type) ->
+    (Main.Unit ->
+    Main.NaturalTransformation @Prim.Type
+      (first :: Prim.Type -> Prim.Type)
+      (second :: Prim.Type -> Prim.Type)) ->
+    Main.SpecT (first :: Prim.Type -> Prim.Type) (monad :: Prim.Type -> Prim.Type) ->
+    Main.SpecT (second :: Prim.Type -> Prim.Type) (monad' :: Prim.Type -> Prim.Type)
+catchFirst :: Main.NaturalTransformation @Prim.Type Main.First Main.Second
+catchSecond :: Main.NaturalTransformation @Prim.Type Main.Second Main.Third
+runExample :: Main.First Main.Unit
+spec :: Main.SpecT Main.Third Main.First
+
+Types
+Unit :: Prim.Type
+First :: Prim.Type -> Prim.Type
+Second :: Prim.Type -> Prim.Type
+Third :: Prim.Type -> Prim.Type
+SpecT :: (Prim.Type -> Prim.Type) -> (Prim.Type -> Prim.Type) -> Prim.Type
+NaturalTransformation :: forall t0. (t0 -> Prim.Type) -> (t0 -> Prim.Type) -> Prim.Type
+
+Synonyms
+type NaturalTransformation f g = forall (a :: t0). (f :: t0 -> Prim.Type) (a :: t0) -> (g :: t0 -> Prim.Type) (a :: t0)
+
+Roles
+Unit = []
+First = [Phantom]
+Second = [Phantom]
+Third = [Phantom]
+SpecT = [Phantom, Phantom]

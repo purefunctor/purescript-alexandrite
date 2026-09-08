@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Warning! · [MissingPatterns] · Main.purs:3:1
+  •
+  │
+  • Pattern match is not exhaustive. Missing: _
+  │
+  │   testNonExhaustive :: Array Int -> Int
+  │   ╰────────────────────────────────────
+  •
+
+Warning! · [RedundantPattern] · Main.purs:7:1
+  •
+  │
+  • Pattern match has redundant patterns: [_]
+  │
+  │   testRedundant :: Array Int -> Int
+  │   ╰────────────────────────────────
+  •

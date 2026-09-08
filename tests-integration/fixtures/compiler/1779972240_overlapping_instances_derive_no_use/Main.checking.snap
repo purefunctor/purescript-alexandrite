@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Box :: Main.Box
+
+Types
+Box :: Prim.Type
+
+Instances
+instance Data.Eq.Eq Main.Box
+
+Derived
+derive Data.Eq.Eq Main.Box
+
+Roles
+Box = []

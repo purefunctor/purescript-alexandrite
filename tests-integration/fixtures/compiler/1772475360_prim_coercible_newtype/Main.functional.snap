@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export wrapAge = coerce <trivial evidence>
+
+@export unwrapAge = coerce <trivial evidence>
+
+@export wrapValue = coerce <trivial evidence>
+
+@export unwrapValue = coerce <trivial evidence>

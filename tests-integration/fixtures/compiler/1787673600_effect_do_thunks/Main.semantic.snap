@@ -1,0 +1,40 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+foreign import constructEffect :: forall a. Prim.String -> a -> Effect.Effect a
+
+foreign import mark :: forall a. Prim.String -> a -> a
+
+chained :: Prim.String -> Effect.Effect { first :: Prim.String, second :: { first :: Prim.String } }
+chained = \seed ->
+  bind {bindEffect} (constructEffect "first" seed) \first ->
+    let
+      secondInput :: { first :: Prim.String }
+      secondInput = { first }
+    in
+      bind {bindEffect} (constructEffect "second" secondInput) \second ->
+        let
+          result :: { first :: Prim.String, second :: { first :: Prim.String } }
+          result = { first, second }
+        in
+          constructEffect "third" result
+
+discarded :: Prim.String -> Effect.Effect Prim.String
+discarded = \seed ->
+  discard {discardUnit} {bindEffect} (constructEffect "discard-first" unit) \_ ->
+    let
+      result :: Prim.String
+      result = mark "discard-let" seed
+    in
+      constructEffect "discard-second" result
+
+pureAfterBind :: Prim.String -> Effect.Effect { value :: Prim.String }
+pureAfterBind = \seed ->
+  bind {bindEffect} (constructEffect "pure-action" seed) \value ->
+    let
+      result :: { value :: Prim.String }
+      result = { value }
+    in
+      pure {applicativeEffect} (mark "pure-body" result)

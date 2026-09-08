@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+identity :: forall a. a -> a
+record :: { function :: Prim.Int -> Prim.Int, nested :: { value :: Prim.Int } }
+direct :: { value :: Prim.Int }
+chained :: Prim.Int
+functionPosition :: Prim.Int
+argument :: { value :: Prim.Int }
+applicationBase :: Prim.Int
+
+Types

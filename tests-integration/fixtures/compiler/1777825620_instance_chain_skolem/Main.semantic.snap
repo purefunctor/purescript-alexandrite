@@ -1,0 +1,29 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface Step :: Prim.Type -> Prim.Type -> Prim.Type -> Prim.Type -> Prim.Constraint
+interface Step f a x a' where
+  step :: f -> a -> x -> a'
+
+interface Done :: Prim.Type -> Prim.Type -> Prim.Type -> Prim.Constraint
+interface Done f a x where
+  done :: f -> a -> x
+
+interface Walk :: Prim.Type -> Prim.Type -> Prim.Type -> Prim.Constraint
+interface Walk f a r where
+  walk :: f -> a -> r
+
+dictionary walkArg ::
+  forall f a x a' xs.
+  { stepDict :: Main.Step f a x a' } =>
+  { walkDict :: Main.Walk f a' xs } =>
+  Main.Walk f a (x -> xs)
+  where
+  walk :: f -> a -> x -> xs
+  walk = \f -> \a -> \x -> walk {walkDict} f (step {stepDict} f a x)
+
+dictionary walkBase :: forall f a x. { doneDict :: Main.Done f a x } => Main.Walk f a x where
+  walk :: f -> a -> x
+  walk = done {doneDict}

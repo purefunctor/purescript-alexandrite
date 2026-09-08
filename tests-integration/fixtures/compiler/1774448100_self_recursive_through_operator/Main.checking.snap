@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Nil :: forall @a. Main.List a
+Cons :: forall @a. Main.List a -> Main.List a
+append :: forall a. Main.List a -> Main.List Prim.Int -> Main.List a
+<+> :: forall a. Main.List a -> Main.List Prim.Int -> Main.List a
+
+Types
+List :: Prim.Type -> Prim.Type
+
+Roles
+List = [Representational]

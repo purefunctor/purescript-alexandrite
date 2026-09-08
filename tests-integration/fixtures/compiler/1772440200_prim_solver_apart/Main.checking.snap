@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+invalidAdd :: Prim.Int.Add 2 3 10 => Type.Proxy.Proxy @Prim.Int 10
+invalidCompare ::
+  Prim.Int.Compare 5 1 Prim.Ordering.LT => Type.Proxy.Proxy @Prim.Ordering.Ordering Prim.Ordering.LT
+invalidAppend :: Prim.Symbol.Append "hello" "world" "xyz" => Type.Proxy.Proxy @Prim.Symbol "xyz"
+invalidCons ::
+  Prim.Symbol.Cons "hello" "world" "helloworld" => Type.Proxy.Proxy @Prim.Symbol "world"
+forceSolve ::
+  { invalidAdd :: Type.Proxy.Proxy @Prim.Int 10
+  , invalidAppend :: Type.Proxy.Proxy @Prim.Symbol "xyz"
+  , invalidCompare :: Type.Proxy.Proxy @Prim.Ordering.Ordering Prim.Ordering.LT
+  , invalidCons :: Type.Proxy.Proxy @Prim.Symbol "world"
+  }
+
+Types

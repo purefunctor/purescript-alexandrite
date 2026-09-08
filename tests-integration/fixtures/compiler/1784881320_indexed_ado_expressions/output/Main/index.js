@@ -1,0 +1,13 @@
+import * as $foreign from "./foreign.js";
+export const map = $foreign["map"];
+export const apply = $foreign["apply"];
+export const pure = $foreign["pure"];
+export const stepZero = $foreign["stepZero"];
+export const stepOne = $foreign["stepOne"];
+export const stepTwo = $foreign["stepTwo"];
+export const stepThree = $foreign["stepThree"];
+export const onZero = {};
+export const onTwo = {};
+export const onDefault = {};
+export const indexedApply = /* @__PURE__ */ apply(onDefault)(/* @__PURE__ */ apply(onTwo)(/* @__PURE__ */ apply(onDefault)(/* @__PURE__ */ map(onZero)((zero) => (one) => (two) => (three) => three)(stepZero))(stepOne))(stepTwo))(stepThree);
+export const indexedPure = /* @__PURE__ */ pure(onTwo)(1 | 0);

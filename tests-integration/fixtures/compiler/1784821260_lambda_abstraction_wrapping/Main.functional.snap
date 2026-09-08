@@ -1,0 +1,9 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export identity = \value%0 -> value%0
+
+@export wrap = \firstArgument%1 secondArgument%2 thirdArgument%3 fourthArgument%4 fifthArgument%5 sixthArgument%6 ->
+  firstArgument%1

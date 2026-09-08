@@ -1,0 +1,32 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+newtype Age :: Prim.Type
+newtype Age
+  | Age :: Prim.Int -> Main.Age
+
+data Proxy :: forall k0. k0 -> Prim.Type
+data Proxy @a
+  | Proxy :: Main.Proxy a
+
+data Maybe :: Prim.Type -> Prim.Type
+data Maybe @a
+  | Nothing :: Main.Maybe a
+  | Just :: a -> Main.Maybe a
+
+coerceProxy :: Main.Proxy @Prim.Type Prim.Int -> Main.Proxy @Prim.Type Prim.String
+coerceProxy = coerce {trivial}
+
+coerceMaybe :: Main.Maybe Main.Age -> Main.Maybe Prim.Int
+coerceMaybe = coerce {trivial}
+
+coerceMaybeReverse :: Main.Maybe Prim.Int -> Main.Maybe Main.Age
+coerceMaybeReverse = coerce {trivial}
+
+coerceRecord :: { age :: Main.Age, name :: Prim.String } -> { age :: Prim.Int, name :: Prim.String }
+coerceRecord = coerce {trivial}
+
+coerceFunction :: (Prim.Int -> Main.Age) -> Prim.Int -> Prim.Int
+coerceFunction = coerce {trivial}

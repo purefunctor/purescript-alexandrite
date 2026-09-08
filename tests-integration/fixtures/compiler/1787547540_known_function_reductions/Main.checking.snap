@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 297
+expression: checking_report
+---
+Terms
+observe :: forall value. Prim.String -> value -> value
+readTrace :: Prim.Boolean -> Prim.Array Prim.String
+directApply :: Prim.Int
+directApplyOrder :: Prim.Boolean -> Prim.Int
+flippedApply :: Prim.Int
+flippedApplyOrder :: Prim.Boolean -> Prim.Int
+lookalikeApply :: Prim.Int
+
+Types

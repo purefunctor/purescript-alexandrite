@@ -1,0 +1,112 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Nil/0
+
+@export constructor Cons/2
+
+@export instance eqList = \eqADict%0 ->
+  {
+    eq:
+      \left%1 right%2 ->
+        case left%1, right%2 of
+          Nil, Nil ->
+            true
+          Cons left0%3 left1%4, Cons right0%5 right1%6 ->
+            if eq eqADict%0 left0%3 right0%5
+              then if eq (eqList eqADict%0) left1%4 right1%6 then true else false
+              else false
+          _, _ ->
+            false
+  }
+
+@export instance eq1List = { eq1: \eqADict%7 -> eq (eqList eqADict%7) }
+
+@export instance ordList = \ordADict%8 ->
+  {
+    "Eq0": \() -> eqList (ordADict%8."Eq0"()),
+    compare:
+      \left%9 right%10 ->
+        case left%9, right%10 of
+          Nil, Nil ->
+            "EQ"
+          Nil, _ ->
+            "LT"
+          _, Nil ->
+            "GT"
+          Cons left0%11 left1%12, Cons right0%13 right1%14 ->
+            case compare ordADict%8 left0%11 right0%13 of
+              EQ ->
+                case compare (ordList ordADict%8) left1%12 right1%14 of
+                  EQ ->
+                    "EQ"
+                  ordering%15 ->
+                    ordering%15
+              ordering%16 ->
+                ordering%16
+  }
+
+@export instance ord1List = {
+  "Eq10": \() -> eq1List,
+  compare1: \ordADict%17 -> compare (ordList ordADict%17)
+}
+
+@export constructor Leaf/1
+
+@export constructor Branch/2
+
+@export instance eqTree = \eqADict%18 ->
+  {
+    eq:
+      \left%19 right%20 ->
+        let
+          eqTreeDict%27 = eqTree eqADict%18
+        in case left%19, right%20 of
+          Leaf left0%21, Leaf right0%22 ->
+            if eq eqADict%18 left0%21 right0%22 then true else false
+          Branch left0%23 left1%24, Branch right0%25 right1%26 ->
+            if eq eqTreeDict%27 left0%23 right0%25
+              then if eq eqTreeDict%27 left1%24 right1%26 then true else false
+              else false
+          _, _ ->
+            false
+  }
+
+@export instance eq1Tree = { eq1: \eqADict%28 -> eq (eqTree eqADict%28) }
+
+@export instance ordTree = \ordADict%29 ->
+  {
+    "Eq0": \() -> eqTree (ordADict%29."Eq0"()),
+    compare:
+      \left%30 right%31 ->
+        let
+          ordTreeDict%39 = ordTree ordADict%29
+        in case left%30, right%31 of
+          Leaf left0%32, Leaf right0%33 ->
+            case compare ordADict%29 left0%32 right0%33 of
+              EQ ->
+                "EQ"
+              ordering%34 ->
+                ordering%34
+          Leaf _, _ ->
+            "LT"
+          _, Leaf _ ->
+            "GT"
+          Branch left0%35 left1%36, Branch right0%37 right1%38 ->
+            case compare ordTreeDict%39 left0%35 right0%37 of
+              EQ ->
+                case compare ordTreeDict%39 left1%36 right1%38 of
+                  EQ ->
+                    "EQ"
+                  ordering%40 ->
+                    ordering%40
+              ordering%41 ->
+                ordering%41
+  }
+
+@export instance ord1Tree = {
+  "Eq10": \() -> eq1Tree,
+  compare1: \ordADict%42 -> compare (ordTree ordADict%42)
+}

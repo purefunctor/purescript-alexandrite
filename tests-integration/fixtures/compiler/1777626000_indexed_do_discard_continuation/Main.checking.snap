@@ -1,0 +1,26 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Unit :: Main.Unit
+pure :: forall hooks a. a -> Main.Render hooks hooks a
+discard :: forall a b x y z. Main.Render x y a -> (a -> Main.Render y z b) -> Main.Render x z b
+use1 :: forall hooks. Main.Render hooks (Main.Use1 hooks) Main.Unit
+use2 :: forall hooks. Main.Render hooks (Main.Use2 hooks) Main.Unit
+test :: Main.Render Main.Start (Main.Use2 (Main.Use1 Main.Start)) Main.Unit
+
+Types
+Render :: Prim.Type -> Prim.Type -> Prim.Type -> Prim.Type
+Unit :: Prim.Type
+Start :: Prim.Type
+Use1 :: Prim.Type -> Prim.Type
+Use2 :: Prim.Type -> Prim.Type
+
+Roles
+Render = [Nominal, Nominal, Nominal]
+Unit = []
+Start = []
+Use1 = [Phantom]
+Use2 = [Phantom]

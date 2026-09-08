@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 298
+expression: diagnostics_report
+---
+Error! · [JavaScriptInitializerCycle] · Main.purs:6:1
+  •
+  │
+  • This declaration is cyclic with other declarations
+  │
+  │   second :: Int
+  │   ╰────────────
+  │
+  • This declaration is a member of the same cycle
+  │
+  │   first :: Int
+  │   ╰───────────
+  •

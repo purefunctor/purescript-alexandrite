@@ -1,0 +1,28 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Box :: Prim.Type -> Prim.Type
+data Box @a
+  | Box :: a -> Main.Box a
+
+interface Route :: Prim.Type -> Prim.Constraint
+interface Route route where
+  method :: Main.Box route
+
+routeCase :: forall @route. Main.Route route => route
+routeCase = \{routeDict} ->
+  case method {routeDict} of
+    (Box value) -> value
+
+routeLet :: forall @route. Main.Route route => route
+routeLet = \{routeDict} ->
+  let
+    (Box value) = method {routeDict}
+  in
+    value
+
+routeGuard :: forall @route. Main.Route route => route
+routeGuard = \{routeDict} -> | (Box value) <- method {routeDict} -> value
+routeGuard = \{routeDict} -> routeCase {routeDict}

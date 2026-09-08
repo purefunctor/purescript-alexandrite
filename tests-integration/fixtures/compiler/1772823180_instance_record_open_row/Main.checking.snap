@@ -1,0 +1,31 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+clone :: forall @a @b. Main.Clone a b => a -> b
+testClonePerson ::
+  { age :: Prim.Int, name :: Prim.String } -> { age :: Prim.Int, name :: Prim.String }
+testCloneEmpty :: {} -> {}
+testCloneSingle :: { x :: Prim.Int } -> { x :: Prim.Int }
+nest :: forall @a @b. Main.Nest a b => a -> b
+testNest :: { a :: Prim.String } -> { inner :: { a :: Prim.String }, outer :: Prim.Int }
+
+Types
+Clone :: Prim.Type -> Prim.Type -> Prim.Constraint
+Nest :: Prim.Type -> Prim.Type -> Prim.Constraint
+
+Classes
+class forall (a :: Prim.Type) (b :: Prim.Type). Main.Clone a b
+  clone :: forall @a @b. Main.Clone a b => a -> b
+class forall (a :: Prim.Type) (b :: Prim.Type). Main.Nest a b
+  nest :: forall @a @b. Main.Nest a b => a -> b
+
+Instances
+instance forall (r :: Prim.Row Prim.Type).
+  Main.Clone {| (r :: Prim.Row Prim.Type) } {| (r :: Prim.Row Prim.Type) }
+instance forall (r :: Prim.Row Prim.Type).
+  Main.Nest
+    {| (r :: Prim.Row Prim.Type) }
+    { inner :: {| (r :: Prim.Row Prim.Type) }, outer :: Prim.Int }

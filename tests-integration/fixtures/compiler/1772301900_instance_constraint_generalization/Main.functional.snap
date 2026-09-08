@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export eq = \dictionary%0 -> dictionary%0.eq
+
+@export compare = \dictionary%1 -> dictionary%1.compare
+
+@export test1 = \eqDict%2 ->
+  \x%3 ->
+    if eq eqDict%2 x%3 x%3 then eq eqDict%2 x%3 x%3 else false
+
+@export test2 = \ordDict%6 eqDict%4 ->
+  \x%5 ->
+    if eq eqDict%4 x%5 x%5 then compare ordDict%6 x%5 x%5 else compare ordDict%6 x%5 x%5

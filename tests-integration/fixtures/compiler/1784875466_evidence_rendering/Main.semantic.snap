@@ -1,0 +1,26 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+interface Parent :: Prim.Type -> Prim.Constraint
+interface Parent value where
+
+interface Child :: Prim.Type -> Prim.Constraint
+interface Child value where
+  superclass parentDict :: Main.Parent value
+
+dictionary parentInt :: Main.Parent Prim.Int
+
+dictionary childInt :: { parentDict :: Main.Parent Prim.Int } => Main.Child Prim.Int where
+  superclass parentDict = parentDict
+
+foreign import useParent :: forall value. Main.Parent value => value -> value
+
+foreign import useChild :: forall value. Main.Child value => value -> value
+
+instanceEvidence :: Prim.Int
+instanceEvidence = useChild {childInt {parentInt}} 1
+
+superclassEvidence :: forall value. Main.Child value => value -> value
+superclassEvidence = \{childDict} -> useParent {childDict.parentDict}

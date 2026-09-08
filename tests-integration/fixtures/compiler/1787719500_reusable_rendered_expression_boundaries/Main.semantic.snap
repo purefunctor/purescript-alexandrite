@@ -1,0 +1,60 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+data Box :: Prim.Type
+data Box
+  | Box :: Prim.Int -> Main.Box
+
+foreign import constructEffect :: forall a. Prim.String -> a -> Effect.Effect a
+
+foreign import observe :: Prim.String -> Prim.Int -> Prim.Int
+
+foreign import observed :: { apply :: Prim.Int -> Prim.Int, value :: Prim.Int }
+
+stableApplication :: (Prim.Int -> Prim.Int) -> Prim.Boolean -> Prim.Int
+stableApplication = \function -> \condition ->
+  function if condition then observe "application-then" 1 else observe "application-else" 2
+
+observedApplication :: Prim.Boolean -> Prim.Int
+observedApplication = \condition ->
+  observed.apply if condition then observe "observed-then" 3 else observe "observed-else" 4
+
+stableArray :: Prim.Int -> Prim.Boolean -> Prim.Array Prim.Int
+stableArray = \value -> \condition ->
+  [value, if condition then observe "array-then" 5 else observe "array-else" 6]
+
+observedArray :: Prim.Boolean -> Prim.Array Prim.Int
+observedArray = \condition ->
+  [observed.value, if condition then
+    observe "observed-array-then" 7
+  else
+    observe "observed-array-else" 8]
+
+stablePure :: Prim.Int -> Effect.Effect Prim.Int
+stablePure = \value -> pure {applicativeEffect} value
+
+stableMap :: (Prim.Int -> Prim.Int) -> Effect.Effect Prim.Int
+stableMap = \function -> map {functorEffect} function (constructEffect "stable-map" 9)
+
+observedMap :: Prim.Boolean -> Effect.Effect Prim.Int
+observedMap = \_ -> map {functorEffect} observed.apply (constructEffect "observed-map" 10)
+
+mixedApply :: Prim.Boolean -> Effect.Effect Prim.Int
+mixedApply = \_ ->
+  apply {applyEffect} (constructEffect "mixed-function" \value -> observe "mixed-call" value)
+    (bind {bindEffect} (constructEffect "mixed-argument-first" 18) \value ->
+      constructEffect "mixed-argument-second" value)
+
+joinedEffect :: Prim.Boolean -> Prim.Array (Effect.Effect Prim.Int)
+joinedEffect = \condition ->
+  [if condition then
+    map {functorEffect} observed.apply (constructEffect "joined-then" 16)
+  else
+    map {functorEffect} observed.apply (constructEffect "joined-else" 17)]
+
+joinedPattern :: Prim.Boolean -> Prim.Int
+joinedPattern = \condition ->
+  case if condition then Box (observe "pattern-then" 11) else Box (observe "pattern-else" 12) of
+    (Box value) -> value

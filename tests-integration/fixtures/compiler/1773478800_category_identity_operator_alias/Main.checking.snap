@@ -1,0 +1,45 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+compose ::
+  forall k (@a :: k -> k -> Prim.Type).
+    Main.Semigroupoid @k (a :: k -> k -> Prim.Type) =>
+    (forall (b :: k) (c :: k) (d :: k).
+      (a :: k -> k -> Prim.Type) (c :: k) (d :: k) ->
+      (a :: k -> k -> Prim.Type) (b :: k) (c :: k) ->
+      (a :: k -> k -> Prim.Type) (b :: k) (d :: k))
+identity ::
+  forall k (@a :: k -> k -> Prim.Type).
+    Main.Category @k (a :: k -> k -> Prim.Type) =>
+    (forall (t :: k). (a :: k -> k -> Prim.Type) (t :: k) (t :: k))
+<<$>> ::
+  forall k (@a :: k -> k -> Prim.Type).
+    Main.Category @k (a :: k -> k -> Prim.Type) =>
+    (forall (t :: k). (a :: k -> k -> Prim.Type) (t :: k) (t :: k))
+test :: forall a. a -> a
+
+Types
+Semigroupoid :: forall k. (k -> k -> Prim.Type) -> Prim.Constraint
+Category :: forall k. (k -> k -> Prim.Type) -> Prim.Constraint
+
+Classes
+class forall (k :: Prim.Type) (a :: k -> k -> Prim.Type). Main.Semigroupoid @k (a :: k -> k -> Prim.Type)
+  compose ::
+  forall k (@a :: k -> k -> Prim.Type).
+    Main.Semigroupoid @k (a :: k -> k -> Prim.Type) =>
+    (forall (b :: k) (c :: k) (d :: k).
+      (a :: k -> k -> Prim.Type) (c :: k) (d :: k) ->
+      (a :: k -> k -> Prim.Type) (b :: k) (c :: k) ->
+      (a :: k -> k -> Prim.Type) (b :: k) (d :: k))
+class forall (k :: Prim.Type) (a :: k -> k -> Prim.Type). Main.Semigroupoid @k (a :: k -> k -> Prim.Type) <= Main.Category @k (a :: k -> k -> Prim.Type)
+  identity ::
+  forall k (@a :: k -> k -> Prim.Type).
+    Main.Category @k (a :: k -> k -> Prim.Type) =>
+    (forall (t :: k). (a :: k -> k -> Prim.Type) (t :: k) (t :: k))
+
+Instances
+instance Main.Semigroupoid @Prim.Type Prim.Function
+instance Main.Category @Prim.Type Prim.Function

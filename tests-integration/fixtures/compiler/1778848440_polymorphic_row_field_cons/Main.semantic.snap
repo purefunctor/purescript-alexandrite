@@ -1,0 +1,26 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Proxy :: forall k. k -> Prim.Type
+data Proxy @a
+  | Proxy :: Main.Proxy a
+
+data Slot :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type -> Prim.Type
+data Slot @query @output @key
+
+data Html :: Prim.Row Prim.Type -> Prim.Type
+data Html @slots
+  | Html :: Main.Html slots
+
+_child :: Main.Proxy @Prim.Symbol "child"
+_child = Proxy
+
+slot :: forall query output slots label key tail.
+  Prim.Row.Cons @Prim.Type label (Main.Slot query output key) tail slots =>
+  Main.Proxy @Prim.Symbol label -> key -> Main.Html slots
+slot = \{consDict} -> \_ -> \_ -> Html
+
+test :: forall key. key -> Main.Html (Main.Slots key)
+test = \key -> slot {trivial} _child key

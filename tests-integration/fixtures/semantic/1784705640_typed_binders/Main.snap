@@ -1,7 +1,0 @@
----
-source: tests-integration/src/fixtures.rs
-assertion_line: 68
-expression: report
----
-identity :: Prim.Int -> Prim.Int
-identity = \(value :: Prim.Int) -> value

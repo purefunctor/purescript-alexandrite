@@ -1,0 +1,42 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+bind ::
+  forall (step :: Prim.Int).
+    Main.OnStep (step :: Prim.Int) =>
+    (forall (next :: Prim.Int) value result.
+      Main.Action (step :: Prim.Int) value ->
+      (value -> Main.Action (next :: Prim.Int) result) ->
+      Main.Action (step :: Prim.Int) result)
+discard ::
+  forall (step :: Prim.Int).
+    Main.OnStep (step :: Prim.Int) =>
+    (forall (next :: Prim.Int) value result.
+      Main.Action (step :: Prim.Int) value ->
+      (value -> Main.Action (next :: Prim.Int) result) ->
+      Main.Action (step :: Prim.Int) result)
+stepZero :: Main.Action 0 Prim.Int
+stepOne :: Main.Action 1 Prim.String
+stepTwo :: Main.Action 2 Prim.Boolean
+stepThree :: Main.Action 3 Prim.String
+stepFour :: Main.Action 4 Prim.Number
+indexedBind :: Main.Action 0 Prim.Number
+indexedDiscard :: Main.Action 4 Prim.Boolean
+
+Types
+Action :: Prim.Int -> Prim.Type -> Prim.Type
+OnStep :: Prim.Int -> Prim.Constraint
+
+Classes
+class forall (step :: Prim.Int). Main.OnStep (step :: Prim.Int)
+
+Instances
+instance Main.OnStep 0
+instance Main.OnStep 2
+instance forall (step :: Prim.Int). Main.OnStep (step :: Prim.Int)
+
+Roles
+Action = [Nominal, Nominal]

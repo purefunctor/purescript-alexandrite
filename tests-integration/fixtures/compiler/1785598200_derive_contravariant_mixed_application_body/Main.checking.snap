@@ -1,0 +1,24 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+Box :: forall @a. a -> Main.Box a
+Predicate :: forall @a. (a -> Prim.Boolean) -> Main.Predicate a
+BoxedInput :: forall @a. Main.Predicate (Main.Box a) -> Main.BoxedInput a
+
+Types
+Box :: Prim.Type -> Prim.Type
+Predicate :: Prim.Type -> Prim.Type
+BoxedInput :: Prim.Type -> Prim.Type
+
+Derived
+derive Data.Functor.Functor Main.Box
+derive Data.Functor.Contravariant.Contravariant Main.Predicate
+derive Data.Functor.Contravariant.Contravariant Main.BoxedInput
+
+Roles
+Box = [Representational]
+Predicate = [Representational]
+BoxedInput = [Representational]

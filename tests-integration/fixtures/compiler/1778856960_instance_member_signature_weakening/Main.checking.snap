@@ -1,0 +1,60 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+lift ::
+  forall (@t :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type).
+    Main.Transform (t :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type) =>
+    (forall (f :: Prim.Type -> Prim.Type) a.
+      Data.Functor.Functor (f :: Prim.Type -> Prim.Type) =>
+      (f :: Prim.Type -> Prim.Type) a ->
+      (t :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type) (f :: Prim.Type -> Prim.Type) a)
+Wrap ::
+  forall (@f :: Prim.Type -> Prim.Type) @a.
+    (f :: Prim.Type -> Prim.Type) a -> Main.Wrap (f :: Prim.Type -> Prim.Type) a
+render :: forall @a. Main.Render a => a -> Prim.String
+renderer :: forall @t. Main.Renderer t => (forall a. Main.Render a => a -> t)
+liftPlain ::
+  forall (@t :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type).
+    Main.TransformPlain (t :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type) =>
+    (forall (f :: Prim.Type -> Prim.Type) a.
+      (f :: Prim.Type -> Prim.Type) a ->
+      (t :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type) (f :: Prim.Type -> Prim.Type) a)
+
+Types
+Transform :: ((Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type) -> Prim.Constraint
+Wrap :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type
+Render :: Prim.Type -> Prim.Constraint
+Renderer :: Prim.Type -> Prim.Constraint
+TransformPlain :: ((Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type) -> Prim.Constraint
+
+Classes
+class forall (t :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type). Main.Transform (t :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type)
+  lift ::
+  forall (@t :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type).
+    Main.Transform (t :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type) =>
+    (forall (f :: Prim.Type -> Prim.Type) a.
+      Data.Functor.Functor (f :: Prim.Type -> Prim.Type) =>
+      (f :: Prim.Type -> Prim.Type) a ->
+      (t :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type) (f :: Prim.Type -> Prim.Type) a)
+class forall (a :: Prim.Type). Main.Render a
+  render :: forall @a. Main.Render a => a -> Prim.String
+class forall (t :: Prim.Type). Main.Renderer t
+  renderer :: forall @t. Main.Renderer t => (forall a. Main.Render a => a -> t)
+class forall (t :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type). Main.TransformPlain (t :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type)
+  liftPlain ::
+  forall (@t :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type).
+    Main.TransformPlain (t :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type) =>
+    (forall (f :: Prim.Type -> Prim.Type) a.
+      (f :: Prim.Type -> Prim.Type) a ->
+      (t :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type) (f :: Prim.Type -> Prim.Type) a)
+
+Instances
+instance Main.Transform Main.Wrap
+instance Main.Renderer Prim.String
+instance Main.TransformPlain Main.Wrap
+
+Roles
+Wrap = [Representational, Nominal]

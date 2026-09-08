@@ -1,0 +1,21 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Unit :: Main.Unit
+unit :: Main.Unit -> Prim.Int
+Yes :: Main.YesNo
+No :: Main.YesNo
+yes :: Main.YesNo -> Prim.Int
+no :: Main.YesNo -> Prim.Int
+yesNo :: Main.YesNo -> Prim.Int
+
+Types
+Unit :: Prim.Type
+YesNo :: Prim.Type
+
+Roles
+Unit = []
+YesNo = []

@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+newtype Identity :: Prim.Type -> Prim.Type
+newtype Identity @a
+  | Identity :: a -> Main.Identity a
+
+direct :: Main.Identity Prim.Int
+direct = Identity 42
+
+firstClass :: forall a. a -> Main.Identity a
+firstClass = Identity
+
+indirect :: Main.Identity Prim.Int
+indirect = firstClass 43

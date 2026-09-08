@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Y :: Main.Y
+value :: Prim.Int
+
+Types
+Y :: Prim.Type
+
+Instances
+instance Lib.C Lib.X Main.Y
+
+Roles
+Y = []

@@ -1,0 +1,31 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export instance onZero = {  }
+
+@export instance onTwo = {  }
+
+@export instance onDefault = {  }
+
+@export foreign bind
+
+@export foreign discard
+
+@export foreign stepZero
+
+@export foreign stepOne
+
+@export foreign stepTwo
+
+@export foreign stepThree
+
+@export foreign stepFour
+
+@export indexedBind = bind onZero stepZero
+  (\zero%0 ->
+    bind onDefault stepOne
+      (\one%1 -> bind onTwo stepTwo (\two%2 -> bind onDefault stepThree (\three%3 -> stepFour))))
+
+@export indexedDiscard = discard onDefault stepFour (\$number%4@(_) -> stepTwo)

@@ -1,6 +1,6 @@
 ---
 name: workflow-regression-tests
-description: "Workflow for producing auditable Git or jj history for a known compiler bug fix. Use when a compiler fix needs a failing integration-test fixture followed by a fix commit that updates the same checking, semantic, lowering, resolving, or LSP snapshot."
+description: "Workflow for producing auditable Git or jj history for a known compiler bug fix. Use when a compiler fix needs a failing integration-test fixture followed by a fix commit that updates the same compiler, lowering, resolving, or LSP report."
 ---
 
 # Workflow: Regression Tests
@@ -30,8 +30,7 @@ Use the category that owns the observable regression:
 
 | Category | Alias | Use when the regression is visible in |
 |----------|-------|----------------------------------------|
-| `checking` | `c` | Type checking, inference, kinding, roles, constraints, or checking diagnostics |
-| `semantic` | `s` | Checked semantic declarations, expressions, binders, or explicit evidence |
+| `compiler` | `c` | Types, diagnostics, semantic recovery, functional conversion, generated JavaScript, or execution |
 | `lowering` | `l` | Lowered core output, equation/binder shape, or source-to-core links |
 | `resolving` | `r` | Name resolution, imports, exports, qualification, re-exports, or resolver diagnostics |
 | `lsp` | - | Hover, definition, completion, import edits, or editor-facing source positions |
@@ -68,7 +67,11 @@ Write a focused PureScript fixture that reproduces one behavior. Use `Main.purs`
 
 Snapshot expectations differ by category:
 
-- `checking`, `semantic`, and `lsp` snapshot `Main.purs` only.
+- `compiler` enters through `Main.purs`; its checking report contains types only,
+  diagnostics cover all fixture-owned modules with stable relative paths, its
+  semantic report contains recovery trees, and its functional report contains a
+  successful tree or explicit rejection.
+- `lsp` snapshots `Main.purs` only.
 - `lowering` and `resolving` snapshot every `.purs` file in the fixture.
 
 Accept the snapshot in the failing fixture commit:

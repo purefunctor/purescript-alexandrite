@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+foreign import equalInt :: Prim.Int -> Prim.Int -> Prim.Boolean
+
+foreign import decrementInt :: Prim.Int -> Prim.Int
+
+foreign import incrementInt :: Prim.Int -> Prim.Int
+
+uncurriedTail :: Data.Function.Uncurried.Fn2 Prim.Int Prim.Int Prim.Int
+uncurriedTail =
+  mkFn2 \value accumulator ->
+    if equalInt value 0 then
+      accumulator
+    else
+      runFn2 uncurriedTail (decrementInt value) (incrementInt accumulator)

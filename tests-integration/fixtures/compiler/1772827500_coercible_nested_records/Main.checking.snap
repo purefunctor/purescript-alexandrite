@@ -1,0 +1,34 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Name :: Prim.String -> Main.Name
+Age :: Prim.Int -> Main.Age
+Person :: { age :: Main.Age, name :: Main.Name } -> Main.Person
+Company :: { ceo :: Main.Person, name :: Main.Name } -> Main.Company
+unwrapCompany :: Main.Company -> { ceo :: Main.Person, name :: Main.Name }
+fullyUnwrap :: Main.Company -> Main.RawCompany
+fullyWrap :: Main.RawCompany -> Main.Company
+unwrapPerson :: Main.Person -> Main.RawPerson
+nestedFieldCoerce :: { person :: Main.Person } -> { person :: Main.RawPerson }
+arrayOfRecords :: Prim.Array { name :: Main.Name } -> Prim.Array { name :: Prim.String }
+
+Types
+Name :: Prim.Type
+Age :: Prim.Type
+Person :: Prim.Type
+Company :: Prim.Type
+RawPerson :: Prim.Type
+RawCompany :: Prim.Type
+
+Synonyms
+type RawPerson = { age :: Prim.Int, name :: Prim.String }
+type RawCompany = { ceo :: Main.RawPerson, name :: Prim.String }
+
+Roles
+Name = []
+Age = []
+Person = []
+Company = []

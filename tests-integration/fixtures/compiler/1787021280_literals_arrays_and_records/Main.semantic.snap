@@ -1,0 +1,28 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+integer :: Prim.Int
+integer = 42
+
+number :: Prim.Number
+number = 1.5
+
+character :: Prim.Char
+character = 'a'
+
+string :: Prim.String
+string = "alexandrite"
+
+boolean :: Prim.Boolean
+boolean = true
+
+array :: Prim.Array Prim.Int
+array = [1, 2, 3]
+
+record :: { integer :: Prim.Int, nested :: { value :: Prim.String } }
+record = { integer: 42, nested: { value: "nested" } }
+
+projection :: Prim.String
+projection = record.nested.value

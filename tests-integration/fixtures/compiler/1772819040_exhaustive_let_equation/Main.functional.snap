@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Just/1
+
+@export constructor Nothing/0
+
+@export test = (\$maybe%1@(Just _) -> 1) "Nothing"
+
+@export test2 = (\$maybe%3@(Nothing) -> 1) { tag: "Just", _1: 42 }

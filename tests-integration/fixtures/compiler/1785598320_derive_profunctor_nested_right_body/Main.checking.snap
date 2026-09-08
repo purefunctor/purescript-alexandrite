@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+Function :: forall @a @b. (a -> b) -> Main.Function a b
+NestedRight :: forall t0 (@a :: t0) @b. Main.Function Prim.Int b -> Main.NestedRight @t0 (a :: t0) b
+
+Types
+Function :: Prim.Type -> Prim.Type -> Prim.Type
+NestedRight :: forall t0. t0 -> Prim.Type -> Prim.Type
+
+Derived
+derive Data.Profunctor.Profunctor Main.Function
+derive Data.Profunctor.Profunctor (Main.NestedRight @Prim.Type)
+
+Roles
+Function = [Representational, Representational]
+NestedRight = [Phantom, Representational]

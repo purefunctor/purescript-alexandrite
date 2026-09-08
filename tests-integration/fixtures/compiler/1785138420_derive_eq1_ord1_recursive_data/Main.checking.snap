@@ -1,0 +1,28 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+Nil :: forall @a. Main.List a
+Cons :: forall @a. a -> Main.List a -> Main.List a
+Leaf :: forall @a. a -> Main.Tree a
+Branch :: forall @a. Main.Tree a -> Main.Tree a -> Main.Tree a
+
+Types
+List :: Prim.Type -> Prim.Type
+Tree :: Prim.Type -> Prim.Type
+
+Derived
+derive forall a. Data.Eq.Eq a => Data.Eq.Eq (Main.List a)
+derive Data.Eq.Eq1 Main.List
+derive forall a. Data.Ord.Ord a => Data.Ord.Ord (Main.List a)
+derive Data.Ord.Ord1 Main.List
+derive forall a. Data.Eq.Eq a => Data.Eq.Eq (Main.Tree a)
+derive Data.Eq.Eq1 Main.Tree
+derive forall a. Data.Ord.Ord a => Data.Ord.Ord (Main.Tree a)
+derive Data.Ord.Ord1 Main.Tree
+
+Roles
+List = [Representational]
+Tree = [Representational]

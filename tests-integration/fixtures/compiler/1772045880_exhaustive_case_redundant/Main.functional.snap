@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Just/1
+
+@export constructor Nothing/0
+
+@export test = \section15%0 ->
+  case section15%0 of
+    Just _ ->
+      1
+    Just _ ->
+      2
+    Nothing ->
+      3

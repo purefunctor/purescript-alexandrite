@@ -1,0 +1,38 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Proxy/0
+
+@export warnBasic = \warnTextDict%1 -> \x%0 -> x%0
+
+@export useWarnBasic = warnBasic <trivial evidence> 42
+
+@export warnBeside = \warnBesideTextTextDict%3 -> \x%2 -> x%2
+
+@export useWarnBeside = warnBeside <trivial evidence> 42
+
+@export warnAbove = \warnAboveTextTextDict%5 -> \x%4 -> x%4
+
+@export useWarnAbove = warnAbove <trivial evidence> 42
+
+@export warnQuote = \warnBesideTextQuoteADict%7 -> \p%6 -> p%6
+
+@export useWarnQuote = warnQuote <trivial evidence> "Proxy"
+
+@export warnQuoteLabel = \warnBesideTextQuoteLabelDict%9 -> \x%8 -> x%8
+
+@export useWarnQuoteLabel = warnQuoteLabel <trivial evidence> 42
+
+@export warnQuoteLabelSpaces = \warnBesideTextQuoteLabelDict%11 -> \x%10 -> x%10
+
+@export useWarnQuoteLabelSpaces = warnQuoteLabelSpaces <trivial evidence> 42
+
+@export warnQuoteLabelQuote = \warnBesideTextQuoteLabelDict%13 -> \x%12 -> x%12
+
+@export useWarnQuoteLabelQuote = warnQuoteLabelQuote <trivial evidence> 42
+
+@export warnQuoteLabelRaw = \warnBesideTextQuoteLabelDict%15 -> \x%14 -> x%14
+
+@export useWarnQuoteLabelRaw = warnQuoteLabelRaw <trivial evidence> 42

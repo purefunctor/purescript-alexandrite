@@ -1,0 +1,58 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+unsafeCoerce :: forall a b. a -> b
+consume ::
+  forall (given :: Prim.Row Prim.Type) (given_ :: Prim.Row Prim.Type).
+    Prim.Row.Union @Prim.Type
+      (given :: Prim.Row Prim.Type)
+      (given_ :: Prim.Row Prim.Type)
+      Main.Required =>
+    {| (given :: Prim.Row Prim.Type) } -> Prim.String
+merge ::
+  forall (r1 :: Prim.Row Prim.Type) (r2 :: Prim.Row Prim.Type) (r3 :: Prim.Row Prim.Type)
+    (r4 :: Prim.Row Prim.Type).
+    Prim.Row.Union @Prim.Type
+      (r1 :: Prim.Row Prim.Type)
+      (r2 :: Prim.Row Prim.Type)
+      (r3 :: Prim.Row Prim.Type) =>
+    Prim.Row.Nub @Prim.Type (r3 :: Prim.Row Prim.Type) (r4 :: Prim.Row Prim.Type) =>
+    {| (r1 :: Prim.Row Prim.Type) } ->
+    {| (r2 :: Prim.Row Prim.Type) } ->
+    {| (r4 :: Prim.Row Prim.Type) }
+collect :: forall @a. Main.Collect a => a -> Prim.Array Prim.String
+combine ::
+  forall (partial :: Prim.Row Prim.Type) (duplicated :: Prim.Row Prim.Type)
+    (deduped :: Prim.Row Prim.Type) (deduped_ :: Prim.Row Prim.Type) items.
+    Main.Collect items =>
+    Prim.Row.Union @Prim.Type
+      ( key :: Prim.String )
+      (partial :: Prim.Row Prim.Type)
+      (duplicated :: Prim.Row Prim.Type) =>
+    Prim.Row.Nub @Prim.Type
+      ( key :: Prim.String | (partial :: Prim.Row Prim.Type) )
+      (deduped :: Prim.Row Prim.Type) =>
+    Prim.Row.Union @Prim.Type
+      (deduped :: Prim.Row Prim.Type)
+      (deduped_ :: Prim.Row Prim.Type)
+      Main.Required =>
+    {| (partial :: Prim.Row Prim.Type) } -> items -> Prim.String
+combine' :: forall items. Main.Collect items => items -> Prim.String
+repro :: Prim.String
+
+Types
+Required :: Prim.Row Prim.Type
+Collect :: Prim.Type -> Prim.Constraint
+
+Synonyms
+type Required = ( key :: Prim.String )
+
+Classes
+class forall (a :: Prim.Type). Main.Collect a
+  collect :: forall @a. Main.Collect a => a -> Prim.Array Prim.String
+
+Instances
+instance Main.Collect (Prim.Array Prim.String)

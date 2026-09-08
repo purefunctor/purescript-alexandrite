@@ -1,0 +1,11 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+apply :: forall a b. (a -> b) -> a -> b
+argument :: forall t0. t0 -> t0
+functionPosition :: forall t0 t1. (t0 -> t1) -> t0 -> t1
+
+Types

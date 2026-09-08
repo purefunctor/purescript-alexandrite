@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+missingCondition :: Prim.Int
+missingCondition =
+  if <error> then 1 else 2
+
+missingThen :: Prim.Int
+missingThen =
+  if true then <error> else 2
+
+missingElse :: Prim.Int
+missingElse =
+  if true then 1 else <error>

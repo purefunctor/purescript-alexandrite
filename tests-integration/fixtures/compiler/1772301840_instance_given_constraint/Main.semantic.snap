@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface Eq :: Prim.Type -> Prim.Constraint
+interface Eq a where
+  eq :: a -> a -> Prim.Boolean
+
+dictionary eqInt :: Main.Eq Prim.Int where
+  eq :: Prim.Int -> Prim.Int -> Prim.Boolean
+  eq = \_ -> \_ -> true
+
+dictionary eqArray :: forall a. { eqDict :: Main.Eq a } => Main.Eq (Prim.Array a) where
+  eq :: Prim.Array a -> Prim.Array a -> Prim.Boolean
+  eq = \_ -> \_ -> false
+
+test :: Prim.Boolean
+test = eq {eqArray {eqArray {eqInt}}} [[1]] [[2]]

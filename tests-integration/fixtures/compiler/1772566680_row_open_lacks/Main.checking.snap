@@ -1,0 +1,25 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Proxy :: forall k (@a :: k). Main.Proxy @k (a :: k)
+lacksOpen ::
+  forall (r :: Prim.Row Prim.Type).
+    Prim.Row.Lacks @Prim.Type
+      "missing"
+      ( a :: Prim.Int, b :: Prim.String | (r :: Prim.Row Prim.Type) ) =>
+    Main.Proxy @(Prim.Row Prim.Type) (r :: Prim.Row Prim.Type) -> Prim.Int
+lacksPresent ::
+  forall (r :: Prim.Row Prim.Type).
+    Prim.Row.Lacks @Prim.Type "a" ( a :: Prim.Int | (r :: Prim.Row Prim.Type) ) =>
+    Main.Proxy @(Prim.Row Prim.Type) (r :: Prim.Row Prim.Type) -> Prim.Int
+empty :: forall t0. Main.Proxy @(Prim.Row t0) ()
+forceSolve :: { lacksOpen :: Prim.Int, lacksPresent :: Prim.Int }
+
+Types
+Proxy :: forall k. k -> Prim.Type
+
+Roles
+Proxy = [Phantom]

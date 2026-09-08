@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+PredicateWithFormatter ::
+  forall @a. (a -> Prim.Boolean) -> (Prim.Int -> Prim.String) -> Main.PredicateWithFormatter a
+
+Types
+PredicateWithFormatter :: Prim.Type -> Prim.Type
+
+Derived
+derive Data.Functor.Contravariant.Contravariant Main.PredicateWithFormatter
+
+Roles
+PredicateWithFormatter = [Representational]

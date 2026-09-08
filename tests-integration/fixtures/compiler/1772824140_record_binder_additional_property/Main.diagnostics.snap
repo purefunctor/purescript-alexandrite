@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Error! · [AdditionalProperty] · Main.purs:4:6
+  •
+  │
+  • Additional properties not allowed: b, c
+  │
+  │   test { a, b, c } = a
+  │        ╰──────────
+  •

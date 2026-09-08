@@ -1,0 +1,21 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+newtype Age :: Prim.Type
+newtype Age
+  | Age :: Prim.Int -> Main.Age
+
+newtype UserId :: Prim.Type
+newtype UserId
+  | UserId :: Prim.Int -> Main.UserId
+
+coerceRecord :: { age :: Main.Age, name :: Prim.String } -> { age :: Prim.Int, name :: Prim.String }
+coerceRecord = coerce {trivial}
+
+coerceRecordReverse :: { age :: Prim.Int, name :: Prim.String } -> { age :: Main.Age, name :: Prim.String }
+coerceRecordReverse = coerce {trivial}
+
+coerceMultiple :: { age :: Main.Age, id :: Main.UserId } -> { age :: Prim.Int, id :: Prim.Int }
+coerceMultiple = coerce {trivial}

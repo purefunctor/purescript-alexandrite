@@ -1,0 +1,11 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export foreign interleaved
+
+@export applyInterleaved = \firstADict%1 secondBDict%0 ->
+  \first%2 second%3 -> interleaved firstADict%1 first%2 secondBDict%0 second%3
+
+@export layered = \firstADict%6 secondBDict%7 -> \first%4 $b%5@(_) -> first%4

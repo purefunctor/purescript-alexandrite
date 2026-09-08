@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 298
+expression: diagnostics_report
+---
+Error! · [MissingFFIImplementation] · Main.purs:3:1
+  •
+  │
+  • JavaScript FFI module does not export 'requested'
+  │
+  │   foreign import requested :: Int
+  │   ╰──────────────────────────────
+  •

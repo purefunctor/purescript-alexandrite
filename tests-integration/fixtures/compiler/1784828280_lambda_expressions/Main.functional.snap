@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export checked = \value%0 -> value%0
+
+@export inferred = \value%1 -> value%1
+
+@export multiple = \first%2 second%3 -> first%2

@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface Eq :: Prim.Type -> Prim.Constraint
+interface Eq a where
+  eq :: a -> a -> Prim.Boolean
+
+interface Ord :: Prim.Type -> Prim.Constraint
+interface Ord a where
+  superclass eqDict :: Main.Eq a
+  compare :: a -> a -> Prim.Int

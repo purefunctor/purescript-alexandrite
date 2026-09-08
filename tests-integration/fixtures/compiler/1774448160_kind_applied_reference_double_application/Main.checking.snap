@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Fix ::
+  forall k (@f :: (k -> Prim.Type) -> k -> Prim.Type) (@a :: k).
+    (f :: (k -> Prim.Type) -> k -> Prim.Type)
+      (Main.Fix @k (f :: (k -> Prim.Type) -> k -> Prim.Type))
+      (a :: k) ->
+    Main.Fix @k (f :: (k -> Prim.Type) -> k -> Prim.Type) (a :: k)
+
+Types
+Fix :: forall k. ((k -> Prim.Type) -> k -> Prim.Type) -> k -> Prim.Type
+
+Roles
+Fix = [Representational, Representational]

@@ -1,0 +1,38 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+parent :: forall @value. Main.Parent value => value -> value
+child :: forall @value. Main.Child value => value -> value
+Representation :: Main.Representation
+Wrapper :: Main.Representation -> Main.Wrapper
+parentFromChild :: forall value. Main.Child value => value -> value
+useDelegateSuperclass :: Main.Wrapper -> Main.Wrapper
+
+Types
+Parent :: Prim.Type -> Prim.Constraint
+Child :: Prim.Type -> Prim.Constraint
+Gate :: Prim.Constraint
+Representation :: Prim.Type
+Wrapper :: Prim.Type
+
+Classes
+class forall (value :: Prim.Type). Main.Parent value
+  parent :: forall @value. Main.Parent value => value -> value
+class forall (value :: Prim.Type). Main.Parent value <= Main.Child value
+  child :: forall @value. Main.Child value => value -> value
+class Main.Gate
+
+Instances
+instance Main.Parent Main.Representation
+instance Main.Child Main.Representation
+instance Main.Gate => Main.Parent Main.Wrapper
+
+Derived
+derive Main.Child Main.Wrapper
+
+Roles
+Representation = []
+Wrapper = []

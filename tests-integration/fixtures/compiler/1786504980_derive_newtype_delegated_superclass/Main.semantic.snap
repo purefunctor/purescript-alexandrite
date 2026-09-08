@@ -1,0 +1,36 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface Parent :: (Prim.Type -> Prim.Type) -> Prim.Constraint
+interface Parent constructor where
+
+interface Child :: (Prim.Type -> Prim.Type) -> Prim.Constraint
+interface Child constructor where
+  superclass parentDict :: Main.Parent constructor
+
+interface Gate :: (Prim.Type -> Prim.Type) -> Prim.Constraint
+interface Gate constructor where
+
+data Representation :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type
+data Representation @parameter @value
+  | Representation :: Main.Representation parameter value
+
+newtype Wrapper :: (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type
+newtype Wrapper @parameter @value
+  | Wrapper :: Main.Representation parameter value -> Main.Wrapper parameter value
+
+dictionary parentRepresentation :: forall parameter. Main.Parent (Main.Representation parameter)
+
+dictionary childRepresentation :: forall parameter. Main.Child (Main.Representation parameter) where
+  superclass parentDict = parentRepresentation
+
+dictionary parentWrapper ::
+  forall parameter.
+  { gateDict :: Main.Gate parameter } =>
+  Main.Parent (Main.Wrapper parameter)
+
+dictionary childWrapper ::
+  forall parameter.
+  Main.Child (Main.Wrapper parameter) = childRepresentation

@@ -1,0 +1,63 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Step :: Prim.Type -> Prim.Type -> Prim.Type
+data Step @a @b
+  | Done :: b -> Main.Step a b
+  | Loop :: a -> Main.Step a b
+
+interface Semigroup :: Prim.Type -> Prim.Constraint
+interface Semigroup a where
+  append :: a -> a -> a
+
+interface Monoid :: Prim.Type -> Prim.Constraint
+interface Monoid a where
+  superclass semigroupDict :: Main.Semigroup a
+  mempty :: a
+
+interface MonadRec :: (Prim.Type -> Prim.Type) -> Prim.Constraint
+interface MonadRec m where
+  superclass applicativeDict :: Control.Applicative.Applicative m
+  superclass bindDict :: Control.Bind.Bind m
+  tailRecM :: forall a b. (a -> m (Main.Step a b)) -> a -> m b
+
+ifM :: forall m a. Control.Bind.Bind m => m Prim.Boolean -> m a -> m a -> m a
+ifM = \{bindDict} -> \mb -> \t -> \f ->
+  bind {bindDict} mb \b ->
+    if b then t else f
+
+lift2 :: forall f a b c. Control.Apply.Apply f => (a -> b -> c) -> f a -> f b -> f c
+lift2 = \{applyDict} -> \f -> \fa -> \fb -> apply {applyDict} (map {applyDict.functorDict} f fa) fb
+
+liftIfM :: forall m f a.
+  Control.Apply.Apply f => Control.Bind.Bind m => m Prim.Boolean -> f (m a) -> f (m a) -> f (m a)
+liftIfM = \{applyDict} -> \{bindDict} -> \p -> \x -> \y -> lift2 {applyDict} (ifM {bindDict} p) x y
+
+appendM :: forall m f a b.
+  Main.MonadRec m =>
+  Control.Applicative.Applicative f =>
+  Main.Semigroup (f a) =>
+  f a -> m a -> m (Main.Step (f a) b)
+appendM = \{monadRecDict} -> \{applicativeDict} -> \{semigroupDict} -> \xs -> \f ->
+  bind {monadRecDict.bindDict} f \x ->
+    loop {monadRecDict.applicativeDict} (append {semigroupDict} xs (pure {applicativeDict} x))
+
+loop :: forall m a b. Control.Applicative.Applicative m => a -> m (Main.Step a b)
+loop = \{applicativeDict} -> \a -> pure {applicativeDict} (Loop a)
+
+done :: forall m a b. Control.Applicative.Applicative m => b -> m (Main.Step a b)
+done = \{applicativeDict} -> \b -> pure {applicativeDict} (Done b)
+
+whileM' :: forall a f m.
+  Main.MonadRec m =>
+  Control.Applicative.Applicative f =>
+  Main.Monoid (f a) =>
+  m Prim.Boolean -> m a -> m (f a)
+whileM' = \{monadRecDict} -> \{applicativeDict} -> \{monoidDict} -> \p -> \f ->
+  tailRecM {monadRecDict}
+    (liftIfM {applyFn} {monadRecDict.bindDict} p
+      (\v417 -> appendM {monadRecDict} {applicativeDict} {monoidDict.semigroupDict} v417 f)
+      (done {monadRecDict.applicativeDict}))
+    (mempty {monoidDict})

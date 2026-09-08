@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+data Token :: Prim.Type
+data Token
+  | FirstToken :: Main.Token
+  | SecondToken :: Main.Token
+
+interface Example :: Prim.Type -> Prim.Constraint
+interface Example a where
+  first :: a
+  second :: a
+
+dictionary exampleToken :: Main.Example Main.Token where
+  first :: Main.Token
+  first = FirstToken
+  second :: Main.Token
+  second = SecondToken

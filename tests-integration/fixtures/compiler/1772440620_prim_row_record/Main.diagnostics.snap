@@ -1,0 +1,23 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Error! · [NoInstanceFound] · Main.purs:10:1
+  •
+  │
+  • No instance found for: Union @Type (r :: Row Type) ( b :: String ) ( b :: String | (r :: Row
+  │ Type) )
+  │
+  │   addField :: forall r. { a :: Int | r } -> { a :: Int, b :: String | r }
+  │   ╰──────────────────────────────────────────────────────────────────────
+  •
+
+Error! · [MissingFFIModule] · Main.purs:5:1
+  •
+  │
+  • No JavaScript FFI module was found for foreign import 'unsafeCoerce'
+  │
+  │   foreign import unsafeCoerce :: forall a b. a -> b
+  │   ╰────────────────────────────────────────────────
+  •

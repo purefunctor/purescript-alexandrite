@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+foreign import equalInt :: Prim.Int -> Prim.Int -> Prim.Boolean
+
+foreign import decrementInt :: Prim.Int -> Prim.Int
+
+mutualEven :: Prim.Int -> Prim.Boolean
+mutualEven = \value ->
+  if equalInt value 0 then true else mutualOdd (decrementInt value)
+
+mutualOdd :: Prim.Int -> Prim.Boolean
+mutualOdd = \value ->
+  if equalInt value 0 then false else mutualEven (decrementInt value)

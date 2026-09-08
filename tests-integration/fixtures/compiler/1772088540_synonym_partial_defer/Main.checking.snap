@@ -1,0 +1,27 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Identity :: forall @a. a -> Main.Identity a
+
+Types
+Identity :: Prim.Type -> Prim.Type
+ReaderT :: Prim.Type -> (Prim.Type -> Prim.Type) -> Prim.Type -> Prim.Type
+Apply :: forall k1 k2. (k1 -> k2) -> k1 -> k2
+Good :: Prim.Type
+Bad :: ?[partial synonym application]
+
+Synonyms
+type ReaderT r m a = r -> (m :: Prim.Type -> Prim.Type) a
+type Apply f a = (f :: k1 -> k2) (a :: k1)
+type Good = Main.Apply @Prim.Type @Prim.Type
+  (Main.Apply @(Prim.Type -> Prim.Type) @(Prim.Type -> Prim.Type)
+    (Main.ReaderT Prim.Int)
+    Main.Identity)
+  Prim.String
+type Bad = ?[partial synonym application]
+
+Roles
+Identity = [Representational]

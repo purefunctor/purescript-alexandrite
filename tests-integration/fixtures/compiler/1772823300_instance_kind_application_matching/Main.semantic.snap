@@ -1,0 +1,14 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+newtype Endo :: forall k. (k -> k -> Prim.Type) -> k -> Prim.Type
+newtype Endo @c @a
+  | Endo :: c a a -> Main.Endo c a
+
+dictionary newtypeEndo :: forall t0 c a. Data.Newtype.Newtype (Main.Endo @t0 c a) (c a a) where
+  superclass coercibleDict = trivial
+
+test :: forall b. Main.Endo @Prim.Type Prim.Function b -> b -> b
+test = \x -> unwrap {newtypeEndo} x

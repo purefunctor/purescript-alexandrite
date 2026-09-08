@@ -1,0 +1,21 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+foreign import equalInt :: Prim.Int -> Prim.Int -> Prim.Boolean
+
+foreign import decrementInt :: Prim.Int -> Prim.Int
+
+foreign import incrementInt :: Prim.Int -> Prim.Int
+
+tailAccumulator :: Prim.Int -> Prim.Int -> Prim.Int
+tailAccumulator = \value -> \accumulator ->
+  if equalInt value 0 then
+    accumulator
+  else
+    tailAccumulator (decrementInt value) (incrementInt accumulator)
+
+rotateArguments :: Prim.Int -> Prim.Int -> Prim.Int -> Prim.Int
+rotateArguments = \iterations -> \left -> \right ->
+  if equalInt iterations 0 then left else rotateArguments (decrementInt iterations) right left

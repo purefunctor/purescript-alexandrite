@@ -1,0 +1,34 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Proxy/0
+
+@export closedLeftOpenRight = \unionRowRowUDict%0 -> "Proxy"
+
+@export closedLeftKnownFields = \unionRowRowUDict%1 -> "Proxy"
+
+@export closedLeftEmpty = \unionRowRowUDict%2 -> "Proxy"
+
+@export closedRightOutputOpenLeft = \unionLRowRowDict%3 -> "Proxy"
+
+@export closedRightOutputKnownLeft = \unionRowRowRowDict%4 -> "Proxy"
+
+@export closedRightOutputDuplicate = \unionLRowRowDict%5 -> "Proxy"
+
+@export openLeftPrefixOne = \unionRowRowUDict%6 -> "Proxy"
+
+@export openLeftPrefixMany = \unionRowRowUDict%7 -> "Proxy"
+
+@export forceSolve = \unionRowDict%8 unionRowDict%9 ->
+  {
+    closedLeftOpenRight: closedLeftOpenRight <trivial evidence>,
+    closedLeftKnownFields: closedLeftKnownFields <trivial evidence>,
+    closedLeftEmpty: closedLeftEmpty <trivial evidence>,
+    closedRightOutputOpenLeft: closedRightOutputOpenLeft <trivial evidence>,
+    closedRightOutputKnownLeft: closedRightOutputKnownLeft <trivial evidence>,
+    closedRightOutputDuplicate: closedRightOutputDuplicate <trivial evidence>,
+    openLeftPrefixOne: openLeftPrefixOne <trivial evidence>,
+    openLeftPrefixMany: openLeftPrefixMany <trivial evidence>
+  }

@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Tuple :: Prim.Type -> Prim.Type -> Prim.Type
+data Tuple @a @b
+  | Tuple :: a -> b -> Main.Tuple a b
+
+data Supply :: forall k0. k0 -> Prim.Type -> Prim.Type
+data Supply @s @a
+  | Node ::
+    Main.Lazy a ->
+      Main.Lazy (Main.Supply @k0 s a) -> Main.Lazy (Main.Supply @k0 s a) -> Main.Supply s a
+
+foreign import force :: forall a. Main.Lazy a -> a

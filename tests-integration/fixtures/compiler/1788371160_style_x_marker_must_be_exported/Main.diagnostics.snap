@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 298
+expression: diagnostics_report
+---
+Error! · [FunctionalCodegen] · Main.purs:5:1
+  •
+  │
+  • Alexandrite.StyleX.defineMarker must initialize an exported top-level value
+  │
+  │   marker = StyleX.defineMarker
+  │   ╰───────────────────────────
+  •

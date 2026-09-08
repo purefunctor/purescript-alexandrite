@@ -1,0 +1,8 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export useUnwrap = \newtypeTHiddenIntDict%0 -> unwrap newtypeTHiddenIntDict%0
+
+@export useCoerce = \newtypeTHiddenIntDict%1 -> coerce (newtypeTHiddenIntDict%1."Coercible0"())

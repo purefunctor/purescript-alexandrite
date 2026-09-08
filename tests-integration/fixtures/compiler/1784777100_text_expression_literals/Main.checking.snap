@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+string :: Prim.String
+rawString :: Prim.String
+character :: Prim.Char
+characterNewline :: Prim.Char
+characterCarriageReturn :: Prim.Char
+characterTab :: Prim.Char
+characterQuote :: Prim.Char
+characterBackslash :: Prim.Char
+characterNull :: Prim.Char
+characterHexadecimal :: Prim.Char
+characterDelete :: Prim.Char
+characterControl :: Prim.Char
+
+Types

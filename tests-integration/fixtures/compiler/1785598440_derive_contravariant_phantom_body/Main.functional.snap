@@ -1,0 +1,14 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Constant/1
+
+@export instance contravariantConstantType = {
+  cmap:
+    \function%0 value%1 ->
+      case value%1 of
+        Constant field0%2 ->
+          { tag: "Constant", _1: field0%2 }
+}

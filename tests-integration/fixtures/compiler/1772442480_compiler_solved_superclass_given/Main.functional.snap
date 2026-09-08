@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export foreign unsafeCoerce
+
+@export merge = \unionR1R2R3Dict%2 -> \$record%0@(_) $record%1@(_) -> unsafeCoerce {  }
+
+@export merge2 = \mergeR1R2R3Dict%3 -> \r1%4 r2%5 -> merge (mergeR1R2R3Dict%3."Union0"()) r1%4 r2%5

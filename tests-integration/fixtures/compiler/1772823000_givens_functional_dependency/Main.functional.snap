@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export convert = \dictionary%0 -> dictionary%0.convert
+
+@export useGiven = \convertIntXDict%1 -> convert convertIntXDict%1 42
+
+@export relate = \dictionary%2 -> dictionary%2.relate
+
+@export useRelate = \relateIntStringYDict%3 -> relate relateIntStringYDict%3 1 "hello"

@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Error! · [ContravariantOccurrence] · Main.purs:6:1
+  •
+  │
+  • Type variable occurs in contravariant position: t0
+  │
+  │   derive instance Functor Predicate
+  │   ╰────────────────────────────────
+  •
+
+Error! · [FunctionalCodegen] · Main.purs:1:1
+  •
+  │
+  • checked instance declaration is missing
+  │
+  │   module Main where
+  │   ╰────────────────
+  •

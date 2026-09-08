@@ -1,0 +1,31 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: diagnostics_report
+---
+Error! · [MissingFFIModule] · Main.purs:5:1
+  •
+  │
+  • No JavaScript FFI module was found for foreign import 'pure'
+  │
+  │   foreign import pure :: forall value. value -> Effect value
+  │   ╰─────────────────────────────────────────────────────────
+  •
+
+Error! · [MissingFFIModule] · Main.purs:7:1
+  •
+  │
+  • No JavaScript FFI module was found for foreign import 'bind'
+  │
+  │   foreign import bind ::
+  │   ╰─────────────────────
+  •
+
+Error! · [MissingFFIModule] · Main.purs:13:1
+  •
+  │
+  • No JavaScript FFI module was found for foreign import 'discard'
+  │
+  │   foreign import discard ::
+  │   ╰────────────────────────
+  •

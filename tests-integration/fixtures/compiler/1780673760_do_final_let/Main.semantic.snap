@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+foreign import bind :: forall a b. Main.Effect a -> (a -> Main.Effect b) -> Main.Effect b
+
+foreign import before :: Main.Effect { field :: Prim.Int }
+
+foreign import expectString :: Prim.String -> Prim.Int
+
+test :: forall t0. Main.Effect t0
+test =
+  bind before \record ->
+    let
+      _ = expectString record.field
+    in
+      <error>

@@ -1,0 +1,31 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Pair :: forall @a @b. a -> b -> Main.Pair a b
+
+Types
+Pair :: Prim.Type -> Prim.Type -> Prim.Type
+
+Derived
+derive Data.Eq.Eq @(Prim.Type -> Prim.Type -> Prim.Type) @Prim.Type Main.Pair Prim.Int
+derive Data.Ord.Ord @(Prim.Type -> Prim.Type -> Prim.Type) @Prim.Type Main.Pair Prim.Int
+derive Data.Functor.Functor @(Prim.Type -> Prim.Type -> Prim.Type) @Prim.Type Main.Pair Prim.Int
+derive Data.Bifunctor.Bifunctor @(Prim.Type -> Prim.Type -> Prim.Type) @Prim.Type Main.Pair Prim.Int
+derive Data.Foldable.Foldable @(Prim.Type -> Prim.Type -> Prim.Type) @Prim.Type Main.Pair Prim.Int
+derive Data.Bifoldable.Bifoldable @(Prim.Type -> Prim.Type -> Prim.Type) @Prim.Type Main.Pair Prim.Int
+derive Data.Traversable.Traversable @(Prim.Type -> Prim.Type -> Prim.Type) @Prim.Type Main.Pair Prim.Int
+derive Data.Bitraversable.Bitraversable @(Prim.Type -> Prim.Type -> Prim.Type) @Prim.Type
+  Main.Pair
+  Prim.Int
+derive Data.Functor.Contravariant.Contravariant @(Prim.Type -> Prim.Type -> Prim.Type) @Prim.Type
+  Main.Pair
+  Prim.Int
+derive Data.Profunctor.Profunctor @(Prim.Type -> Prim.Type -> Prim.Type) @Prim.Type Main.Pair Prim.Int
+derive Data.Eq.Eq1 @(Prim.Type -> Prim.Type -> Prim.Type) @Prim.Type Main.Pair Prim.Int
+derive Data.Ord.Ord1 @(Prim.Type -> Prim.Type -> Prim.Type) @Prim.Type Main.Pair Prim.Int
+
+Roles
+Pair = [Representational, Representational]

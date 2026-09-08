@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Error! · [NoInstanceFound] · Main.purs:6:1
+  •
+  │
+  • No instance found for: Given Int
+  │
+  │   testGiven :: forall a. Given a => a -> a
+  │   ╰───────────────────────────────────────
+  • while
+  │
+  │   Given a is in scope
+  •

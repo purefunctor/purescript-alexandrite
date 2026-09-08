@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+
+Types
+Add :: forall k. k -> k -> k
++ :: forall k. k -> k -> k
+Chain :: forall k. k -> k -> k -> k
+ChainParen :: forall k. k -> k -> k -> k
+
+Synonyms
+type Add a b = (a :: k)
+type Chain a b c = Main.Add @k (Main.Add @k (a :: k) (b :: k)) (c :: k)
+type ChainParen a b c = Main.Add @k (Main.Add @k (a :: k) (b :: k)) (c :: k)

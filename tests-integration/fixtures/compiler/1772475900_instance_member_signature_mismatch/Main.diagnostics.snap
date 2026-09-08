@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Error! · [CannotUnify] · Main.purs:7:1
+  •
+  │
+  • Cannot unify 'Int' with 'String'
+  │
+  │   instance Show Int where
+  │   ╰──────────────────────
+  •
+
+Error! · [InstanceMemberTypeMismatch] · Main.purs:7:1
+  •
+  │
+  • Instance member type mismatch: expected 'Int -> String', got 'Int -> Int'
+  │
+  │   instance Show Int where
+  │   ╰──────────────────────
+  •

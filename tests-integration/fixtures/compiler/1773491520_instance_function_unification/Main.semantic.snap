@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface Category :: forall k0. (k0 -> k0 -> Prim.Type) -> Prim.Constraint
+interface Category f where
+  identity :: forall (a :: t0). f a a
+
+dictionary categoryTypeFunction :: Main.Category @Prim.Type Prim.Function where
+  identity :: forall a. a -> a
+  identity = \a -> a

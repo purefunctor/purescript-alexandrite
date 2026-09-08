@@ -1,0 +1,55 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor RightNested/1
+
+@export instance functorRightNestedType = \bifunctorPDict%0 ->
+  {
+    map:
+      \function%2 $rightNested%4@(RightNested value%3) ->
+        { tag: "RightNested", _1: bimap bifunctorPDict%0 (\fixed%1 -> fixed%1) function%2 value%3 }
+  }
+
+@export instance foldableRightNestedType = \bifoldablePDict%5 ->
+  {
+    foldr:
+      \function%8 initial%9 $rightNested%11@(RightNested value%10) ->
+        bifoldr bifoldablePDict%5 (\$int%6@(_) accumulated%7 -> accumulated%7) function%8 initial%9
+          value%10,
+    foldl:
+      \function%14 initial%15 $rightNested%17@(RightNested value%16) ->
+        bifoldl bifoldablePDict%5 (\accumulated%12 $int%13@(_) -> accumulated%12) function%14
+          initial%15
+          value%16,
+    foldMap:
+      \monoidMDict%18 ->
+        \function%20 $rightNested%22@(RightNested value%21) ->
+          bifoldMap bifoldablePDict%5 monoidMDict%18 (\$int%19@(_) -> mempty monoidMDict%18)
+            function%20
+            value%21
+  }
+
+@export instance traversableRightNestedType = \bitraversablePDict%23 ->
+  {
+    "Functor0": \() -> functorRightNestedType (bitraversablePDict%23."Bifunctor0"()),
+    "Foldable1": \() -> foldableRightNestedType (bitraversablePDict%23."Bifoldable1"()),
+    traverse:
+      \applicativeMDict%27 ->
+        \function%24 value%25 ->
+          case value%25 of
+            RightNested field0%26 ->
+              map ((applicativeMDict%27."Apply0"())."Functor0"())
+                (\field0Result%28 -> { tag: "RightNested", _1: field0Result%28 })
+                (bitraverse bitraversablePDict%23 applicativeMDict%27
+                  (\unchanged%29 -> pure applicativeMDict%27 unchanged%29)
+                  (\element%30 -> function%24 element%30)
+                  field0%26),
+    sequence:
+      \applicativeMDict%32 ->
+        \value%31 ->
+          traverse (traversableRightNestedType bitraversablePDict%23) applicativeMDict%32
+            (\effect0%33 -> effect0%33)
+            value%31
+  }

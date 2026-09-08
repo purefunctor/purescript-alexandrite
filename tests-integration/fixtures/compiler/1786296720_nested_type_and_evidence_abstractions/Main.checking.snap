@@ -1,0 +1,23 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+show :: forall @a. Main.Eq a => a -> Prim.String
+record :: { show :: forall a. Main.Eq a => a -> Prim.String }
+interleaved :: forall @a. Main.First a => (forall b. Main.Second b => a -> b)
+interleavedRecord ::
+  { interleaved :: forall a. Main.First a => (forall b. Main.Second b => a -> b) }
+
+Types
+Eq :: Prim.Type -> Prim.Constraint
+First :: Prim.Type -> Prim.Constraint
+Second :: Prim.Type -> Prim.Constraint
+
+Classes
+class forall (a :: Prim.Type). Main.Eq a
+  show :: forall @a. Main.Eq a => a -> Prim.String
+class forall (a :: Prim.Type). Main.First a
+  interleaved :: forall @a. Main.First a => (forall b. Main.Second b => a -> b)
+class forall (b :: Prim.Type). Main.Second b

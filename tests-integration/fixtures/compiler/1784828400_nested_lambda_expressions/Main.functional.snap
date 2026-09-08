@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Nothing/0
+
+@export constructor Just/1
+
+@export nested = \first%0 -> \second%1 -> first%0
+
+@export caseBody = \maybe%2 ->
+  case maybe%2 of
+    Nothing ->
+      0
+    Just value%3 ->
+      value%3

@@ -13,14 +13,15 @@ contracts belong in `tests-e2e`.
 
 - Extend an existing fixture when it expresses the same case; add a fixture for a distinct behavior.
   Avoid duplicating a scenario across categories merely to increase coverage.
-- Assert at the stage that owns the behavior. A type-checking regression needs checked results or
-  diagnostics, not mandatory JavaScript execution. Use backend runtime verification when executable
-  semantics are the contract; running generated JavaScript alone does not make a test CLI E2E.
+- Use the unified `compiler` category for pipeline behavior and keep its `Main.purs` entry focused.
+  Review the report that owns the contract: checking types, diagnostics for every fixture-owned
+  module with stable relative paths, recovery semantic trees, or successful/explicitly rejected
+  functional trees. Use runtime verification only when execution is the contract.
 - Use real registry modules for library dependencies rather than handwritten stand-ins or vendored
   copies. Deliberately malformed or substituted registry modules must declare their reason through
   the existing fixture replacement mechanism.
-- Keep goldens focused on fixture-owned results. Registry dependency output is not fixture output;
-  runtime verification must exercise freshly generated code, not tracked JavaScript goldens.
+- Keep goldens focused on reachable fixture-owned generated JavaScript. Optional `verify.mjs`
+  verification must exercise a freshly generated full dependency closure, not tracked goldens.
 - Verify harness changes through representative fixtures and affected category runs. A separate unit
   test is justified for an isolated harness algorithm only when it protects a distinct local
   invariant.

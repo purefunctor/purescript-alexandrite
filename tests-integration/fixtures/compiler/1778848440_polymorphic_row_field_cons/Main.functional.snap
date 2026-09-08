@@ -1,0 +1,14 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Proxy/0
+
+@export constructor Html/0
+
+@export _child = "Proxy"
+
+@export slot = \consLabelSlotQueryOutputDict%2 -> \$proxy%0@(_) $key%1@(_) -> "Html"
+
+@export test = \key%3 -> slot <trivial evidence> _child key%3

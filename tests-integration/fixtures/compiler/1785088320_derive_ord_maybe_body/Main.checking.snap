@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+Nothing :: forall @a. Main.Maybe a
+Just :: forall @a. a -> Main.Maybe a
+
+Types
+Maybe :: Prim.Type -> Prim.Type
+
+Derived
+derive forall a. Data.Eq.Eq a => Data.Eq.Eq (Main.Maybe a)
+derive forall a. Data.Ord.Ord a => Data.Ord.Ord (Main.Maybe a)
+
+Roles
+Maybe = [Representational]

@@ -1,0 +1,102 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+constants :: { columns :: Prim.Int, compact :: Prim.String }
+constants = defineConsts { compact: "@media (max-width: 40rem)", columns: 12 }
+
+variables :: { accent ::
+    Alexandrite.StyleX.Variable
+      (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Color Prim.String)
+, angle ::
+    Alexandrite.StyleX.Variable
+      (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Angle Prim.String)
+, image ::
+    Alexandrite.StyleX.Variable
+      (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Image Prim.String)
+, integer ::
+    Alexandrite.StyleX.Variable
+      (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Integer Prim.Int)
+, length ::
+    Alexandrite.StyleX.Variable
+      (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Length Prim.String)
+, lengthPercentage ::
+    Alexandrite.StyleX.Variable
+      (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.LengthPercentage Prim.String)
+, number ::
+    Alexandrite.StyleX.Variable
+      (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Number Prim.Number)
+, percentage ::
+    Alexandrite.StyleX.Variable
+      (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Percentage Prim.String)
+, resolution ::
+    Alexandrite.StyleX.Variable
+      (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Resolution Prim.String)
+, time ::
+    Alexandrite.StyleX.Variable
+      (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Time Prim.String)
+, transformFunction ::
+    Alexandrite.StyleX.Variable
+      (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.TransformFunction Prim.String)
+, transformList ::
+    Alexandrite.StyleX.Variable
+      (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.TransformList Prim.String)
+, url ::
+    Alexandrite.StyleX.Variable
+      (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Url Prim.String)
+}
+variables =
+  defineVars {compileVars {trivial} {compileVarListConsType {compileVarListConsType {compileVarListConsType {compileVarListConsType {compileVarListConsType {compileVarListConsType {compileVarListConsType {compileVarListConsType {compileVarListConsType {compileVarListConsType {compileVarListConsType {compileVarListConsType {compileVarListConsType {compileVarListNilTypeRow} {trivial}} {trivial}} {trivial}} {trivial}} {trivial}} {trivial}} {trivial}} {trivial}} {trivial}} {trivial}} {trivial}} {trivial}} {trivial}}}
+    { accent: color {stringValueString} "royalblue", angle: angle {stringOrNumberValueString}
+      "45deg", image: image {stringValueString}
+      "linear-gradient(red, blue)", integer: integer {numberValueInt}
+      1, length: length {stringOrNumberValueString}
+      "8px", lengthPercentage: lengthPercentage {stringOrNumberValueString}
+      "10%", number: number {numberValueNumber}
+      0.5, percentage: percentage {stringOrNumberValueString}
+      "50%", resolution: resolution {stringValueString}
+      "2dppx", time: time {stringOrNumberValueString}
+      "200ms", transformFunction: transformFunction {stringValueString}
+      "scale(1)", transformList: transformList {stringValueString}
+      "scale(1) rotate(2deg)", url: url {stringValueString} "url(image.png)" }
+
+theme :: Alexandrite.StyleX.Style
+theme =
+  createTheme {themeOverrides {trivial} {themeOverrideListConsType {trivial} {themeOverrideListConsType {trivial} {themeOverrideListNilType}}}}
+    variables
+    { accent: color {stringValueString} "white", length: length {stringOrNumberValueString} "12px" }
+
+rowMarker :: Alexandrite.StyleX.Marker
+rowMarker = defineMarker
+
+styles :: { root :: Alexandrite.StyleX.Style }
+styles =
+  create {compileStyles {trivial} {compileStyleListConsTypeRecord {compileStyleListNilTypeRow} {trivial}}}
+    { root: { color: conditionalValue "blue"
+      [ancestor ":hover" "red", ancestorMarker ":focus" rowMarker "green", descendant ":hover"
+        "purple", descendantMarker ":focus" rowMarker "pink", siblingBefore ":hover"
+        "orange", siblingBeforeMarker ":focus" rowMarker "yellow", siblingAfter ":hover"
+        "gray", siblingAfterMarker ":focus" rowMarker "black", anySibling ":hover"
+        "navy", anySiblingMarker ":focus" rowMarker "teal"], position: firstThatWorks
+      ["sticky", "fixed"] } }
+
+attributes :: Alexandrite.StyleX.Attrs
+attributes = attrs {propsInputStyle} styles.root
+
+recordAttributes :: { root :: Alexandrite.StyleX.Attrs }
+recordAttributes =
+  recordAttrs {compileAttrs {trivial} {compileAttrsListConsTypeStyle {compileAttrsListNilTypeRow} {trivial}}}
+    styles
+
+markerProps :: Alexandrite.StyleX.Props
+markerProps = props {propsInputMarker} rowMarker
+
+defaultMarkerProps :: Alexandrite.StyleX.Props
+defaultMarkerProps = props {propsInputStyle} defaultMarker
+
+transitionClass :: Prim.String
+transitionClass = viewTransitionClass { new: { opacity: 1.0 }, old: { opacity: 0.0 } }
+
+fallback :: Prim.String
+fallback = positionTry { positionArea: "block-start", margin: 8 }

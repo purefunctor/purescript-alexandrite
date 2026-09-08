@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Error! · [CannotDeriveForType] · Main.purs:5:1
+  •
+  │
+  • Cannot derive for type: Int -> Int
+  │
+  │   derive instance Generic (Int -> Int) _
+  │   ╰─────────────────────────────────────
+  •
+
+Error! · [FunctionalCodegen] · Main.purs:1:1
+  •
+  │
+  • checked instance declaration is missing
+  │
+  │   module Main where
+  │   ╰────────────────
+  •

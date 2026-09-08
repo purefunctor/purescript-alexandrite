@@ -1,0 +1,25 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface InstanceTypeHole :: Prim.Type -> Prim.Constraint
+interface InstanceTypeHole implicit where
+  instanceTypeHoleMember :: implicit -> implicit
+
+termHole :: Prim.Int -> Prim.Int
+termHole = \argument ->
+  let
+    localInt :: Prim.Int
+    localInt = argument
+    localString :: Prim.String
+    localString = "not relevant"
+  in
+    <error>
+
+recordPunHole :: { punInt :: Prim.Int, punString :: Prim.String } -> Prim.Int
+recordPunHole = \{ punInt, punString } -> <error>
+
+dictionary instanceTypeHole :: forall implicit. Main.InstanceTypeHole implicit where
+  instanceTypeHoleMember :: implicit -> implicit
+  instanceTypeHoleMember = \value -> value

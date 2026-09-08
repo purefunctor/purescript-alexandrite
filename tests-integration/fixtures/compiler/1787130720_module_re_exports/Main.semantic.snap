@@ -1,0 +1,25 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+constructorValue :: Origin.Option
+constructorValue = Just 42
+
+operatorValue :: Prim.Int
+operatorValue = append (visible 23) 9
+
+localCollision :: Prim.Int
+localCollision = append
+
+foreignResult :: Prim.Int
+foreignResult = foreignValue
+
+hostileResult :: Prim.Int
+hostileResult = await
+
+measured :: Prim.Int
+measured = measure {measureInt} 41
+
+transitiveMarker :: Prim.Int
+transitiveMarker = marker

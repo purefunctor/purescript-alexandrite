@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export foreign unsafeSet
+
+@export buildIt = \dictionary%0 -> dictionary%0.buildIt
+
+@export instance buildRecordImpl = {
+  buildIt:
+    let
+      result%1 = unsafeSet "x" 42 {  }
+    in result%1
+}
+
+@export test = \buildRecordRSDict%2 -> buildIt buildRecordImpl

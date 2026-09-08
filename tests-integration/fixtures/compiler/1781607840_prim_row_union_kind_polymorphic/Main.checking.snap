@@ -1,0 +1,30 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+openLeftHigherKinded ::
+  forall (tail :: Prim.Row (Prim.Type -> Prim.Type)) (output :: Prim.Row (Prim.Type -> Prim.Type)).
+    Prim.Row.Union @(Prim.Type -> Prim.Type)
+      ( effect :: Main.Effect | (tail :: Prim.Row (Prim.Type -> Prim.Type)) )
+      ()
+      (output :: Prim.Row (Prim.Type -> Prim.Type)) =>
+    Type.Proxy.Proxy @(Prim.Row (Prim.Type -> Prim.Type))
+      (output :: Prim.Row (Prim.Type -> Prim.Type))
+forceSolve ::
+  forall (tail :: Prim.Row (Prim.Type -> Prim.Type)) (output :: Prim.Row (Prim.Type -> Prim.Type)).
+    Prim.Row.Union @(Prim.Type -> Prim.Type)
+      (tail :: Prim.Row (Prim.Type -> Prim.Type))
+      ()
+      (output :: Prim.Row (Prim.Type -> Prim.Type)) =>
+    { openLeftHigherKinded ::
+        Type.Proxy.Proxy @(Prim.Row (Prim.Type -> Prim.Type))
+          ( effect :: Main.Effect | (output :: Prim.Row (Prim.Type -> Prim.Type)) )
+    }
+
+Types
+Effect :: Prim.Type -> Prim.Type
+
+Roles
+Effect = [Nominal]

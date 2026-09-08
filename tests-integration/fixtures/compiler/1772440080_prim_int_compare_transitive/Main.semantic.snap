@@ -1,0 +1,43 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+assertLesser :: forall l r.
+  Prim.Int.Compare l r Prim.Ordering.LT =>
+  Type.Proxy.Proxy @(Prim.Row Prim.Int) ( left :: l, right :: r )
+assertLesser = \{compareDict} -> Proxy
+
+assertGreater :: forall l r.
+  Prim.Int.Compare l r Prim.Ordering.GT =>
+  Type.Proxy.Proxy @(Prim.Row Prim.Int) ( left :: l, right :: r )
+assertGreater = \{compareDict} -> Proxy
+
+assertEqual :: forall l r.
+  Prim.Int.Compare l r Prim.Ordering.EQ =>
+  Type.Proxy.Proxy @(Prim.Row Prim.Int) ( left :: l, right :: r )
+assertEqual = \{compareDict} -> Proxy
+
+transLt :: forall m n p.
+  Prim.Int.Compare m n Prim.Ordering.LT =>
+  Prim.Int.Compare n p Prim.Ordering.LT =>
+  Type.Proxy.Proxy @Prim.Int n -> Type.Proxy.Proxy @(Prim.Row Prim.Int) ( left :: m, right :: p )
+transLt = \{compareDict} -> \{compareDict1} -> \_ -> assertLesser {trivial}
+
+transLtEq :: forall m n p.
+  Prim.Int.Compare m n Prim.Ordering.LT =>
+  Prim.Int.Compare n p Prim.Ordering.EQ =>
+  Type.Proxy.Proxy @Prim.Int n -> Type.Proxy.Proxy @(Prim.Row Prim.Int) ( left :: m, right :: p )
+transLtEq = \{compareDict} -> \{compareDict1} -> \_ -> assertLesser {trivial}
+
+transEqGt :: forall m n p.
+  Prim.Int.Compare m n Prim.Ordering.EQ =>
+  Prim.Int.Compare n p Prim.Ordering.GT =>
+  Type.Proxy.Proxy @Prim.Int n -> Type.Proxy.Proxy @(Prim.Row Prim.Int) ( left :: m, right :: p )
+transEqGt = \{compareDict} -> \{compareDict1} -> \_ -> assertGreater {trivial}
+
+transSymmEq :: forall m n p.
+  Prim.Int.Compare n m Prim.Ordering.EQ =>
+  Prim.Int.Compare n p Prim.Ordering.EQ =>
+  Type.Proxy.Proxy @Prim.Int n -> Type.Proxy.Proxy @(Prim.Row Prim.Int) ( left :: m, right :: p )
+transSymmEq = \{compareDict} -> \{compareDict1} -> \_ -> assertEqual {trivial}

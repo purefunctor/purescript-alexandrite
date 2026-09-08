@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+MkNoEq :: Main.NoEq
+MkBox :: Main.NoEq -> Main.Box
+
+Types
+NoEq :: Prim.Type
+Box :: Prim.Type
+
+Derived
+derive Data.Eq.Eq Main.Box
+
+Roles
+NoEq = []
+Box = []

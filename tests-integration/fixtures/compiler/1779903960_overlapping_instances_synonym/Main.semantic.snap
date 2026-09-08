@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface Convert :: Prim.Type -> Prim.Type -> Prim.Constraint
+interface Convert a b where
+  convert :: a -> b
+
+dictionary convertSB :: Main.Convert Prim.String Main.Bar where
+  convert :: Prim.String -> Main.Bar
+  convert = \s -> s
+
+dictionary convertSS :: Main.Convert Prim.String Prim.String where
+  convert :: Prim.String -> Prim.String
+  convert = \s -> s
+
+value :: Prim.String
+value = convert {convertSB} "value"

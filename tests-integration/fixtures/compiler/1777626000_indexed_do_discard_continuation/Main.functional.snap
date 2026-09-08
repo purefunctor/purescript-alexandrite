@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Unit/0
+
+@export foreign pure
+
+@export foreign discard
+
+@export foreign use1
+
+@export foreign use2
+
+@export test = discard use1 (\$unit%0@(_) -> discard use2 (\$unit%1@(_) -> pure "Unit"))

@@ -1,0 +1,40 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Error! · [NoInstanceFound] · Main.purs:20:1
+  •
+  │
+  • No instance found for: Add 2 3 10
+  │
+  │   forceSolve =
+  │   ╰───────────
+  •
+
+Error! · [NoInstanceFound] · Main.purs:20:1
+  •
+  │
+  • No instance found for: Compare 5 1 LT
+  │
+  │   forceSolve =
+  │   ╰───────────
+  •
+
+Error! · [NoInstanceFound] · Main.purs:20:1
+  •
+  │
+  • No instance found for: Append "hello" "world" "xyz"
+  │
+  │   forceSolve =
+  │   ╰───────────
+  •
+
+Error! · [NoInstanceFound] · Main.purs:20:1
+  •
+  │
+  • No instance found for: Cons "hello" "world" "helloworld"
+  │
+  │   forceSolve =
+  │   ╰───────────
+  •

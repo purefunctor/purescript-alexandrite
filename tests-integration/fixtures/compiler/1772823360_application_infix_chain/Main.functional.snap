@@ -1,0 +1,46 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export add = \x%0 y%1 -> x%0
+
+@export sub = \x%2 y%3 -> x%2
+
+@export mul = \x%4 y%5 -> x%4
+
+@export test1 = add 1 2
+
+@export test1' = add 1 2
+
+@export test2 = sub (add 1 2) 3
+
+@export test2' = sub (add 1 2) 3
+
+@export test3 = mul (sub (add 1 2) 3) 4
+
+@export test3' = mul (sub (add 1 2) 3) 4
+
+@export const = \x%6 y%7 -> x%6
+
+@export test4 = const 1 "hello"
+
+@export test4' = const 1 "hello"
+
+@export test5 = add (const 1 "hello") 2
+
+@export test5' = add (const 1 "hello") 2
+
+@export apply = \f%8 x%9 -> f%8 x%9
+
+@export chain = \g%10 f%11 x%12 -> g%10 (f%11 x%12)
+
+@export test6 = apply (chain (\x%13 -> x%13) (\x%14 -> x%14)) 1
+
+@export test6' = apply (chain (\x%15 -> x%15) (\x%16 -> x%16)) 1
+
+@export curry = \f%17 x%18 y%19 -> f%17 x%18 y%19
+
+@export test7 = curry add 1
+
+@export test7' = curry add 1

@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+data Proxy :: forall k0. k0 -> Prim.Type
+data Proxy @a
+  | Proxy :: Main.Proxy a
+
+newtype Tagged :: forall k0. k0 -> Prim.Type -> Prim.Type
+newtype Tagged @t @a
+  | Tagged :: a -> Main.Tagged t a
+
+data Maybe :: Prim.Type -> Prim.Type
+data Maybe @a
+  | Just :: a -> Main.Maybe a
+  | Nothing :: Main.Maybe a

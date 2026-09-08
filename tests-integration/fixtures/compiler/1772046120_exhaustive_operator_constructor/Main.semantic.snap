@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data List :: Prim.Type -> Prim.Type
+data List @a
+  | Cons :: a -> Main.List a -> Main.List a
+  | Nil :: Main.List a
+
+head :: forall a. Main.List a -> a
+head = \(Cons x _) -> x

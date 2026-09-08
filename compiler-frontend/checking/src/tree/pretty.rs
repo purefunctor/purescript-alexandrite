@@ -1800,30 +1800,61 @@ where
         names: &mut EvidenceNames,
         evidence: &Evidence,
     ) -> QueryResult<SmolStr> {
-        match evidence {
-            Evidence::Variable(evidence) => self.evidence_variable_name(names, *evidence),
-            Evidence::Given(binder) => self.evidence_binder_name(names, *binder),
-            Evidence::Instance { origin, subgoals } => {
-                let mut instance = self.instance_dictionary_name(*origin)?;
-                for subgoal in subgoals {
-                    let subgoal = self.evidence_variable_name(names, *subgoal)?;
-                    instance = format_smolstr!("{instance} {{{subgoal}}}");
-                }
-                Ok(instance)
-            }
-            Evidence::Superclass { parent, superclass } => {
-                let parent_evidence = &self.checked.evidence[*parent];
-                let parent = self.evidence_name(names, parent_evidence)?;
-                let field = self.superclass_field_name(*superclass)?;
-                if parent.contains(' ') {
-                    Ok(format_smolstr!("({parent}).{field}"))
-                } else {
-                    Ok(format_smolstr!("{parent}.{field}"))
-                }
-            }
-            Evidence::Trivial => Ok(SmolStr::new("trivial")),
-            Evidence::Synthesized(evidence) => Ok(synthesized_evidence_name(evidence)),
+        enum Pending<'a> {
+            Evidence(&'a Evidence),
+            Variable(EvidenceVarId),
+            Text(&'static str),
+            Superclass { start: usize, superclass: SuperclassId },
         }
+
+        let mut rendered = String::new();
+        let mut pending = vec![Pending::Evidence(evidence)];
+        while let Some(next) = pending.pop() {
+            match next {
+                Pending::Evidence(Evidence::Variable(evidence)) => {
+                    pending.push(Pending::Variable(*evidence));
+                }
+                Pending::Variable(evidence) => match self.checked.evidence[evidence].state {
+                    EvidenceState::Solved(proof) => {
+                        pending.push(Pending::Evidence(&self.checked.evidence[proof]));
+                    }
+                    EvidenceState::Unsolved => rendered.push_str("unsolved"),
+                    EvidenceState::Error => rendered.push_str("error"),
+                },
+                Pending::Evidence(Evidence::Given(binder)) => {
+                    rendered.push_str(&self.evidence_binder_name(names, *binder)?);
+                }
+                Pending::Evidence(Evidence::Instance { origin, subgoals }) => {
+                    rendered.push_str(&self.instance_dictionary_name(*origin)?);
+                    for subgoal in subgoals.iter().rev() {
+                        pending.push(Pending::Text("}"));
+                        pending.push(Pending::Variable(*subgoal));
+                        pending.push(Pending::Text(" {"));
+                    }
+                }
+                Pending::Evidence(Evidence::Superclass { parent, superclass }) => {
+                    pending.push(Pending::Superclass {
+                        start: rendered.len(),
+                        superclass: *superclass,
+                    });
+                    pending.push(Pending::Evidence(&self.checked.evidence[*parent]));
+                }
+                Pending::Evidence(Evidence::Trivial) => rendered.push_str("trivial"),
+                Pending::Evidence(Evidence::Synthesized(evidence)) => {
+                    rendered.push_str(&synthesized_evidence_name(evidence));
+                }
+                Pending::Text(text) => rendered.push_str(text),
+                Pending::Superclass { start, superclass } => {
+                    if rendered[start..].contains(' ') {
+                        rendered.insert(start, '(');
+                        rendered.push(')');
+                    }
+                    rendered.push('.');
+                    rendered.push_str(&self.superclass_field_name(superclass)?);
+                }
+            }
+        }
+        Ok(SmolStr::new(rendered))
     }
 
     fn instance_dictionary_name(&self, origin: InstanceCandidateOrigin) -> QueryResult<SmolStr> {

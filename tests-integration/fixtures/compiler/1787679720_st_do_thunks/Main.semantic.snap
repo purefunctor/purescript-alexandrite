@@ -1,0 +1,42 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+foreign import constructST :: forall region a. Prim.String -> a -> Control.Monad.ST.Internal.ST region a
+
+foreign import mark :: forall a. Prim.String -> a -> a
+
+chained :: forall region.
+  Prim.String ->
+  Control.Monad.ST.Internal.ST region { first :: Prim.String, second :: { first :: Prim.String } }
+chained = \seed ->
+  bind {bindST} (constructST "first" seed) \first ->
+    let
+      secondInput :: { first :: Prim.String }
+      secondInput = { first }
+    in
+      bind {bindST} (constructST "second" secondInput) \second ->
+        let
+          result :: { first :: Prim.String, second :: { first :: Prim.String } }
+          result = { first, second }
+        in
+          constructST "third" result
+
+discarded :: forall region. Prim.String -> Control.Monad.ST.Internal.ST region Prim.String
+discarded = \seed ->
+  discard {discardUnit} {bindST} (constructST "discard-first" unit) \_ ->
+    let
+      result :: Prim.String
+      result = mark "discard-let" seed
+    in
+      constructST "discard-second" result
+
+pureAfterBind :: forall region. Prim.String -> Control.Monad.ST.Internal.ST region { value :: Prim.String }
+pureAfterBind = \seed ->
+  bind {bindST} (constructST "pure-action" seed) \value ->
+    let
+      result :: { value :: Prim.String }
+      result = { value }
+    in
+      pure {applicativeST} (mark "pure-body" result)

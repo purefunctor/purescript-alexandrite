@@ -1,0 +1,8 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export test = effect.pure 1
+
+@export test' = \applicativeDict%0 -> pure applicativeDict%0 1

@@ -1,0 +1,9 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Token/0
+
+@export instance childToken = \parentTokenDict%0 ->
+  { "Parent0": \() -> parentTokenDict%0, child: "Token" }

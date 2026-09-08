@@ -1,0 +1,34 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+variables ::
+  { accent ::
+      Alexandrite.StyleX.Variable
+        (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Color Prim.String)
+  , spacing ::
+      Alexandrite.StyleX.Variable
+        (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Length Prim.String)
+  }
+valid :: Alexandrite.StyleX.Style
+wrongType :: Alexandrite.StyleX.Style
+unknown :: Alexandrite.StyleX.Style
+invalidInteger ::
+  { value ::
+      Alexandrite.StyleX.Variable
+        (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Integer Prim.Boolean)
+  }
+invalidNumber ::
+  { value ::
+      Alexandrite.StyleX.Variable
+        (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Number Prim.String)
+  }
+invalidColor ::
+  { value ::
+      Alexandrite.StyleX.Variable
+        (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Color Prim.Int)
+  }
+
+Types

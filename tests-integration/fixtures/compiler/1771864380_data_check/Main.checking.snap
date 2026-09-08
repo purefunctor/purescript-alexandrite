@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Proxy :: forall k (@a :: k). Main.Proxy @k (a :: k)
+
+Types
+Proxy :: forall k. k -> Prim.Type
+
+Roles
+Proxy = [Phantom]

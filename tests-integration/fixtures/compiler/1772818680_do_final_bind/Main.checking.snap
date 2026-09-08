@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+test :: Effect.Effect Prim.Int
+test' ::
+  forall (t0 :: Prim.Type -> Prim.Type).
+    Control.Applicative.Applicative (t0 :: Prim.Type -> Prim.Type) =>
+    (t0 :: Prim.Type -> Prim.Type) Prim.Int
+
+Types

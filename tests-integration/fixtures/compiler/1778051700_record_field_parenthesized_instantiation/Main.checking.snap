@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+const :: forall @a @b. a -> b -> a
+choose :: Prim.Int -> (forall @a @b. a -> b -> a)
+normal :: forall t0 t1. { parenthesised :: t0 -> t1 -> t0 }
+prenex ::
+  { application :: forall @a @b. a -> b -> a, variable :: Prim.Int -> (forall @a @b. a -> b -> a) }
+
+Types

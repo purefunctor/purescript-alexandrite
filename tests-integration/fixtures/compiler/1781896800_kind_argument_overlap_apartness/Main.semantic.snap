@@ -1,0 +1,21 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Inner :: forall left right. left -> right -> Prim.Type
+data Inner @left1 @right1
+
+data Outer :: forall left right. left -> right -> Prim.Type
+data Outer @left1 @right1
+
+interface Test :: forall input. input -> Prim.Type -> Prim.Constraint
+interface Test input1 output where
+
+dictionary testTypeOuterResultA ::
+  forall t0 t1 left right.
+  Main.Test @Prim.Type (Main.Outer @t0 @t1 left right) Main.ResultA
+
+dictionary testTypeOuterTypeInnerResultB ::
+  forall t0 t1 t2 left right other.
+  Main.Test @Prim.Type (Main.Outer @Prim.Type @t0 (Main.Inner @t1 @t2 left right) other) Main.ResultB

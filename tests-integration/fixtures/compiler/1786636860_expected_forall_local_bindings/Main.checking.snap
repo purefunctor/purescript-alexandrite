@@ -1,0 +1,41 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Unit :: Main.Unit
+Spec :: Main.Spec
+Token :: forall t0 (@scope :: t0). Main.Token @t0 (scope :: t0)
+identity :: forall value. value -> value
+modify :: forall t0 (scope :: t0). Main.Token @t0 (scope :: t0) -> Main.Token @t0 (scope :: t0)
+mkEval :: forall value. Main.Spec -> value -> value
+constrainedEval :: forall value. Main.Witness @Prim.Type value => Main.Spec -> value -> value
+consumeIdentity :: (forall value. value -> value) -> Main.Unit
+leak :: forall t0 result. (forall (scope :: t0). Main.Token @t0 (scope :: t0) -> result) -> result
+validLocalEval :: Main.Unit
+validNestedLocalEval :: Main.Unit
+escapedLocalEvidence :: Main.Unit
+escapedLocalAlias :: forall t0. Main.Token @t0 (scope :: t0)
+escapedEtaExpansion :: forall t0. Main.Token @t0 (scope :: t0)
+escapedIdentityWrapper :: forall t0. Main.Token @t0 (scope :: t0)
+escapedArrayWrapper :: forall t0. Prim.Array (Main.Token @t0 (scope :: t0))
+escapedConditionalWrapper :: forall t0. Main.Token @t0 (scope :: t0)
+escapedUnusedLocal :: Prim.Int
+
+Types
+Unit :: Prim.Type
+Spec :: Prim.Type
+Token :: forall t0. t0 -> Prim.Type
+Witness :: forall t0. t0 -> Prim.Constraint
+
+Classes
+class forall (t0 :: Prim.Type) (value :: t0). Main.Witness @t0 (value :: t0)
+
+Instances
+instance forall t0 (value :: t0). Main.Witness @t0 (value :: t0)
+
+Roles
+Unit = []
+Spec = []
+Token = [Phantom]

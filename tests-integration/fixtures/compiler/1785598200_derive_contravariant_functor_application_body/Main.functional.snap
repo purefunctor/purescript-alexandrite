@@ -1,0 +1,29 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Box/1
+
+@export instance functorBox = {
+  map:
+    \function%0 value%1 ->
+      case value%1 of
+        Box field0%2 ->
+          { tag: "Box", _1: function%0 field0%2 }
+}
+
+@export constructor BoxedPredicate/1
+
+@export instance contravariantBoxedPredicate = {
+  cmap:
+    \function%3 value%4 ->
+      case value%4 of
+        BoxedPredicate field0%5 ->
+          {
+            tag: "BoxedPredicate",
+            _1:
+              map functorBox (\element%6 -> \argument%7 -> element%6 (function%3 argument%7))
+                field0%5
+          }
+}

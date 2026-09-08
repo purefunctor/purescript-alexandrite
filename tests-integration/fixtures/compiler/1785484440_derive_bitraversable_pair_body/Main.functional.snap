@@ -1,0 +1,58 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Pair/3
+
+@export instance bifunctorPair = {
+  bimap:
+    \firstFunction%0 secondFunction%1 value%2 ->
+      case value%2 of
+        Pair field0%3 field1%4 field2%5 ->
+          { tag: "Pair", _1: firstFunction%0 field0%3, _2: field1%4, _3: secondFunction%1 field2%5 }
+}
+
+@export instance bifoldablePair = {
+  bifoldr:
+    \firstFunction%6 secondFunction%7 accumulator%8 value%9 ->
+      case value%9 of
+        Pair field0%10 field1%11 field2%12 ->
+          firstFunction%6 field0%10 (secondFunction%7 field2%12 accumulator%8),
+  bifoldl:
+    \firstFunction%13 secondFunction%14 accumulator%15 value%16 ->
+      case value%16 of
+        Pair field0%17 field1%18 field2%19 ->
+          secondFunction%14 (firstFunction%13 accumulator%15 field0%17) field2%19,
+  bifoldMap:
+    \monoidMDict%26 ->
+      \firstFunction%20 secondFunction%21 value%22 ->
+        case value%22 of
+          Pair field0%23 field1%24 field2%25 ->
+            append (monoidMDict%26."Semigroup0"()) (firstFunction%20 field0%23)
+              (secondFunction%21 field2%25)
+}
+
+@export instance bitraversablePair = {
+  "Bifunctor0": \() -> bifunctorPair,
+  "Bifoldable1": \() -> bifoldablePair,
+  bitraverse:
+    \applicativeFDict%33 ->
+      \firstFunction%27 secondFunction%28 value%29 ->
+        let
+          Apply0Dict%34 = applicativeFDict%33."Apply0"()
+        in case value%29 of
+          Pair field0%30 field1%31 field2%32 ->
+            apply Apply0Dict%34
+              (map (Apply0Dict%34."Functor0"())
+                (\field0Result%35 field2Result%36 ->
+                  { tag: "Pair", _1: field0Result%35, _2: field1%31, _3: field2Result%36 })
+                (firstFunction%27 field0%30))
+              (secondFunction%28 field2%32),
+  bisequence:
+    \applicativeFDict%38 ->
+      \value%37 ->
+        bitraverse bitraversablePair applicativeFDict%38 (\effect0%39 -> effect0%39)
+          (\effect1%40 -> effect1%40)
+          value%37
+}

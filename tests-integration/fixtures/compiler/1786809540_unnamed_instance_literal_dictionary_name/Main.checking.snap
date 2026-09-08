@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+
+Types
+NamedSymbol :: Prim.Symbol -> Prim.Constraint
+
+Classes
+class forall (symbol :: Prim.Symbol). Main.NamedSymbol (symbol :: Prim.Symbol)
+
+Instances
+instance Main.NamedSymbol "foo bar"

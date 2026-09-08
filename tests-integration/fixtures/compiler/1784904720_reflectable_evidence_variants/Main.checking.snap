@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+symbol :: Prim.String
+integer :: Prim.Int
+booleanTrue :: Prim.Boolean
+booleanFalse :: Prim.Boolean
+orderingLess :: Data.Ordering.Ordering
+orderingEqual :: Data.Ordering.Ordering
+orderingGreater :: Data.Ordering.Ordering
+
+Types

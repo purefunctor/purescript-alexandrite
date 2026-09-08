@@ -1,0 +1,23 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+identity ::
+  forall t0 (@f :: t0 -> t0 -> Prim.Type).
+    Main.Category @t0 (f :: t0 -> t0 -> Prim.Type) =>
+    (forall (a :: t0). (f :: t0 -> t0 -> Prim.Type) (a :: t0) (a :: t0))
+
+Types
+Category :: forall t0. (t0 -> t0 -> Prim.Type) -> Prim.Constraint
+
+Classes
+class forall (t0 :: Prim.Type) (f :: t0 -> t0 -> Prim.Type). Main.Category @t0 (f :: t0 -> t0 -> Prim.Type)
+  identity ::
+  forall t0 (@f :: t0 -> t0 -> Prim.Type).
+    Main.Category @t0 (f :: t0 -> t0 -> Prim.Type) =>
+    (forall (a :: t0). (f :: t0 -> t0 -> Prim.Type) (a :: t0) (a :: t0))
+
+Instances
+instance Main.Category @Prim.Type Prim.Function

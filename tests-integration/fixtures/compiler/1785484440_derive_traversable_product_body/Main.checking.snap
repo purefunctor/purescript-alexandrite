@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+Product :: forall @a. a -> Prim.Int -> a -> Main.Product a
+
+Types
+Product :: Prim.Type -> Prim.Type
+
+Derived
+derive Data.Functor.Functor Main.Product
+derive Data.Foldable.Foldable Main.Product
+derive Data.Traversable.Traversable Main.Product
+
+Roles
+Product = [Representational]

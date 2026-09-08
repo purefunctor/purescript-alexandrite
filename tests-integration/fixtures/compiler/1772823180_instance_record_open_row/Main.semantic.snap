@@ -1,0 +1,33 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface Clone :: Prim.Type -> Prim.Type -> Prim.Constraint
+interface Clone a b where
+  clone :: a -> b
+
+interface Nest :: Prim.Type -> Prim.Type -> Prim.Constraint
+interface Nest a b where
+  nest :: a -> b
+
+dictionary cloneRecordRecord :: forall r. Main.Clone {| r } {| r } where
+  clone :: {| r } -> {| r }
+  clone = \x -> x
+
+testClonePerson :: { age :: Prim.Int, name :: Prim.String } -> { age :: Prim.Int, name :: Prim.String }
+testClonePerson = clone {cloneRecordRecord}
+
+testCloneEmpty :: {} -> {}
+testCloneEmpty = clone {cloneRecordRecord}
+
+testCloneSingle :: { x :: Prim.Int } -> { x :: Prim.Int }
+testCloneSingle = clone {cloneRecordRecord}
+
+dictionary nestRecordRecordRow :: forall r. Main.Nest {| r } { inner :: {| r }, outer :: Prim.Int }
+  where
+  nest :: {| r } -> { inner :: {| r }, outer :: Prim.Int }
+  nest = \x -> { inner: x, outer: 0 }
+
+testNest :: { a :: Prim.String } -> { inner :: { a :: Prim.String }, outer :: Prim.Int }
+testNest = nest {nestRecordRecordRow}

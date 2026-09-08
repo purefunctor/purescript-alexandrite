@@ -1,9 +1,0 @@
----
-source: tests-integration/src/fixtures.rs
-assertion_line: 50
-expression: report
----
-Terms
-const :: forall a b. a -> b -> a
-
-Types

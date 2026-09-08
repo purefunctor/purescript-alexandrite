@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Just/1
+
+@export constructor Nothing/0
+
+@export test1 = \partialDict%1 ->
+  \section21%0 ->
+    (case section21%0 of
+      Just _ ->
+        | otherwise -> 1)
+      partialDict%1
+
+@export test2 = \partialDict%3 ->
+  \section38%2 ->
+    (case section38%2 of
+      Nothing ->
+        | true -> 2)
+      partialDict%3

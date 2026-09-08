@@ -1,0 +1,23 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Proxy :: forall t0 (@a :: t0). Main.Proxy @t0 (a :: t0)
+MkNoEq :: Main.NoEq
+MkContainsNoEq :: Main.NoEq -> Main.ContainsNoEq
+
+Types
+Proxy :: forall t0. t0 -> Prim.Type
+NoEq :: Prim.Type
+ContainsNoEq :: Prim.Type
+
+Derived
+derive forall t0 (a :: t0). Data.Eq.Eq (Main.Proxy @t0 (a :: t0))
+derive Data.Eq.Eq Main.ContainsNoEq
+
+Roles
+Proxy = [Phantom]
+NoEq = []
+ContainsNoEq = []

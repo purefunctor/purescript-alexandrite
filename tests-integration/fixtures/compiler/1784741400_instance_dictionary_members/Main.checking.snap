@@ -1,0 +1,25 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+FirstToken :: Main.Token
+SecondToken :: Main.Token
+first :: forall @a. Main.Example a => a
+second :: forall @a. Main.Example a => a
+
+Types
+Token :: Prim.Type
+Example :: Prim.Type -> Prim.Constraint
+
+Classes
+class forall (a :: Prim.Type). Main.Example a
+  first :: forall @a. Main.Example a => a
+  second :: forall @a. Main.Example a => a
+
+Instances
+instance Main.Example Main.Token
+
+Roles
+Token = []

@@ -1,0 +1,21 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface Named :: forall k0. k0 -> Prim.Constraint
+interface Named a where
+  name :: Prim.String
+
+dictionary namedTypeString :: Main.Named @Prim.Type Prim.String where
+  name :: Prim.String
+  name = "x"
+
+select :: forall t0 t1 @fixed @selected. Main.Named @t1 selected => Prim.String
+select = \{namedDict} -> name {namedDict}
+
+test :: Prim.String
+test = alias {namedTypeString}
+  where
+  alias :: forall @selected. Main.Named @Prim.Type selected => Prim.String
+  alias = select

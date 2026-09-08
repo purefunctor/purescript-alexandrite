@@ -1,0 +1,37 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface Encode :: Prim.Type -> Prim.Type -> Prim.Constraint
+interface Encode token a where
+
+interface RecordDef :: Prim.Type -> Prim.Row Prim.Type -> Prim.Constraint
+interface RecordDef token row where
+  recordDef :: { handle :: forall a. Main.Encode token a => token -> Type.Proxy.Proxy @Prim.Type a -> Prim.String
+} ->
+token ->
+{| row } ->
+Prim.String
+
+interface RecordDefRowList :: Prim.Type -> Prim.Row Prim.Type -> Prim.Type -> Prim.Constraint
+interface RecordDefRowList token row rowList where
+  recordDefRowList :: { handle :: forall a. Main.Encode token a => token -> Type.Proxy.Proxy @Prim.Type a -> Prim.String
+} ->
+token ->
+{| row } ->
+Type.Proxy.Proxy @Prim.Type rowList ->
+Prim.String
+
+dictionary recordDef1 ::
+  forall token row rowList.
+  { recordDefRowListDict :: Main.RecordDefRowList token row rowList } =>
+  Main.RecordDef token row
+  where
+  recordDef :: { handle :: forall a. Main.Encode token a => token -> Type.Proxy.Proxy @Prim.Type a -> Prim.String
+} ->
+token ->
+{| row } ->
+Prim.String
+  recordDef = \interface -> \token -> \row ->
+    recordDefRowList {recordDefRowListDict} interface token row Proxy

@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+theme :: Alexandrite.StyleX.Style
+theme =
+  createTheme {themeOverrides {trivial} {themeOverrideListConsType {trivial} {themeOverrideListNilType}}}
+    variables
+    { accent: "white" }
+
+styles :: { root :: Alexandrite.StyleX.Style }
+styles =
+  create {compileStyles {trivial} {compileStyleListConsTypeRecord {compileStyleListNilTypeRow} {trivial}}}
+    { root: { color: conditionalValue "blue" [ancestorMarker ":hover" rowMarker "red"] } }

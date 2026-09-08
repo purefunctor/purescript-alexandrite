@@ -1,0 +1,25 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface HeytingAlgebra :: Prim.Type -> Prim.Constraint
+interface HeytingAlgebra a where
+  disj :: a -> a -> a
+
+dictionary heytingAlgebraBoolean :: Main.HeytingAlgebra Prim.Boolean where
+  disj :: Prim.Boolean -> Prim.Boolean -> Prim.Boolean
+  disj = \left -> \_ -> left
+
+dictionary heytingAlgebraFunction ::
+  forall b a.
+  { heytingAlgebraDict :: Main.HeytingAlgebra b } =>
+  Main.HeytingAlgebra (a -> b)
+  where
+  disj :: (a -> b) -> (a -> b) -> a -> b
+  disj = \left -> \right -> \value -> disj {heytingAlgebraDict} (left value) (right value)
+
+test :: Prim.Function Prim.Char Prim.Boolean ->
+Prim.Function Prim.Char Prim.Boolean ->
+Prim.Function Prim.Char Prim.Boolean
+test = disj {heytingAlgebraFunction {heytingAlgebraBoolean}}

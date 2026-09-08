@@ -1,0 +1,48 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+data Proxy :: forall k. k -> Prim.Type
+data Proxy @a
+  | Proxy :: Main.Proxy a
+
+interface Base :: Prim.Type -> Prim.Constraint
+interface Base value where
+  base :: Prim.Int
+
+interface Chain :: Prim.Type -> Prim.Int -> Prim.Constraint
+interface Chain value number where
+  chain :: Prim.Int
+
+dictionary baseInt :: Main.Base Prim.Int where
+  base :: Prim.Int
+  base = 42
+
+dictionary chainZero :: forall value. { baseDict :: Main.Base value } => Main.Chain value 0 where
+  chain :: Prim.Int
+  chain = base {baseDict}
+
+dictionary chainNext ::
+  forall previous current value.
+  { addDict :: Prim.Int.Add previous 1 current } =>
+  { chainDict :: Main.Chain value previous } =>
+  Main.Chain value current
+  where
+  chain :: Prim.Int
+  chain = 0
+
+chainValue :: forall value number.
+  Main.Chain value number => Main.Proxy @Prim.Type value -> Main.Proxy @Prim.Int number -> Prim.Int
+chainValue = \{chainDict} -> \_ -> \_ -> chain {chainDict}
+
+useTwice :: forall value. Main.Base value => Main.Proxy @Prim.Type value -> Prim.Array Prim.Int
+useTwice = \{baseDict} -> \proxy ->
+  [chainValue {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainZero {baseDict}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
+    proxy
+    Proxy, chainValue {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainNext {trivial} {chainZero {baseDict}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
+    proxy
+    Proxy]
+
+result :: Prim.Array Prim.Int
+result = useTwice {baseInt} Proxy

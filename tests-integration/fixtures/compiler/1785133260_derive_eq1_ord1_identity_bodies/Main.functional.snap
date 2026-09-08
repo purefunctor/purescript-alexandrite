@@ -1,0 +1,36 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Identity/1
+
+@export instance eqIdentity = \eqADict%0 ->
+  {
+    eq:
+      \left%1 right%2 ->
+        case left%1, right%2 of
+          Identity left0%3, Identity right0%4 ->
+            if eq eqADict%0 left0%3 right0%4 then true else false
+  }
+
+@export instance eq1Identity = { eq1: \eqADict%5 -> eq (eqIdentity eqADict%5) }
+
+@export instance ordIdentity = \ordADict%6 ->
+  {
+    "Eq0": \() -> eqIdentity (ordADict%6."Eq0"()),
+    compare:
+      \left%7 right%8 ->
+        case left%7, right%8 of
+          Identity left0%9, Identity right0%10 ->
+            case compare ordADict%6 left0%9 right0%10 of
+              EQ ->
+                "EQ"
+              ordering%11 ->
+                ordering%11
+  }
+
+@export instance ord1Identity = {
+  "Eq10": \() -> eq1Identity,
+  compare1: \ordADict%12 -> compare (ordIdentity ordADict%12)
+}

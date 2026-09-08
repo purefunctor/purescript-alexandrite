@@ -1,0 +1,29 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+data Maybe :: Prim.Type -> Prim.Type
+data Maybe @a
+  | Just :: a -> Main.Maybe a
+  | Nothing :: Main.Maybe a
+
+interface Select :: Prim.Type -> Prim.Constraint
+interface Select a where
+  select :: a -> a -> a
+
+dictionary selectInt :: Main.Select Prim.Int where
+  select :: Prim.Int -> Prim.Int -> Prim.Int
+  select = \first -> \second -> second
+
+mixed :: forall t0. Prim.Partial => Main.Select t0 => Main.Maybe t0 -> t0 -> t0
+mixed = \{partialDict} -> \{selectDict} -> \choice -> \fallback ->
+  let
+    (Just value) = choice
+  in
+    select {selectDict} value fallback
+
+foreign import unsafePartial :: forall a. (Prim.Partial => a) -> a
+
+discharged :: Main.Maybe Prim.Int -> Prim.Int -> Prim.Int
+discharged = unsafePartial \{partialDict} -> mixed {partialDict} {selectInt}

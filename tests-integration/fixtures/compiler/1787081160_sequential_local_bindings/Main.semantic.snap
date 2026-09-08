@@ -1,0 +1,14 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+sequence :: Prim.Int -> Prim.Int
+sequence = \input ->
+  let
+    first :: Prim.Int
+    first = input
+    second :: Prim.Int
+    second = first
+  in
+    second

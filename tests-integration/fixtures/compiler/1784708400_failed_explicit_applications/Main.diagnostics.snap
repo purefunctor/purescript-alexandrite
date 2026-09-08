@@ -1,0 +1,31 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: diagnostics_report
+---
+Error! · [CannotUnify] · Main.purs:7:8
+  •
+  │
+  • Cannot unify '?[invalid function application]' with 'Int'
+  │
+  │   test = identityInt integer integer
+  │          ╰──────────────────────────
+  •
+
+Error! · [MissingFFIModule] · Main.purs:3:1
+  •
+  │
+  • No JavaScript FFI module was found for foreign import 'identityInt'
+  │
+  │   foreign import identityInt :: Int -> Int
+  │   ╰───────────────────────────────────────
+  •
+
+Error! · [MissingFFIModule] · Main.purs:4:1
+  •
+  │
+  • No JavaScript FFI module was found for foreign import 'integer'
+  │
+  │   foreign import integer :: Int
+  │   ╰────────────────────────────
+  •

@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Proxy/0
+
+@export identity = \value%0 -> value%0
+
+@export grouped = \dictionary%1 -> dictionary%1.grouped
+
+@export ranked = \dictionary%2 -> dictionary%2.ranked
+
+@export instance grouped1 = {
+  grouped: \value%3 $proxy%4@(_) -> identity value%3,
+  ranked: \$function%5@(_) -> "Proxy"
+}

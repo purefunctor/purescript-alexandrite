@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export compose = \dictionary%0 -> dictionary%0.compose
+
+@export instance semigroupoidFn = { compose: \f%1 g%2 x%3 -> f%1 (g%2 x%3) }
+
+@export make = \n%4 -> n%4
+
+@export test = compose semigroupoidFn (\value%5 -> value%5) make

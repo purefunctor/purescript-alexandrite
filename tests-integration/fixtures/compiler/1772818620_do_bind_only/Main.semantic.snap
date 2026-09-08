@@ -1,0 +1,11 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+test :: Effect.Effect Prim.Int
+test = bind {bindEffect} (pure {applicativeEffect} 1) \x -> pure {applicativeEffect} x
+
+test' :: forall t0. Control.Bind.Bind t0 => Control.Applicative.Applicative t0 => t0 Prim.Int
+test' = \{bindDict} -> \{applicativeDict} ->
+  bind {bindDict} (pure {applicativeDict} 1) \x -> pure {applicativeDict} x

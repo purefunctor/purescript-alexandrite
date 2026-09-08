@@ -1,0 +1,27 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+data Pair :: Prim.Type -> Prim.Type -> Prim.Type
+data Pair @a @b
+  | Pair :: a -> b -> Main.Pair a b
+
+data Nested :: Prim.Type -> Prim.Type -> Prim.Type
+data Nested @a @b
+  | Nested :: Main.Pair (a -> Prim.Int) b -> Main.Nested a b
+
+dictionary bifunctorPair :: Data.Bifunctor.Bifunctor Main.Pair where
+  bimap :: forall a b c d. (a -> b) -> (c -> d) -> Main.Pair a c -> Main.Pair b d
+  bimap = \firstFunction secondFunction value ->
+    case value of
+      (Pair field0 field1) -> Pair (firstFunction field0) (secondFunction field1)
+
+dictionary profunctorNested :: Data.Profunctor.Profunctor Main.Nested where
+  dimap :: forall a b c d. (a -> b) -> (c -> d) -> Main.Nested b c -> Main.Nested a d
+  dimap = \firstFunction secondFunction value ->
+    case value of
+      (Nested field0) -> Nested
+        (bimap {bifunctorPair} (\element -> \argument -> element (firstFunction argument))
+          (\element -> secondFunction element)
+          field0)

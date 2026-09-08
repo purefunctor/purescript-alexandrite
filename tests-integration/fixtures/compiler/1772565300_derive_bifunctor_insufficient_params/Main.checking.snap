@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Triple :: forall @a @b @c. a -> b -> c -> Main.Triple a b c
+
+Types
+Triple :: Prim.Type -> Prim.Type -> Prim.Type -> Prim.Type
+
+Derived
+derive Data.Bifunctor.Bifunctor (Main.Triple Prim.Int Prim.String)
+
+Roles
+Triple = [Representational, Representational, Representational]

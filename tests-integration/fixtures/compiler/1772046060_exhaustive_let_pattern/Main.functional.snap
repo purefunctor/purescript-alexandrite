@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Just/1
+
+@export constructor Nothing/0
+
+@export test = \partialDict%1 ->
+  let
+    Just x%0 = { tag: "Just", _1: 1 }
+  in x%0

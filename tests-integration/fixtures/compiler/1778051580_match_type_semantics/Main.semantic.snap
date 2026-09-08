@@ -1,0 +1,58 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface IsEq :: Prim.Type -> Prim.Type -> Prim.Type -> Prim.Constraint
+interface IsEq a b o where
+  isEq :: a -> b -> o
+
+data Unit :: Prim.Type
+data Unit
+  | Unit :: Main.Unit
+
+data Output :: Prim.Type
+data Output
+  | Output :: Main.Output
+
+interface TypeEquals :: forall k. k -> k -> Prim.Constraint
+interface TypeEquals a b where
+
+interface RowSame :: forall k. k -> k -> Prim.Constraint
+interface RowSame a b where
+  rowSame :: Main.Unit
+
+dictionary isEqOutput :: forall a. Main.IsEq a a Main.Output where
+  isEq :: a -> a -> Main.Output
+  isEq = \_ -> \_ -> Output
+
+dictionary isEqOutput1 :: forall a b. Main.IsEq a b Main.Output where
+  isEq :: a -> b -> Main.Output
+  isEq = \_ -> \_ -> Output
+
+testEqConcrete :: Main.Output
+testEqConcrete = isEq {isEqOutput} Unit Unit
+
+testSkolemRight :: forall x. x -> Main.Output
+testSkolemRight = \x -> isEq {error} x Unit
+
+testSkolemLeft :: forall x. x -> Main.Output
+testSkolemLeft = \x -> isEq {error} Unit x
+
+testSkolemIsEq :: forall x y. x -> y -> Main.Output
+testSkolemIsEq = \x -> \y -> isEq {error} y x
+
+dictionary typeEquals1 :: forall k a. Main.TypeEquals @k a a
+
+typeEquals :: forall t0 @a @b. Main.TypeEquals @t0 a b => Main.Unit
+typeEquals = \{typeEqualsDict} -> Unit
+
+testOpenRows :: Main.Unit
+testOpenRows = typeEquals {typeEquals1}
+
+dictionary rowSame1 :: forall k a. Main.RowSame @k a a where
+  rowSame :: Main.Unit
+  rowSame = Unit
+
+testOpenRowsNoFd :: Main.Unit
+testOpenRowsNoFd = rowSame {error}

@@ -1,0 +1,40 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface Show :: Prim.Type -> Prim.Constraint
+interface Show a where
+  show :: a -> Prim.String
+
+data A :: Prim.Type
+data A
+
+data B :: Prim.Type
+data B
+
+data C :: Prim.Type
+data C
+
+interface TypeEquals :: forall k. k -> k -> Prim.Constraint
+interface TypeEquals a b where
+
+interface Match3 :: forall k0 k1 k2. k0 -> k1 -> k2 -> Prim.Constraint
+interface Match3 f g h where
+
+dictionary typeEquals :: forall k a. Main.TypeEquals @k a a
+
+dictionary match3TypeTypeType ::
+  forall f g h.
+  { typeEqualsDict :: Main.TypeEquals @Prim.Type f (Main.A -> Prim.String) } =>
+  { typeEqualsDict1 :: Main.TypeEquals @Prim.Type g (Main.B -> Prim.String) } =>
+  { typeEqualsDict2 :: Main.TypeEquals @Prim.Type h (Main.C -> Prim.String) } =>
+  Main.Match3 @Prim.Type @Prim.Type @Prim.Type f g h
+
+use :: forall f g h. Main.Match3 @Prim.Type @Prim.Type @Prim.Type f g h => f -> g -> h -> Prim.Int
+use = \{match3Dict} -> \_ -> \_ -> \_ -> 0
+
+test :: Main.Show Main.A => Main.Show Main.B => Main.Show Main.C => Prim.Int
+test = \{showDict} -> \{showDict1} -> \{showDict2} ->
+  use {match3TypeTypeType {typeEquals} {typeEquals} {typeEquals}} (\x -> show {showDict} x)
+    (\y -> show {showDict1} y) \z -> show {showDict2} z

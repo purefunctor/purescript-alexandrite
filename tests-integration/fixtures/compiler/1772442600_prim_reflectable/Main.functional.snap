@@ -1,0 +1,32 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export testSymbol = reflectType (reflectable "hello") "Proxy"
+
+@export testSymbol' = reflectType (reflectable "hello") "Proxy"
+
+@export testInt = reflectType (reflectable 42) "Proxy"
+
+@export testInt' = reflectType (reflectable 42) "Proxy"
+
+@export testTrue = reflectType (reflectable true) "Proxy"
+
+@export testTrue' = reflectType (reflectable true) "Proxy"
+
+@export testFalse = reflectType (reflectable false) "Proxy"
+
+@export testFalse' = reflectType (reflectable false) "Proxy"
+
+@export testLT = reflectType (reflectable LT) "Proxy"
+
+@export testLT' = reflectType (reflectable LT) "Proxy"
+
+@export testEQ = reflectType (reflectable EQ) "Proxy"
+
+@export testEQ' = reflectType (reflectable EQ) "Proxy"
+
+@export testGT = reflectType (reflectable GT) "Proxy"
+
+@export testGT' = reflectType (reflectable GT) "Proxy"

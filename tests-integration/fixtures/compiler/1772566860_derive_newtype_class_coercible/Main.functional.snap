@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export instance newtypeUserIdInt = { "Coercible0": \() -> <trivial evidence> }
+
+@export wrapUserId = wrap newtypeUserIdInt
+
+@export unwrapUserId = unwrap newtypeUserIdInt
+
+@export instance newtypeWrapper = { "Coercible0": \() -> <trivial evidence> }
+
+@export wrapWrapper = wrap newtypeWrapper
+
+@export unwrapWrapper = unwrap newtypeWrapper

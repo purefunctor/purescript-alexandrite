@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Opaque :: forall @a. a -> Main.Opaque a
+Wrapped :: forall @a. Main.Opaque (a -> Prim.Int) -> Main.Wrapped a
+
+Types
+Opaque :: Prim.Type -> Prim.Type
+Wrapped :: Prim.Type -> Prim.Type
+
+Derived
+derive Data.Functor.Contravariant.Contravariant Main.Wrapped
+
+Roles
+Opaque = [Representational]
+Wrapped = [Representational]

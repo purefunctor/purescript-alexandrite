@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Tuple :: Prim.Type -> Prim.Type -> Prim.Type
+data Tuple @a @b
+  | Tuple :: a -> b -> Main.Tuple a b
+
+test1 :: Main.Identity @(Prim.Type -> Prim.Type) Prim.Array Prim.Int
+test1 = [42]
+
+test2 :: Main.Identity @(Prim.Type -> Prim.Type -> Prim.Type) Main.Tuple Prim.Int Prim.String
+test2 = Tuple 42 "hello"
+
+forceSolve :: { test1 :: Prim.Array Prim.Int, test2 :: Main.Tuple Prim.Int Prim.String }
+forceSolve = { test1, test2 }

@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export test = let
+  x%0 = 1
+in <error>
+
+@export test' = let
+  x%1 = 1
+in <error>

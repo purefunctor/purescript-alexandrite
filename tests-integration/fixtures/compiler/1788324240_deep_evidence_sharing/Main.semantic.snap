@@ -1,0 +1,50 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+data Proxy :: forall k0. k0 -> Prim.Type
+data Proxy @a
+  | Proxy :: Main.Proxy a
+
+data Zero :: Prim.Type
+data Zero
+
+data Succ :: forall k0. k0 -> Prim.Type
+data Succ @number
+
+interface Chain :: Prim.Type -> Prim.Constraint
+interface Chain number where
+  chain :: Prim.Int
+
+interface Pair :: Prim.Type -> Prim.Constraint
+interface Pair number where
+  pair :: Main.Proxy @Prim.Type number -> Prim.Int
+
+dictionary chainZero :: Main.Chain Main.Zero where
+  chain :: Prim.Int
+  chain = 0
+
+dictionary chainNext ::
+  forall previous.
+  { chainDict :: Main.Chain previous } =>
+  Main.Chain (Main.Succ @Prim.Type previous)
+  where
+  chain :: Prim.Int
+  chain = observe 0
+
+dictionary pairInstance ::
+  forall number.
+  { chainDict :: Main.Chain number } =>
+  { chainDict1 :: Main.Chain number } =>
+  Main.Pair number
+  where
+  pair :: Main.Proxy @Prim.Type number -> Prim.Int
+  pair = \_ -> 0
+
+foreign import observe :: Prim.Int -> Prim.Int
+
+result :: Prim.Int
+result =
+  pair {pairInstance {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainZero}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}} {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainNext {chainZero}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
+    Proxy

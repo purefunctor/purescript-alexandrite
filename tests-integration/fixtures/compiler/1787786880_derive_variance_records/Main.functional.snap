@@ -1,0 +1,103 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor CovariantRecord/1
+
+@export instance functorCovariantRecord = {
+  map:
+    \function%0 value%1 ->
+      case value%1 of
+        CovariantRecord field0%2 ->
+          { tag: "CovariantRecord", _1: field0%2 { value = function%0 field0%2.value } }
+}
+
+@export instance foldableCovariantRecord = {
+  foldr:
+    \function%3 accumulator%4 value%5 ->
+      case value%5 of
+        CovariantRecord field0%6 ->
+          function%3 field0%6.value accumulator%4,
+  foldl:
+    \function%7 accumulator%8 value%9 ->
+      case value%9 of
+        CovariantRecord field0%10 ->
+          function%7 accumulator%8 field0%10.value,
+  foldMap:
+    \monoidMDict%14 ->
+      \function%11 value%12 ->
+        case value%12 of
+          CovariantRecord field0%13 ->
+            function%11 field0%13.value
+}
+
+@export instance traversableCovariantRecord = {
+  "Functor0": \() -> functorCovariantRecord,
+  "Foldable1": \() -> foldableCovariantRecord,
+  traverse:
+    \applicativeMDict%18 ->
+      \function%15 value%16 ->
+        let
+          Functor0Dict%20 = (applicativeMDict%18."Apply0"())."Functor0"()
+        in case value%16 of
+          CovariantRecord field0%17 ->
+            map Functor0Dict%20
+              (\field0Result%19 -> { tag: "CovariantRecord", _1: field0Result%19 })
+              (map Functor0Dict%20 (\recordField0%21 -> field0%17 { value = recordField0%21 })
+                (function%15 field0%17.value)),
+  sequence:
+    \applicativeMDict%23 ->
+      \value%22 ->
+        traverse traversableCovariantRecord applicativeMDict%23 (\effect0%24 -> effect0%24) value%22
+}
+
+@export constructor BivariantRecord/1
+
+@export instance bifunctorBivariantRecord = {
+  bimap:
+    \firstFunction%25 secondFunction%26 value%27 ->
+      case value%27 of
+        BivariantRecord field0%28 ->
+          {
+            tag: "BivariantRecord",
+            _1:
+              field0%28 {
+                first = firstFunction%25 field0%28.first,
+                second = secondFunction%26 field0%28.second
+              }
+          }
+}
+
+@export constructor ContravariantRecord/1
+
+@export instance contravariantContravariantRecord = {
+  cmap:
+    \function%29 value%30 ->
+      case value%30 of
+        ContravariantRecord field0%31 ->
+          {
+            tag: "ContravariantRecord",
+            _1:
+              field0%31 {
+                predicate = \argument%32 -> field0%31.predicate (function%29 argument%32)
+              }
+          }
+}
+
+@export constructor ProfunctorRecord/1
+
+@export instance profunctorProfunctorRecord = {
+  dimap:
+    \firstFunction%33 secondFunction%34 value%35 ->
+      case value%35 of
+        ProfunctorRecord field0%36 ->
+          {
+            tag: "ProfunctorRecord",
+            _1:
+              field0%36 {
+                run =
+                  \argument%37 -> secondFunction%34 (field0%36.run (firstFunction%33 argument%37))
+              }
+          }
+}

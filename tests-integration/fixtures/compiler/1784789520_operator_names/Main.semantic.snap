@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+interface Combine :: Prim.Type -> Prim.Constraint
+interface Combine a where
+  combine :: a -> a -> a
+
+data List :: Prim.Type -> Prim.Type
+data List @a
+  | Cons :: a -> Main.List a -> Main.List a
+  | Nil :: Main.List a
+
+operatorName :: forall a. Main.Combine a => a -> a -> a
+operatorName = \{combineDict} -> combine {combineDict}
+
+operatorApplication :: forall a. Main.Combine a => a -> a -> a
+operatorApplication = \{combineDict} -> \left -> \right -> combine {combineDict} left right
+
+constructorOperator :: forall t0. t0 -> Main.List t0 -> Main.List t0
+constructorOperator = Cons

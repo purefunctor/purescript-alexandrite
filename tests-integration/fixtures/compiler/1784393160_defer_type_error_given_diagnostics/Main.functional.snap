@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export value = \dictionary%0 -> dictionary%0.value
+
+@export instance valueInt = { value: 42 }
+
+@export guardedFailure = \failTextDict%1 -> (\failTextDict%2 -> valueIntDictValue) failTextDict%1
+
+@export useFailure = guardedFailure (<error>)
+
+@export guardedWarning = \warnTextDict%3 -> (\warnTextDict%4 -> valueIntDictValue) warnTextDict%3
+
+@export useWarning = guardedWarning <trivial evidence>
+
+valueIntDictValue = value valueInt

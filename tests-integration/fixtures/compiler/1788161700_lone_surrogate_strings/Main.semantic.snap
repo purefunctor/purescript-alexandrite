@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+lead :: Prim.String
+lead = "\x00d800"
+
+trail :: Prim.String
+trail = "\x00dfff"
+
+escapedPair :: Prim.String
+escapedPair = "𐀀"
+
+scalar :: Prim.String
+scalar = "𐀀"
+
+matchesLead :: Prim.String -> Prim.Boolean
+matchesLead = \"\x00d800" -> true
+matchesLead = \_ -> false

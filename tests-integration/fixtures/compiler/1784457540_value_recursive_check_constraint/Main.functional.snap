@@ -1,0 +1,9 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export append = \dictionary%0 -> dictionary%0.append
+
+@export recursive[1] test = \semigroupADict%1 ->
+  \value%2 -> append semigroupADict%1 value%2 (test semigroupADict%1 value%2)

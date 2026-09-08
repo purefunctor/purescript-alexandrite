@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Error! · [InvalidFinalLet] · Main.purs:7:3
+  •
+  │
+  • Invalid final let statement in do expression
+  │
+  │     let x = 1
+  │     ╰────────
+  •
+
+Error! · [InvalidFinalLet] · Main.purs:10:3
+  •
+  │
+  • Invalid final let statement in do expression
+  │
+  │     let x = 1
+  │     ╰────────
+  •

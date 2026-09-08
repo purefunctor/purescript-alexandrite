@@ -1,0 +1,26 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+foreign import unit :: Main.Unit
+
+foreign import pure :: forall a. a -> Main.Effect a
+
+foreign import map :: forall a b. (a -> b) -> Main.Effect a -> Main.Effect b
+
+foreign import apply :: forall a b. Main.Effect (a -> b) -> Main.Effect a -> Main.Effect b
+
+thing1 :: Main.Effect Prim.String
+thing1 = pure "hello"
+
+test :: Main.Effect Main.Unit
+test =
+  map
+    (\a ->
+      let
+        f :: Prim.Int
+        f = a
+      in
+        unit)
+    thing1

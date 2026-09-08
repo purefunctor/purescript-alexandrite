@@ -1,0 +1,23 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Unit :: Prim.Type
+data Unit
+  | Unit :: Main.Unit
+
+foreign import pure :: forall a. a -> Main.Effect a
+
+foreign import bind :: forall a b. Main.Effect a -> (a -> Main.Effect b) -> Main.Effect b
+
+foreign import discard :: forall a b. Main.Effect a -> (a -> Main.Effect b) -> Main.Effect b
+
+unit :: Main.Unit
+unit = Unit
+
+test :: Main.Effect Main.Unit
+test = discard (pure 1) \_ -> pure unit
+
+test' :: Main.Effect Main.Unit
+test' = discard (pure 1) \_ -> pure unit

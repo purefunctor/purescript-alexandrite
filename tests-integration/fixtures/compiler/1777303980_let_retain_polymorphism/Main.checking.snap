@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Tuple :: forall @a @b. a -> b -> Main.Tuple a b
+append :: forall @a. Main.Semigroup a => a -> a -> a
+test :: forall a b. Main.Semigroup a => Main.Semigroup b => a -> a -> b -> b -> Main.Tuple a b
+
+Types
+Tuple :: Prim.Type -> Prim.Type -> Prim.Type
+Semigroup :: Prim.Type -> Prim.Constraint
+
+Classes
+class forall (a :: Prim.Type). Main.Semigroup a
+  append :: forall @a. Main.Semigroup a => a -> a -> a
+
+Roles
+Tuple = [Representational, Representational]

@@ -1,0 +1,65 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Proxy :: forall k. k -> Prim.Type
+data Proxy @a
+  | Proxy :: Main.Proxy a
+
+closedLeftOpenRight :: forall r u.
+  Prim.Row.Union @Prim.Type ( a :: Prim.Int ) ( b :: Prim.String | r ) u =>
+  Main.Proxy @(Prim.Row Prim.Type) u
+closedLeftOpenRight = \{unionDict} -> Proxy
+
+closedLeftKnownFields :: forall u.
+  Prim.Row.Union @Prim.Type ( a :: Prim.Int ) ( b :: Prim.String ) u =>
+  Main.Proxy @(Prim.Row Prim.Type) u
+closedLeftKnownFields = \{unionDict} -> Proxy
+
+closedLeftEmpty :: forall r u.
+  Prim.Row.Union @Prim.Type () ( b :: Prim.String | r ) u => Main.Proxy @(Prim.Row Prim.Type) u
+closedLeftEmpty = \{unionDict} -> Proxy
+
+closedRightOutputOpenLeft :: forall l.
+  Prim.Row.Union @Prim.Type l ( b :: Prim.String ) ( a :: Prim.Int, b :: Prim.String ) =>
+  Main.Proxy @(Prim.Row Prim.Type) l
+closedRightOutputOpenLeft = \{unionDict} -> Proxy
+
+closedRightOutputKnownLeft :: forall l.
+  Prim.Row.Union @Prim.Type
+    ( a :: Prim.Int | l )
+    ( b :: Prim.String )
+    ( a :: Prim.Int, b :: Prim.String, c :: Prim.Boolean ) =>
+  Main.Proxy @(Prim.Row Prim.Type) l
+closedRightOutputKnownLeft = \{unionDict} -> Proxy
+
+closedRightOutputDuplicate :: forall l.
+  Prim.Row.Union @Prim.Type l ( x :: Prim.String ) ( x :: Prim.Int, x :: Prim.String ) =>
+  Main.Proxy @(Prim.Row Prim.Type) l
+closedRightOutputDuplicate = \{unionDict} -> Proxy
+
+openLeftPrefixOne :: forall rest r u.
+  Prim.Row.Union @Prim.Type ( a :: Prim.Int | rest ) ( b :: Prim.String | r ) u =>
+  Main.Proxy @(Prim.Row Prim.Type) u
+openLeftPrefixOne = \{unionDict} -> Proxy
+
+openLeftPrefixMany :: forall rest u.
+  Prim.Row.Union @Prim.Type ( a :: Prim.Int, b :: Prim.String | rest ) ( c :: Prim.Boolean ) u =>
+  Main.Proxy @(Prim.Row Prim.Type) u
+openLeftPrefixMany = \{unionDict} -> Proxy
+
+forceSolve :: forall t0 t1 t2 t3 t4 t5 t6.
+  Prim.Row.Union @Prim.Type t0 ( b :: Prim.String | t1 ) t2 =>
+  Prim.Row.Union @Prim.Type t3 ( c :: Prim.Boolean ) t4 =>
+  { closedLeftEmpty :: Main.Proxy @(Prim.Row Prim.Type) ( b :: Prim.String | t5 )
+  , closedLeftKnownFields :: Main.Proxy @(Prim.Row Prim.Type) ( a :: Prim.Int, b :: Prim.String )
+  , closedLeftOpenRight :: Main.Proxy @(Prim.Row Prim.Type) ( a :: Prim.Int, b :: Prim.String | t6 )
+  , closedRightOutputDuplicate :: Main.Proxy @(Prim.Row Prim.Type) ( x :: Prim.Int )
+  , closedRightOutputKnownLeft :: Main.Proxy @(Prim.Row Prim.Type) ( c :: Prim.Boolean )
+  , closedRightOutputOpenLeft :: Main.Proxy @(Prim.Row Prim.Type) ( a :: Prim.Int )
+  , openLeftPrefixMany :: Main.Proxy @(Prim.Row Prim.Type) ( a :: Prim.Int, b :: Prim.String | t4 )
+  , openLeftPrefixOne :: Main.Proxy @(Prim.Row Prim.Type) ( a :: Prim.Int | t2 )
+  }
+forceSolve = \{unionDict} -> \{unionDict1} ->
+  { closedLeftOpenRight: closedLeftOpenRight {trivial}, closedLeftKnownFields: closedLeftKnownFields {trivial}, closedLeftEmpty: closedLeftEmpty {trivial}, closedRightOutputOpenLeft: closedRightOutputOpenLeft {trivial}, closedRightOutputKnownLeft: closedRightOutputKnownLeft {trivial}, closedRightOutputDuplicate: closedRightOutputDuplicate {trivial}, openLeftPrefixOne: openLeftPrefixOne {trivial}, openLeftPrefixMany: openLeftPrefixMany {trivial} }

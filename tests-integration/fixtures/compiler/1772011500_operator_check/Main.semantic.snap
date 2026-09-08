@@ -1,0 +1,9 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+const :: forall a b. a -> b -> a
+const = \a -> \_ -> a
+
+foreign import add :: Prim.Int -> Prim.Int -> Prim.Int

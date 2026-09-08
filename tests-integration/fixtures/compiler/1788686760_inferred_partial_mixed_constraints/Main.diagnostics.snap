@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 298
+expression: diagnostics_report
+---
+Warning! · [MissingPatterns] · Main.purs:12:3
+  •
+  │
+  • Pattern match is not exhaustive. Missing: Nothing
+  │
+  │     let
+  │     ╰──
+  •

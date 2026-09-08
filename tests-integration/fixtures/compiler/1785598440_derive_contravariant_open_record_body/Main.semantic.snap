@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+data OpenPredicate :: Prim.Row Prim.Type -> Prim.Type -> Prim.Type
+data OpenPredicate @r @a
+  | OpenPredicate :: { run :: a -> Prim.Boolean | r } -> Main.OpenPredicate r a
+
+dictionary contravariantOpenPredicate ::
+  forall r.
+  Data.Functor.Contravariant.Contravariant (Main.OpenPredicate r)
+  where
+  cmap :: forall a b. (b -> a) -> Main.OpenPredicate r a -> Main.OpenPredicate r b
+  cmap = \function value ->
+    case value of
+      (OpenPredicate field0) -> OpenPredicate
+        field0 { run = \argument -> field0.run (function argument) }

@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+integer :: forall a. Prim.Int -> a -> a
+number :: forall a. Prim.Number -> a -> a
+string :: forall a. Prim.String -> a -> a
+character :: forall a. Prim.Char -> a -> a
+boolean :: forall a. Prim.Boolean -> a -> a
+
+Types

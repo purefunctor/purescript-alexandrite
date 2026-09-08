@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Proxy/0
+
+@export openLeft = \unionRowRowUDict%0 -> "Proxy"
+
+@export openRight = \unionRowRowUDict%1 -> "Proxy"
+
+@export backwardLeft = \unionLRowRowDict%2 -> "Proxy"
+
+@export backwardRight = \unionRowRRowDict%3 -> "Proxy"
+
+@export forceSolve = \unionRowRowDict%4 unionRowDict%5 ->
+  {
+    openLeft: openLeft <trivial evidence>,
+    openRight: openRight <trivial evidence>,
+    backwardLeft: backwardLeft unionRowRowDict%4,
+    backwardRight: backwardRight <trivial evidence>
+  }

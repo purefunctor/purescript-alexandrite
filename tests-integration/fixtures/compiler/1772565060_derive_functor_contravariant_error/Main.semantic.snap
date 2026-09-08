@@ -1,0 +1,28 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Predicate :: Prim.Type -> Prim.Type
+data Predicate @a
+  | Predicate :: (a -> Prim.Boolean) -> Main.Predicate a
+
+data Reader :: Prim.Type -> Prim.Type -> Prim.Type
+data Reader @r @a
+  | Reader :: (r -> a) -> Main.Reader r a
+
+data Cont :: Prim.Type -> Prim.Type -> Prim.Type
+data Cont @r @a
+  | Cont :: ((a -> r) -> r) -> Main.Cont r a
+
+dictionary functorReader :: forall r. Data.Functor.Functor (Main.Reader r) where
+  map :: forall a b. (a -> b) -> Main.Reader r a -> Main.Reader r b
+  map = \function value ->
+    case value of
+      (Reader field0) -> Reader \argument -> function (field0 argument)
+
+dictionary functorCont :: forall r. Data.Functor.Functor (Main.Cont r) where
+  map :: forall a b. (a -> b) -> Main.Cont r a -> Main.Cont r b
+  map = \function value ->
+    case value of
+      (Cont field0) -> Cont \argument -> field0 \argument1 -> argument (function argument1)

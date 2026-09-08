@@ -1,0 +1,66 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+openLeft :: forall r u.
+  Prim.Row.Union @Prim.Type ( a :: Prim.Int | r ) ( b :: Prim.String ) u =>
+  Type.Proxy.Proxy @(Prim.Row Prim.Type) u
+openLeft = \{unionDict} -> Proxy
+
+openRight :: forall r u.
+  Prim.Row.Union @Prim.Type ( a :: Prim.Int ) ( b :: Prim.String | r ) u =>
+  Type.Proxy.Proxy @(Prim.Row Prim.Type) u
+openRight = \{unionDict} -> Proxy
+
+backwardLeft :: forall l r.
+  Prim.Row.Union @Prim.Type l ( b :: Prim.String ) ( a :: Prim.Int, b :: Prim.String | r ) =>
+  Type.Proxy.Proxy @(Prim.Row Prim.Type) l
+backwardLeft = \{unionDict} -> Proxy
+
+backwardRight :: forall r u.
+  Prim.Row.Union @Prim.Type ( a :: Prim.Int ) r ( a :: Prim.Int, b :: Prim.String | u ) =>
+  Type.Proxy.Proxy @(Prim.Row Prim.Type) r
+backwardRight = \{unionDict} -> Proxy
+
+consOpen :: forall r row.
+  Prim.Row.Cons @Prim.Type "x" Prim.Int ( a :: Prim.String | r ) row =>
+  Type.Proxy.Proxy @(Prim.Row Prim.Type) row
+consOpen = \{consDict} -> Proxy
+
+decomposeOpen :: forall t tail r.
+  Prim.Row.Cons @Prim.Type "x" t tail ( a :: Prim.String, x :: Prim.Int | r ) =>
+  Type.Proxy.Proxy @Prim.Type t
+decomposeOpen = \{consDict} -> Proxy
+
+extractTail :: forall tail r.
+  Prim.Row.Cons @Prim.Type "x" Prim.Int tail ( a :: Prim.String, x :: Prim.Int | r ) =>
+  Type.Proxy.Proxy @(Prim.Row Prim.Type) tail
+extractTail = \{consDict} -> Proxy
+
+lacksOpen :: forall r.
+  Prim.Row.Lacks @Prim.Type "missing" ( a :: Prim.Int, b :: Prim.String | r ) =>
+  Type.Proxy.Proxy @(Prim.Row Prim.Type) r -> Prim.Int
+lacksOpen = \{lacksDict} -> \_ -> 0
+
+lacksPresent :: forall r.
+  Prim.Row.Lacks @Prim.Type "a" ( a :: Prim.Int | r ) =>
+  Type.Proxy.Proxy @(Prim.Row Prim.Type) r -> Prim.Int
+lacksPresent = \{lacksDict} -> \_ -> 0
+
+forceSolve :: forall t0 t1 t2 t3 t4 t5 t6 t7.
+  Prim.Row.Union @Prim.Type t0 ( b :: Prim.String ) ( a :: Prim.Int, b :: Prim.String | t1 ) =>
+  Prim.Row.Union @Prim.Type t2 ( b :: Prim.String ) t3 =>
+  { backwardLeft :: Type.Proxy.Proxy @(Prim.Row Prim.Type) t0
+  , backwardRight :: Type.Proxy.Proxy @(Prim.Row Prim.Type) ( b :: Prim.String | t4 )
+  , consOpen :: Type.Proxy.Proxy @(Prim.Row Prim.Type) ( a :: Prim.String, x :: Prim.Int | t5 )
+  , decomposeOpen :: Type.Proxy.Proxy @Prim.Type Prim.Int
+  , extractTail :: Type.Proxy.Proxy @(Prim.Row Prim.Type) ( a :: Prim.String | t6 )
+  , lacksOpen :: Prim.Int
+  , lacksPresent :: Prim.Int
+  , openLeft :: Type.Proxy.Proxy @(Prim.Row Prim.Type) ( a :: Prim.Int | t3 )
+  , openRight :: Type.Proxy.Proxy @(Prim.Row Prim.Type) ( a :: Prim.Int, b :: Prim.String | t7 )
+  }
+forceSolve = \{unionDict} -> \{unionDict1} ->
+  { openLeft: openLeft {trivial}, openRight: openRight {trivial}, backwardLeft: backwardLeft {unionDict}, backwardRight: backwardRight {trivial}, consOpen: consOpen {trivial}, decomposeOpen: decomposeOpen {trivial}, extractTail: extractTail {trivial}, lacksOpen: lacksOpen {trivial}
+    Proxy, lacksPresent: lacksPresent {error} Proxy }

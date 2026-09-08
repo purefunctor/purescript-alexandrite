@@ -1,0 +1,23 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+foreign import observe :: forall value. Prim.String -> value -> value
+
+foreign import readTrace :: Prim.Boolean -> Prim.Array Prim.String
+
+directApply :: Prim.Int
+directApply = apply (\value -> value) 42
+
+directApplyOrder :: Prim.Boolean -> Prim.Int
+directApplyOrder = \_ -> apply (observe "function" \value -> value) (observe "argument" 42)
+
+flippedApply :: Prim.Int
+flippedApply = applyFlipped 42 \value -> value
+
+flippedApplyOrder :: Prim.Boolean -> Prim.Int
+flippedApplyOrder = \_ -> applyFlipped (observe "argument" 42) (observe "function" \value -> value)
+
+lookalikeApply :: Prim.Int
+lookalikeApply = apply (\value -> value) 42

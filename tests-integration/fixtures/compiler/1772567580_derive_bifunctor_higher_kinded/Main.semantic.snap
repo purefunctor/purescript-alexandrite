@@ -1,0 +1,30 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data WrapBoth :: forall k0 k1. (k0 -> Prim.Type) -> (k1 -> Prim.Type) -> k0 -> k1 -> Prim.Type
+data WrapBoth @f @g @a @b
+  | WrapBoth :: f a -> g b -> Main.WrapBoth f g a b
+
+data WrapBothNoConstraint ::
+  forall k0 k1. (k0 -> Prim.Type) -> (k1 -> Prim.Type) -> k0 -> k1 -> Prim.Type
+data WrapBothNoConstraint @f @g @a @b
+  | WrapBothNoConstraint :: f a -> g b -> Main.WrapBothNoConstraint f g a b
+
+dictionary bifunctorWrapBothTypeType ::
+  forall f g.
+  { functorDict :: Data.Functor.Functor f } =>
+  { functorDict1 :: Data.Functor.Functor g } =>
+  Data.Bifunctor.Bifunctor (Main.WrapBoth @Prim.Type @Prim.Type f g)
+  where
+  bimap :: forall a b c d.
+  (a -> b) ->
+  (c -> d) ->
+  Main.WrapBoth @Prim.Type @Prim.Type f g a c ->
+  Main.WrapBoth @Prim.Type @Prim.Type f g b d
+  bimap = \firstFunction secondFunction value ->
+    case value of
+      (WrapBoth field0 field1) -> WrapBoth
+        (map {functorDict} (\element -> firstFunction element) field0)
+        (map {functorDict1} (\element -> secondFunction element) field1)

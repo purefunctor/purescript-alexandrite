@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+
+Types
+Add :: Prim.Type -> Prim.Type -> Prim.Type
++ :: Prim.Type -> Prim.Type -> Prim.Type
+Chain :: Prim.Type -> Prim.Type -> Prim.Type -> Prim.Type
+ChainParen :: Prim.Type -> Prim.Type -> Prim.Type -> Prim.Type
+
+Synonyms
+type Add a b = a
+type Chain a b c = Main.Add (Main.Add a b) c
+type ChainParen a b c = Main.Add (Main.Add a b) c

@@ -1,0 +1,24 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Proxy :: forall k (@a :: k). Main.Proxy @k (a :: k)
+showP :: forall k (@a :: k). Main.ShowP @k (a :: k) => Main.Proxy @k (a :: k) -> Prim.String
+value :: Prim.String
+
+Types
+Proxy :: forall k. k -> Prim.Type
+ShowP :: forall k. k -> Prim.Constraint
+
+Classes
+class forall (k :: Prim.Type) (a :: k). Main.ShowP @k (a :: k)
+  showP :: forall k (@a :: k). Main.ShowP @k (a :: k) => Main.Proxy @k (a :: k) -> Prim.String
+
+Instances
+instance forall k (a :: k). Main.ShowP @k (a :: k)
+instance forall k (a :: k). Main.ShowP @k (a :: k)
+
+Roles
+Proxy = [Phantom]

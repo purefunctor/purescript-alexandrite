@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Unit/0
+
+@export foreign consume
+
+@export foreign use
+
+@export sectioned = consume
+  (\section36%0 -> \partialDict%1 -> \section38%2 -> use section36%0 section38%2)
+
+@export lowered = consume (\unit%3 -> \partialDict%4 -> \value%5 -> use unit%3 value%5)

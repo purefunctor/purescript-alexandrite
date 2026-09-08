@@ -1,0 +1,11 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+foreign import identityInt :: Prim.Int -> Prim.Int
+
+foreign import integer :: Prim.Int
+
+test :: Prim.Int
+test = <error>

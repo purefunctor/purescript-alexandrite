@@ -1,0 +1,8 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export test = \coercibleBADict%0 -> coerce <trivial evidence>
+
+@export test' = \coercibleBADict%2 -> \value%1 -> value%1

@@ -1,0 +1,14 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 298
+expression: diagnostics_report
+---
+Warning! · [UnparseableFFIModule] · Main.purs:3:1
+  •
+  │
+  • Oxc could not parse the JavaScript FFI module. Fix the invalid or unsupported JavaScript syntax;
+  │ Alexandrite treated the module as opaque and skipped export-name validation: Unexpected token
+  │
+  │   foreign import _null :: Int
+  │   ╰──────────────────────────
+  •

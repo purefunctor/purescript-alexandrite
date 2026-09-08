@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Proxy :: forall k. k -> Prim.Type
+data Proxy @a
+  | Proxy :: Main.Proxy a
+
+test0 :: Main.Test0 @Prim.Int 42
+test0 = Proxy
+
+test1 :: Main.Test1 @Prim.Type @Prim.Int Prim.Int 42
+test1 = Proxy
+
+test2 :: Main.Test2 @Prim.Type @Prim.Type @Prim.Int Prim.Int Prim.String 42
+test2 = Proxy

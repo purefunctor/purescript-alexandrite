@@ -1,0 +1,28 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+MkWrap ::
+  forall t0 (@f :: t0 -> Prim.Type) (@a :: t0).
+    (f :: t0 -> Prim.Type) (a :: t0) -> Main.Wrap @t0 (f :: t0 -> Prim.Type) (a :: t0)
+MkWrapNoEq1 ::
+  forall t0 (@f :: t0 -> Prim.Type) (@a :: t0).
+    (f :: t0 -> Prim.Type) (a :: t0) -> Main.WrapNoEq1 @t0 (f :: t0 -> Prim.Type) (a :: t0)
+
+Types
+Wrap :: forall t0. (t0 -> Prim.Type) -> t0 -> Prim.Type
+WrapNoEq1 :: forall t0. (t0 -> Prim.Type) -> t0 -> Prim.Type
+
+Derived
+derive forall (f :: Prim.Type -> Prim.Type) a.
+  Data.Eq.Eq1 (f :: Prim.Type -> Prim.Type) =>
+  Data.Eq.Eq a =>
+  Data.Eq.Eq (Main.Wrap @Prim.Type (f :: Prim.Type -> Prim.Type) a)
+derive forall a (f :: Prim.Type -> Prim.Type).
+  Data.Eq.Eq a => Data.Eq.Eq (Main.WrapNoEq1 @Prim.Type (f :: Prim.Type -> Prim.Type) a)
+
+Roles
+Wrap = [Representational, Nominal]
+WrapNoEq1 = [Representational, Nominal]

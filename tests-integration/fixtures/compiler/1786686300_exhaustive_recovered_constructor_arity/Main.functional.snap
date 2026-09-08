@@ -1,0 +1,24 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Box/1
+
+@export constructor Other/0
+
+@export test = \partialDict%1 ->
+  \$box%0 ->
+    case $box%0 of
+      Box _ ->
+        0
+      Box ->
+        1
+
+@export test2 = \partialDict%3 ->
+  \$function%2 ->
+    case $function%2 of
+      Box ->
+        0
+      Box _ ->
+        1

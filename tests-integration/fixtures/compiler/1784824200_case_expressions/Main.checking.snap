@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+Empty :: forall @a. Main.Choice a
+One :: forall @a. a -> Main.Choice a
+Pair :: forall @a. a -> a -> Main.Choice a
+checked :: Main.Choice Prim.Int -> Prim.Int
+inferred :: Main.Choice Prim.Int -> Prim.Int
+multiple :: Main.Choice Prim.Int -> Main.Choice Prim.Int -> Prim.Int
+partial :: forall t0. Prim.Partial => Main.Choice t0 -> t0
+
+Types
+Choice :: Prim.Type -> Prim.Type
+
+Roles
+Choice = [Representational]

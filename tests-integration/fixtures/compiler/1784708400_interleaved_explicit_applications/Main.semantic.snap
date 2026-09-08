@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+interface First :: Prim.Type -> Prim.Constraint
+interface First a where
+
+interface Second :: Prim.Type -> Prim.Constraint
+interface Second a where
+
+foreign import interleaved :: forall a. Main.First a => a -> (forall b. Main.Second b => b -> a)
+
+applyInterleaved :: forall a b. Main.First a => Main.Second b => a -> b -> a
+applyInterleaved = \{firstDict} -> \{secondDict} -> \first -> \second ->
+  interleaved {firstDict} first {secondDict} second
+
+layered :: forall a. Main.First a => (forall b. Main.Second b => a -> b -> a)
+layered = \{firstDict} -> \{secondDict} -> \first -> \_ -> first

@@ -1,0 +1,29 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface Merge :: forall k0. Prim.Row k0 -> Prim.Row k0 -> Prim.Row k0 -> Prim.Constraint
+interface Merge r1 r2 r3 where
+  superclass unionDict :: Prim.Row.Union @t0 r1 r2 r3
+
+foreign import unsafeCoerce :: forall a b. a -> b
+
+useMerge :: forall r1 r2 r3.
+  Main.Merge @Prim.Type r1 r2 r3 =>
+  Type.Proxy.Proxy @(Prim.Row Prim.Type) r3 -> {| r1 } -> {| r2 } -> Prim.Int
+useMerge = \{mergeDict} -> \_ -> \_ -> \_ -> unsafeCoerce 0
+
+useUnion :: forall r1 r2 r3.
+  Prim.Row.Union @Prim.Type r1 r2 r3 =>
+  Type.Proxy.Proxy @(Prim.Row Prim.Type) r3 -> {| r1 } -> {| r2 } -> Prim.Int
+useUnion = \{unionDict} -> \_ -> \_ -> \_ -> unsafeCoerce 0
+
+testMin :: forall t0 t1 t2.
+  Main.Merge @Prim.Type t0 t1 t2 =>
+  Type.Proxy.Proxy @(Prim.Row Prim.Type) t2 -> {| t0 } -> {| t1 } -> Prim.Int
+testMin = \{mergeDict} -> \p -> \r1 -> \r2 ->
+  let
+    _ = useMerge {mergeDict} p r1 r2
+  in
+    useUnion {mergeDict.unionDict} p r1 r2

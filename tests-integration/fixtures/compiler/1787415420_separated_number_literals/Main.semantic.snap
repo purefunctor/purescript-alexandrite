@@ -1,0 +1,27 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+separatedNumber :: Prim.Number
+separatedNumber = 4294967295.0
+
+separatedNumberParts :: Prim.Number
+separatedNumberParts = 12.34e+02
+
+separatedExponent :: Prim.Number
+separatedExponent = 12e02
+
+separatedUpperExponent :: Prim.Number
+separatedUpperExponent = 13E02
+
+separatedNegativeExponent :: Prim.Number
+separatedNegativeExponent = 1400e-02
+
+matchesSeparatedNumber :: Prim.Number -> Prim.Boolean
+matchesSeparatedNumber = \10.05e+02 -> true
+matchesSeparatedNumber = \12e02 -> true
+matchesSeparatedNumber = \13E02 -> true
+matchesSeparatedNumber = \1400e-02 -> true
+matchesSeparatedNumber = \(-15.0) -> true
+matchesSeparatedNumber = \_ -> false

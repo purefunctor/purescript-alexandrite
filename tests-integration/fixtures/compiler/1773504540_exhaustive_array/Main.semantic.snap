@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+testNonExhaustive :: Prim.Array Prim.Int -> Prim.Int
+testNonExhaustive = \[] -> 0
+testNonExhaustive = \[x] -> x
+
+testRedundant :: Prim.Array Prim.Int -> Prim.Int
+testRedundant = \[x] -> x
+testRedundant = \[y] -> y
+testRedundant = \_ -> 0
+
+testExhaustive :: Prim.Array Prim.Int -> Prim.Int
+testExhaustive = \[] -> 0
+testExhaustive = \[x] -> x
+testExhaustive = \_ -> 0

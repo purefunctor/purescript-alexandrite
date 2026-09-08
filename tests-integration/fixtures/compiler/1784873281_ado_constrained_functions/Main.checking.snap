@@ -1,0 +1,61 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+Tuple :: forall @first @second. first -> second -> Main.Tuple first second
+pure ::
+  forall (@effect :: Prim.Type -> Prim.Type).
+    Main.Operations (effect :: Prim.Type -> Prim.Type) =>
+    (forall value. value -> (effect :: Prim.Type -> Prim.Type) value)
+map ::
+  forall (@effect :: Prim.Type -> Prim.Type).
+    Main.Operations (effect :: Prim.Type -> Prim.Type) =>
+    (forall value result.
+      (value -> result) ->
+      (effect :: Prim.Type -> Prim.Type) value ->
+      (effect :: Prim.Type -> Prim.Type) result)
+apply ::
+  forall (@effect :: Prim.Type -> Prim.Type).
+    Main.Operations (effect :: Prim.Type -> Prim.Type) =>
+    (forall value result.
+      (effect :: Prim.Type -> Prim.Type) (value -> result) ->
+      (effect :: Prim.Type -> Prim.Type) value ->
+      (effect :: Prim.Type -> Prim.Type) result)
+usingMapApply ::
+  forall (effect :: Prim.Type -> Prim.Type).
+    Main.Operations (effect :: Prim.Type -> Prim.Type) =>
+    (effect :: Prim.Type -> Prim.Type) (Main.Tuple Prim.Int Prim.String)
+usingPure ::
+  forall (effect :: Prim.Type -> Prim.Type).
+    Main.Operations (effect :: Prim.Type -> Prim.Type) =>
+    (effect :: Prim.Type -> Prim.Type) Prim.Int
+
+Types
+Tuple :: Prim.Type -> Prim.Type -> Prim.Type
+Operations :: (Prim.Type -> Prim.Type) -> Prim.Constraint
+
+Classes
+class forall (effect :: Prim.Type -> Prim.Type). Main.Operations (effect :: Prim.Type -> Prim.Type)
+  pure ::
+  forall (@effect :: Prim.Type -> Prim.Type).
+    Main.Operations (effect :: Prim.Type -> Prim.Type) =>
+    (forall value. value -> (effect :: Prim.Type -> Prim.Type) value)
+  map ::
+  forall (@effect :: Prim.Type -> Prim.Type).
+    Main.Operations (effect :: Prim.Type -> Prim.Type) =>
+    (forall value1 result.
+      (value1 -> result) ->
+      (effect :: Prim.Type -> Prim.Type) value1 ->
+      (effect :: Prim.Type -> Prim.Type) result)
+  apply ::
+  forall (@effect :: Prim.Type -> Prim.Type).
+    Main.Operations (effect :: Prim.Type -> Prim.Type) =>
+    (forall value2 result1.
+      (effect :: Prim.Type -> Prim.Type) (value2 -> result1) ->
+      (effect :: Prim.Type -> Prim.Type) value2 ->
+      (effect :: Prim.Type -> Prim.Type) result1)
+
+Roles
+Tuple = [Representational, Representational]

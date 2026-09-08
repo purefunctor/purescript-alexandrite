@@ -1,0 +1,11 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+
+Types
+T :: ?[invalid recursive type]
+A :: ?[invalid recursive type]
+B :: ?[invalid recursive type]

@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+reflectKind ::
+  forall k (@a :: k).
+    Main.HasKind @k (a :: k) =>
+    (forall (p :: k -> Prim.Type). (p :: k -> Prim.Type) (a :: k) -> Prim.String)
+
+Types
+HasKind :: forall k. k -> Prim.Constraint
+
+Classes
+class forall (k :: Prim.Type) (a :: k). Main.HasKind @k (a :: k)
+  reflectKind ::
+  forall k (@a :: k).
+    Main.HasKind @k (a :: k) =>
+    (forall (p :: k -> Prim.Type). (p :: k -> Prim.Type) (a :: k) -> Prim.String)

@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Error! · [TooManyBinders] · Main.purs:7:1
+  •
+  │
+  • Too many binders: expected 1, got 2
+  │
+  │   instance Show Int where
+  │   ╰──────────────────────
+  •

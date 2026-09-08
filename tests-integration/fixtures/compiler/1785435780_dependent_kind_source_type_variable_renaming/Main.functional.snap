@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Proxy/0
+
+@export dependent = \dictionary%0 -> dictionary%0.dependent
+
+@export instance dependent1 = { dependent: "Proxy" }

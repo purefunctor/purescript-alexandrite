@@ -1,0 +1,24 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+foreign import constructEffect :: forall a. Prim.String -> a -> Effect.Effect a
+
+foreign import mark :: forall a. Prim.String -> a -> a
+
+genericBind :: forall m a b. Control.Bind.Bind m => m a -> (a -> m b) -> m b
+genericBind = \{bindDict} -> bind {bindDict}
+
+aliased :: Prim.String -> Effect.Effect Prim.String
+aliased = \seed ->
+  genericBind {bindEffect} (constructEffect "alias-first" seed) \value ->
+    constructEffect "alias-second" value
+
+deferredEffect :: Effect.Effect Prim.String
+deferredEffect =
+  bind {bindEffect} (constructEffect "deferred-action" "ignored") \value ->
+    constructEffect "deferred-result" deferredValue
+
+deferredValue :: Prim.String
+deferredValue = mark "deferred-value" "deferred"

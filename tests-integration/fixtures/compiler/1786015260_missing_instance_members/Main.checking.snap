@@ -1,0 +1,21 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+render :: forall @a. Main.Render a => a -> Prim.String
+renderWithIndent :: forall @a. Main.Render a => Prim.Int -> a -> Prim.String
+
+Types
+Render :: Prim.Type -> Prim.Constraint
+
+Classes
+class forall (a :: Prim.Type). Main.Render a
+  render :: forall @a. Main.Render a => a -> Prim.String
+  renderWithIndent :: forall @a. Main.Render a => Prim.Int -> a -> Prim.String
+
+Instances
+instance Main.Render Prim.Int
+instance Prim.TypeError.Fail (Prim.TypeError.Text "empty") => Main.Render Prim.Boolean
+instance Prim.TypeError.Fail (Prim.TypeError.Text "partial") => Main.Render Prim.String

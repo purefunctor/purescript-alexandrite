@@ -1,0 +1,31 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+newtype Wrap :: Prim.Type -> Prim.Type
+newtype Wrap @a
+  | Wrap :: a -> Main.Wrap a
+
+interface Profunctor :: (Prim.Type -> Prim.Type -> Prim.Type) -> Prim.Constraint
+interface Profunctor p where
+  dimap :: forall a b c d. (a -> b) -> (c -> d) -> p b c -> p a d
+
+apply :: forall a b. (a -> b) -> a -> b
+apply = \f -> \x -> f x
+
+identity :: forall a. a -> a
+identity = \a -> a
+
+dictionary profunctorFn :: Main.Profunctor Prim.Function where
+  dimap :: forall a b c d. (a -> b) -> (c -> d) -> Prim.Function b c -> Prim.Function a d
+  dimap = \ab -> \cd -> \bc -> \a -> cd (bc (ab a))
+
+lens :: forall s a. (a -> s) -> (s -> a) -> Main.Lens s a
+lens = \{profunctorDict} -> \pack -> \unpack -> \pab -> dimap {profunctorDict} unpack pack pab
+
+wrapped :: forall a. Main.Lens (Main.Wrap a) a
+wrapped = \{profunctorDict} ->
+  apply (lens Wrap) \v183 ->
+    case v183 of
+      (Wrap a) -> a

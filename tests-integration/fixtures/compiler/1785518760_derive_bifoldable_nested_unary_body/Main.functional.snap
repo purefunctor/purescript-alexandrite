@@ -1,0 +1,43 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Wrap/2
+
+@export instance bifoldableWrapTypeType = \foldableFDict%0 foldableGDict%1 ->
+  {
+    bifoldr:
+      \firstFunction%2 secondFunction%3 accumulator%4 value%5 ->
+        case value%5 of
+          Wrap field0%6 field1%7 ->
+            foldr foldableFDict%0
+              (\element%8 accumulator%9 -> firstFunction%2 element%8 accumulator%9)
+              (foldr foldableGDict%1
+                (\element%10 accumulator%11 -> secondFunction%3 element%10 accumulator%11)
+                accumulator%4
+                field1%7)
+              field0%6,
+    bifoldl:
+      \firstFunction%12 secondFunction%13 accumulator%14 value%15 ->
+        case value%15 of
+          Wrap field0%16 field1%17 ->
+            foldl foldableGDict%1
+              (\accumulator%18 element%19 -> secondFunction%13 accumulator%18 element%19)
+              (foldl foldableFDict%0
+                (\accumulator%20 element%21 -> firstFunction%12 accumulator%20 element%21)
+                accumulator%14
+                field0%16)
+              field1%17,
+    bifoldMap:
+      \monoidMDict%27 ->
+        \firstFunction%22 secondFunction%23 value%24 ->
+          case value%24 of
+            Wrap field0%25 field1%26 ->
+              append (monoidMDict%27."Semigroup0"())
+                (foldMap foldableFDict%0 monoidMDict%27 (\element%28 -> firstFunction%22 element%28)
+                  field0%25)
+                (foldMap foldableGDict%1 monoidMDict%27
+                  (\element%29 -> secondFunction%23 element%29)
+                  field1%26)
+  }

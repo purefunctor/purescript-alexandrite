@@ -1,0 +1,43 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+unsafeCoerce :: forall a b. a -> b
+useMerge ::
+  forall (r1 :: Prim.Row Prim.Type) (r2 :: Prim.Row Prim.Type) (r3 :: Prim.Row Prim.Type).
+    Main.Merge @Prim.Type
+      (r1 :: Prim.Row Prim.Type)
+      (r2 :: Prim.Row Prim.Type)
+      (r3 :: Prim.Row Prim.Type) =>
+    Type.Proxy.Proxy @(Prim.Row Prim.Type) (r3 :: Prim.Row Prim.Type) ->
+    {| (r1 :: Prim.Row Prim.Type) } ->
+    {| (r2 :: Prim.Row Prim.Type) } ->
+    Prim.Int
+useUnion ::
+  forall (r1 :: Prim.Row Prim.Type) (r2 :: Prim.Row Prim.Type) (r3 :: Prim.Row Prim.Type).
+    Prim.Row.Union @Prim.Type
+      (r1 :: Prim.Row Prim.Type)
+      (r2 :: Prim.Row Prim.Type)
+      (r3 :: Prim.Row Prim.Type) =>
+    Type.Proxy.Proxy @(Prim.Row Prim.Type) (r3 :: Prim.Row Prim.Type) ->
+    {| (r1 :: Prim.Row Prim.Type) } ->
+    {| (r2 :: Prim.Row Prim.Type) } ->
+    Prim.Int
+testMin ::
+  forall (t0 :: Prim.Row Prim.Type) (t1 :: Prim.Row Prim.Type) (t2 :: Prim.Row Prim.Type).
+    Main.Merge @Prim.Type
+      (t0 :: Prim.Row Prim.Type)
+      (t1 :: Prim.Row Prim.Type)
+      (t2 :: Prim.Row Prim.Type) =>
+    Type.Proxy.Proxy @(Prim.Row Prim.Type) (t2 :: Prim.Row Prim.Type) ->
+    {| (t0 :: Prim.Row Prim.Type) } ->
+    {| (t1 :: Prim.Row Prim.Type) } ->
+    Prim.Int
+
+Types
+Merge :: forall t0. Prim.Row t0 -> Prim.Row t0 -> Prim.Row t0 -> Prim.Constraint
+
+Classes
+class forall (t0 :: Prim.Type) (r1 :: Prim.Row t0) (r2 :: Prim.Row t0) (r3 :: Prim.Row t0). Prim.Row.Union @t0 (r1 :: Prim.Row t0) (r2 :: Prim.Row t0) (r3 :: Prim.Row t0) <= Main.Merge @t0 (r1 :: Prim.Row t0) (r2 :: Prim.Row t0) (r3 :: Prim.Row t0)

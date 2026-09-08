@@ -1,0 +1,33 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Empty/0
+
+@export constructor One/1
+
+@export constructor Pair/2
+
+@export identity = \value%0 -> value%0
+
+@export nested = \choice%1 ->
+  case choice%1 of
+    One inner%2 ->
+      case inner%2 of
+        One value%3 ->
+          value%3
+        Pair left%4 _ ->
+          left%4
+        _ ->
+          0
+    _ ->
+      0
+
+@export applied = \choice%5 ->
+  identity
+    (case choice%5 of
+      One value%6 ->
+        value%6
+      _ ->
+        0)

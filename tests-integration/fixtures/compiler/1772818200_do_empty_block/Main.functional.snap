@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export foreign pure
+
+@export foreign bind
+
+@export foreign discard
+
+@export test = <error>

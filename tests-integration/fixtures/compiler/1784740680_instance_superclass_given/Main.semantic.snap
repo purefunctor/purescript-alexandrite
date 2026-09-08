@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface Parent :: forall k. k -> Prim.Constraint
+interface Parent value where
+
+interface Child :: forall k. k -> Prim.Constraint
+interface Child value where
+  superclass parentDict :: Main.Parent @k value
+
+dictionary child :: forall k value. { parentDict :: Main.Parent @k value } => Main.Child @k value
+  where
+  superclass parentDict = parentDict

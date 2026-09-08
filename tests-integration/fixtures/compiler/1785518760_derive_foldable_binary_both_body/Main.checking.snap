@@ -1,0 +1,21 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+Duplicate ::
+  forall t0 (@p :: t0 -> t0 -> Prim.Type) (@a :: t0).
+    (p :: t0 -> t0 -> Prim.Type) (a :: t0) (a :: t0) ->
+    Main.Duplicate @t0 (p :: t0 -> t0 -> Prim.Type) (a :: t0)
+
+Types
+Duplicate :: forall t0. (t0 -> t0 -> Prim.Type) -> t0 -> Prim.Type
+
+Derived
+derive forall (p :: Prim.Type -> Prim.Type -> Prim.Type).
+  Data.Bifoldable.Bifoldable (p :: Prim.Type -> Prim.Type -> Prim.Type) =>
+  Data.Foldable.Foldable (Main.Duplicate @Prim.Type (p :: Prim.Type -> Prim.Type -> Prim.Type))
+
+Roles
+Duplicate = [Representational, Nominal]

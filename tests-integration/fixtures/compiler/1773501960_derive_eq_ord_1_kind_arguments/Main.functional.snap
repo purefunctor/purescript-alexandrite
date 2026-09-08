@@ -1,0 +1,38 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export instance newtypeApp = { "Coercible0": \() -> <trivial evidence> }
+
+@export instance eqAppType = \eq1FDict%0 eqADict%1 ->
+  {
+    eq:
+      \left%2 right%3 ->
+        case left%2, right%3 of
+          left0%4, right0%5 ->
+            if eq1 eq1FDict%0 eqADict%1 left0%4 right0%5 then true else false
+  }
+
+@export instance eq1AppType = \eq1FDict%6 ->
+  { eq1: \eqADict%7 -> eq (eqAppType eq1FDict%6 eqADict%7) }
+
+@export instance ordAppType = \ord1FDict%8 ordADict%9 ->
+  {
+    "Eq0": \() -> eqAppType (ord1FDict%8."Eq10"()) (ordADict%9."Eq0"()),
+    compare:
+      \left%10 right%11 ->
+        case left%10, right%11 of
+          left0%12, right0%13 ->
+            case compare1 ord1FDict%8 ordADict%9 left0%12 right0%13 of
+              EQ ->
+                "EQ"
+              ordering%14 ->
+                ordering%14
+  }
+
+@export instance ord1AppType = \ord1FDict%15 ->
+  {
+    "Eq10": \() -> eq1AppType (ord1FDict%15."Eq10"()),
+    compare1: \ordADict%16 -> compare (ordAppType ord1FDict%15 ordADict%16)
+  }

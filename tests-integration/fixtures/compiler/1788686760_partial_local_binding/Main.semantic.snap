@@ -1,0 +1,21 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+data Maybe :: Prim.Type -> Prim.Type
+data Maybe @a
+  | Just :: a -> Main.Maybe a
+  | Nothing :: Main.Maybe a
+
+local :: Prim.Partial => Main.Maybe Prim.Int -> Prim.Int
+local = \{partialDict} -> \choice ->
+  let
+    unwrap :: Main.Maybe Prim.Int -> Prim.Int
+    unwrap = \wrapped ->
+      let
+        (Just value) = wrapped
+      in
+        value
+  in
+    unwrap choice

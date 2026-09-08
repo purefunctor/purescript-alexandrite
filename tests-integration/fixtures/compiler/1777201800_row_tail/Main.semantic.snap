@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Proxy :: forall k. k -> Prim.Type
+data Proxy @a
+  | Proxy :: Main.Proxy a
+
+tail :: forall t0 r. Main.Proxy @t0 r -> Prim.Int
+tail = \_ -> 42
+
+nonTail :: forall t0 r. Main.Proxy @t0 r -> Prim.Int
+nonTail = \_ -> 42
+
+asTail :: forall t0. Prim.Array (forall r. Main.Proxy @t0 r -> Prim.Int)
+asTail = [tail, nonTail]
+
+asNonTail :: forall t0. Prim.Array (forall r. Main.Proxy @t0 r -> Prim.Int)
+asNonTail = [tail, nonTail]

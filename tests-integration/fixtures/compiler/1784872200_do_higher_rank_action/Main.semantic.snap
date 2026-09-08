@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+foreign import polymorphic :: forall value. Main.Box value
+
+foreign import bind :: forall result.
+  (forall value. Main.Box value) -> ((forall value1. Main.Box value1) -> result) -> result
+
+test :: Prim.Int
+test = bind polymorphic \value -> 42
+
+test' :: Prim.Int
+test' = bind polymorphic \value -> 42

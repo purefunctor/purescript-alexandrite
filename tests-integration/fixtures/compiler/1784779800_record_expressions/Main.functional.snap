@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export value = 42
+
+@export empty = {  }
+
+@export explicit = { z: 1, a: "text" }
+
+@export punned = { value: value }
+
+@export nested = { array: [1, 2], record: { boolean: true } }
+
+@export consume = \$record%1@({ value: inner%0 }) -> inner%0
+
+@export application = consume { value: 1 }

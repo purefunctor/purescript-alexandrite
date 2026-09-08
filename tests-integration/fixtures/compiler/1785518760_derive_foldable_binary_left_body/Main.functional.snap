@@ -1,0 +1,36 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor LeftDuplicate/1
+
+@export instance foldableLeftDuplicateType = \bifoldablePDict%0 ->
+  {
+    foldr:
+      \function%1 accumulator%2 value%3 ->
+        case value%3 of
+          LeftDuplicate field0%4 ->
+            bifoldr bifoldablePDict%0
+              (\element%5 accumulator%6 -> function%1 element%5 accumulator%6)
+              (\ignored%7 accumulator%8 -> accumulator%8)
+              accumulator%2
+              field0%4,
+    foldl:
+      \function%9 accumulator%10 value%11 ->
+        case value%11 of
+          LeftDuplicate field0%12 ->
+            bifoldl bifoldablePDict%0
+              (\accumulator%13 element%14 -> function%9 accumulator%13 element%14)
+              (\accumulator%15 ignored%16 -> accumulator%15)
+              accumulator%10
+              field0%12,
+    foldMap:
+      \monoidMDict%20 ->
+        \function%17 value%18 ->
+          case value%18 of
+            LeftDuplicate field0%19 ->
+              bifoldMap bifoldablePDict%0 monoidMDict%20 (\element%21 -> function%17 element%21)
+                (\ignored%22 -> mempty monoidMDict%20)
+                field0%19
+  }

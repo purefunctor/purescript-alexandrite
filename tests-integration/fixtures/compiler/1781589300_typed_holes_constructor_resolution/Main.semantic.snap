@@ -1,0 +1,24 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Local :: Prim.Type
+data Local
+  | Shared :: Main.Local
+  | LocalOnly :: Main.Local
+
+localValue :: Main.Local
+localValue = LocalOnly
+
+shadowedValue :: Main.Local
+shadowedValue = LocalOnly
+
+local :: Main.Local
+local = <error>
+
+remote :: Lib.Remote
+remote = <error>
+
+binderShadow :: Main.Local -> Lib.Remote
+binderShadow = \remoteValue -> <error>

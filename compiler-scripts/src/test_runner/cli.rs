@@ -22,7 +22,7 @@ pub struct RunArgs {
     #[arg(long)]
     pub reject: bool,
 
-    /// Update generated JavaScript output for backend fixtures
+    /// Update generated JavaScript output for compiler fixtures
     #[arg(long)]
     pub update_output: bool,
 

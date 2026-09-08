@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export unionTypeMismatch = \unionLRowRowDict%0 -> "Proxy"
+
+@export consMissingLabel = \consIntTRowDict%1 -> "Proxy"
+
+@export lacksPresent = \lacksRowDict%2 -> "Proxy"
+
+@export forceSolve = {
+  unionTypeMismatch: unionTypeMismatch <trivial evidence>,
+  consMissingLabel: consMissingLabel <trivial evidence>,
+  lacksPresent: lacksPresent (<error>)
+}

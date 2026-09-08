@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+eqLike :: forall @a. Main.EqLike a => a -> a -> Prim.Boolean
+
+Types
+ClassHead :: Prim.Type
+EqLike :: Main.ClassHead
+
+Synonyms
+type ClassHead = Prim.Type -> Prim.Constraint
+
+Classes
+class forall (a :: Prim.Type). Main.EqLike a
+  eqLike :: forall @a. Main.EqLike a => a -> a -> Prim.Boolean

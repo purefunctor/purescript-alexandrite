@@ -1,0 +1,30 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+identity :: forall k (@value :: k) @result. Main.Example @k (value :: k) result => result -> result
+alternate ::
+  forall k (@value :: k) @result.
+    Main.Example @k (value :: k) result => (forall intermediate. intermediate -> result)
+constrained ::
+  forall k (@value :: k) @result.
+    Main.Example @k (value :: k) result =>
+    (forall intermediate. Main.Empty intermediate => intermediate -> result)
+
+Types
+Empty :: Prim.Type -> Prim.Constraint
+Example :: forall k. k -> Prim.Type -> Prim.Constraint
+
+Classes
+class forall (a :: Prim.Type). Main.Empty a
+class forall (k :: Prim.Type) (value :: k) (result :: Prim.Type). Main.Example @k (value :: k) result
+  identity :: forall k (@value :: k) @result. Main.Example @k (value :: k) result => result -> result
+  alternate ::
+  forall k (@value :: k) @result.
+    Main.Example @k (value :: k) result => (forall intermediate. intermediate -> result)
+  constrained ::
+  forall k (@value :: k) @result.
+    Main.Example @k (value :: k) result =>
+    (forall intermediate1. Main.Empty intermediate1 => intermediate1 -> result)

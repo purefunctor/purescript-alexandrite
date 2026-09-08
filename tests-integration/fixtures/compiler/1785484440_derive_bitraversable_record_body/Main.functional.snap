@@ -1,0 +1,67 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor RecordPair/1
+
+@export instance bifunctorRecordPair = {
+  bimap:
+    \firstFunction%0 secondFunction%1 value%2 ->
+      case value%2 of
+        RecordPair field0%3 ->
+          {
+            tag: "RecordPair",
+            _1:
+              field0%3 {
+                alpha = firstFunction%0 field0%3.alpha,
+                zeta = secondFunction%1 field0%3.zeta
+              }
+          }
+}
+
+@export instance bifoldableRecordPair = {
+  bifoldr:
+    \firstFunction%4 secondFunction%5 accumulator%6 value%7 ->
+      case value%7 of
+        RecordPair field0%8 ->
+          firstFunction%4 field0%8.alpha (secondFunction%5 field0%8.zeta accumulator%6),
+  bifoldl:
+    \firstFunction%9 secondFunction%10 accumulator%11 value%12 ->
+      case value%12 of
+        RecordPair field0%13 ->
+          secondFunction%10 (firstFunction%9 accumulator%11 field0%13.alpha) field0%13.zeta,
+  bifoldMap:
+    \monoidMDict%18 ->
+      \firstFunction%14 secondFunction%15 value%16 ->
+        case value%16 of
+          RecordPair field0%17 ->
+            append (monoidMDict%18."Semigroup0"()) (firstFunction%14 field0%17.alpha)
+              (secondFunction%15 field0%17.zeta)
+}
+
+@export instance bitraversableRecordPair = {
+  "Bifunctor0": \() -> bifunctorRecordPair,
+  "Bifoldable1": \() -> bifoldableRecordPair,
+  bitraverse:
+    \applicativeFDict%23 ->
+      \firstFunction%19 secondFunction%20 value%21 ->
+        let
+          Apply0Dict%25 = applicativeFDict%23."Apply0"()
+          Functor0Dict%26 = Apply0Dict%25."Functor0"()
+        in case value%21 of
+          RecordPair field0%22 ->
+            map Functor0Dict%26 (\field0Result%24 -> { tag: "RecordPair", _1: field0Result%24 })
+              (apply Apply0Dict%25
+                (map Functor0Dict%26
+                  (\recordField0%27 recordField1%28 ->
+                    field0%22 { alpha = recordField0%27, zeta = recordField1%28 })
+                  (firstFunction%19 field0%22.alpha))
+                (secondFunction%20 field0%22.zeta)),
+  bisequence:
+    \applicativeFDict%30 ->
+      \value%29 ->
+        bitraverse bitraversableRecordPair applicativeFDict%30 (\effect0%31 -> effect0%31)
+          (\effect1%32 -> effect1%32)
+          value%29
+}

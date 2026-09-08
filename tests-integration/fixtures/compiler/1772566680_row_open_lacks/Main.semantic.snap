@@ -1,0 +1,24 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Proxy :: forall k. k -> Prim.Type
+data Proxy @a
+  | Proxy :: Main.Proxy a
+
+lacksOpen :: forall r.
+  Prim.Row.Lacks @Prim.Type "missing" ( a :: Prim.Int, b :: Prim.String | r ) =>
+  Main.Proxy @(Prim.Row Prim.Type) r -> Prim.Int
+lacksOpen = \{lacksDict} -> \_ -> 0
+
+lacksPresent :: forall r.
+  Prim.Row.Lacks @Prim.Type "a" ( a :: Prim.Int | r ) =>
+  Main.Proxy @(Prim.Row Prim.Type) r -> Prim.Int
+lacksPresent = \{lacksDict} -> \_ -> 0
+
+empty :: forall t0. Main.Proxy @(Prim.Row t0) ()
+empty = Proxy
+
+forceSolve :: { lacksOpen :: Prim.Int, lacksPresent :: Prim.Int }
+forceSolve = { lacksOpen: lacksOpen {trivial} empty, lacksPresent: lacksPresent {error} empty }

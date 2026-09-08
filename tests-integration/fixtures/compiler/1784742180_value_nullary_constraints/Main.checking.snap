@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+boolean :: Prim.Boolean
+deferred ::
+  Prim.TypeError.Fail (Prim.TypeError.Text "first deferred error") =>
+  Prim.TypeError.Fail (Prim.TypeError.Text "second deferred error") =>
+  Prim.Boolean
+
+Types

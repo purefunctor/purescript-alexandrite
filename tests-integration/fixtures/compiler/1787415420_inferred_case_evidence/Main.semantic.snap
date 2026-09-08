@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+interface Empty :: forall k0. (k0 -> Prim.Type) -> Prim.Constraint
+interface Empty collection where
+  empty :: forall (value :: t0). collection value
+
+chooseEmpty :: forall t0 collection value. Main.Empty @t0 collection => Prim.Boolean -> collection value
+chooseEmpty = \{emptyDict} ->
+  \v33 ->
+    case v33 of
+      true -> empty {emptyDict}
+      false -> empty {emptyDict}

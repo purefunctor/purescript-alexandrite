@@ -1,0 +1,49 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+deriveAppended :: forall appended.
+  Prim.Symbol.Append "Hello" "World" appended => Type.Proxy.Proxy @Prim.Symbol appended
+deriveAppended = \{appendDict} -> Proxy
+
+deriveLeft :: forall left. Prim.Symbol.Append left "World" "HelloWorld" => Type.Proxy.Proxy @Prim.Symbol left
+deriveLeft = \{appendDict} -> Proxy
+
+deriveRight :: forall right. Prim.Symbol.Append "Hello" right "HelloWorld" => Type.Proxy.Proxy @Prim.Symbol right
+deriveRight = \{appendDict} -> Proxy
+
+compareLT :: forall ord. Prim.Symbol.Compare "a" "b" ord => Type.Proxy.Proxy @Prim.Ordering.Ordering ord
+compareLT = \{compareDict} -> Proxy
+
+compareEQ :: forall ord. Prim.Symbol.Compare "hello" "hello" ord => Type.Proxy.Proxy @Prim.Ordering.Ordering ord
+compareEQ = \{compareDict} -> Proxy
+
+compareGT :: forall ord. Prim.Symbol.Compare "z" "a" ord => Type.Proxy.Proxy @Prim.Ordering.Ordering ord
+compareGT = \{compareDict} -> Proxy
+
+deriveCons :: forall symbol. Prim.Symbol.Cons "H" "ello" symbol => Type.Proxy.Proxy @Prim.Symbol symbol
+deriveCons = \{consDict} -> Proxy
+
+deriveHeadTail :: forall head tail. Prim.Symbol.Cons head tail "World" => Type.Proxy.Proxy @Prim.Symbol head
+deriveHeadTail = \{consDict} -> Proxy
+
+symbolValue :: Prim.String
+symbolValue = reflectSymbol {isSymbol("hello")} Proxy
+
+symbolValue' :: Prim.String
+symbolValue' = reflectSymbol {isSymbol("")} Proxy
+
+forceSolve :: { compareEQ :: Type.Proxy.Proxy @Prim.Ordering.Ordering Prim.Ordering.EQ
+, compareGT :: Type.Proxy.Proxy @Prim.Ordering.Ordering Prim.Ordering.GT
+, compareLT :: Type.Proxy.Proxy @Prim.Ordering.Ordering Prim.Ordering.LT
+, deriveAppended :: Type.Proxy.Proxy @Prim.Symbol "HelloWorld"
+, deriveCons :: Type.Proxy.Proxy @Prim.Symbol "Hello"
+, deriveHeadTail :: Type.Proxy.Proxy @Prim.Symbol "W"
+, deriveLeft :: Type.Proxy.Proxy @Prim.Symbol "Hello"
+, deriveRight :: Type.Proxy.Proxy @Prim.Symbol "World"
+, symbolValue :: Prim.String
+, symbolValue' :: Prim.String
+}
+forceSolve =
+  { deriveAppended: deriveAppended {trivial}, deriveLeft: deriveLeft {trivial}, deriveRight: deriveRight {trivial}, compareLT: compareLT {trivial}, compareEQ: compareEQ {trivial}, compareGT: compareGT {trivial}, deriveCons: deriveCons {trivial}, deriveHeadTail: deriveHeadTail {trivial}, symbolValue, symbolValue' }

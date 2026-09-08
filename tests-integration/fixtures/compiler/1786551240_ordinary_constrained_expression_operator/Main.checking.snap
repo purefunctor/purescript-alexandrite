@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+equal :: forall @a. Main.Equal a => a -> a -> Prim.Boolean
+== :: forall @a. Main.Equal a => a -> a -> Prim.Boolean
+ordinaryConstrainedOperator :: Prim.Boolean
+
+Types
+Equal :: Prim.Type -> Prim.Constraint
+
+Classes
+class forall (a :: Prim.Type). Main.Equal a
+  equal :: forall @a. Main.Equal a => a -> a -> Prim.Boolean
+
+Instances
+instance Main.Equal Prim.Int

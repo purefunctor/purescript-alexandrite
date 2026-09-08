@@ -1,0 +1,11 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+guardedFailure :: Prim.TypeError.Fail (Prim.TypeError.Text "failure was demanded") => Prim.Int
+guardedFailure = \{failDict} -> 0
+
+test :: Prim.Int
+test =
+  if true then test else guardedFailure {error}

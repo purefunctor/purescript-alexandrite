@@ -1,0 +1,27 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+variable :: Prim.Array Prim.Int -> Prim.Int
+variable = \v16 ->
+  case v16 of
+    [x] -> x
+    xs
+      | length <- arrayLength xs -> length
+
+wildcard :: Prim.Array Prim.Int -> Prim.Int
+wildcard = \v49 ->
+  case v49 of
+    [x] -> x
+    xs
+      | _ <- arrayLength xs -> 0
+
+refutable :: Prim.Array Prim.Int -> Prim.Int
+refutable = \v82 ->
+  (case v82 of
+    [x] -> x
+    xs
+      | [y] <- xs -> y) {error}
+
+foreign import arrayLength :: forall a. Prim.Array a -> Prim.Int

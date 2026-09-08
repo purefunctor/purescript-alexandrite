@@ -1,0 +1,28 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+forward :: Prim.Int
+forward = later
+
+later :: Prim.Int
+later = 42
+
+first :: Prim.Boolean -> Prim.Int
+first = \true -> 1
+first = \false -> second true
+
+second :: Prim.Boolean -> Prim.Int
+second = \true -> 2
+second = \false -> first true
+
+recursiveValue :: { run :: Prim.Boolean -> Prim.Int }
+recursiveValue =
+  { run: \value ->
+    if value then 3 else recursivePeer.run true }
+
+recursivePeer :: { run :: Prim.Boolean -> Prim.Int }
+recursivePeer =
+  { run: \value ->
+    if value then 4 else recursiveValue.run true }

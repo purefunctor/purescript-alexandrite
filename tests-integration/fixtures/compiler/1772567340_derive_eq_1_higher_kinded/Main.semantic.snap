@@ -1,0 +1,24 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Wrap :: forall k0. (k0 -> Prim.Type) -> k0 -> Prim.Type
+data Wrap @f @a
+  | MkWrap :: f a -> Main.Wrap f a
+
+data WrapNoEq1 :: forall k0. (k0 -> Prim.Type) -> k0 -> Prim.Type
+data WrapNoEq1 @f @a
+  | MkWrapNoEq1 :: f a -> Main.WrapNoEq1 f a
+
+dictionary eqWrapType ::
+  forall f a.
+  { eq1Dict :: Data.Eq.Eq1 f } =>
+  { eqDict :: Data.Eq.Eq a } =>
+  Data.Eq.Eq (Main.Wrap @Prim.Type f a)
+  where
+  eq :: Main.Wrap @Prim.Type f a -> Main.Wrap @Prim.Type f a -> Prim.Boolean
+  eq = \left right ->
+    case left, right of
+      (MkWrap left0), (MkWrap right0) ->
+        if eq1 {eq1Dict} {eqDict} left0 right0 then true else false

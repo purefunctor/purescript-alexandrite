@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+ArrowSyntax :: forall @a @b. (a -> b) -> Main.ArrowSyntax a b
+ArrowConstructor :: forall @a @b. Prim.Function a b -> Main.ArrowConstructor a b
+
+Types
+ArrowSyntax :: Prim.Type -> Prim.Type -> Prim.Type
+ArrowConstructor :: Prim.Type -> Prim.Type -> Prim.Type
+
+Derived
+derive Data.Bifunctor.Bifunctor Main.ArrowSyntax
+derive Data.Bifunctor.Bifunctor Main.ArrowConstructor
+
+Roles
+ArrowSyntax = [Representational, Representational]
+ArrowConstructor = [Representational, Representational]

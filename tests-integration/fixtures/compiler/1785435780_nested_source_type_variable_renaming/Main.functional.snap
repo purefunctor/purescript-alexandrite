@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Proxy/0
+
+@export grouped = \dictionary%0 -> dictionary%0.grouped
+
+@export instance grouped1 = {
+  grouped: \value%2 $proxy%5@(_) -> (\localValue%3 $proxy%4@(_) -> localValue%3) value%2 "Proxy"
+}

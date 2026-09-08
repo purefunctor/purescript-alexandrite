@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+interface Eq :: Prim.Type -> Prim.Constraint
+interface Eq a where
+
+interface Ord :: Prim.Type -> Prim.Constraint
+interface Ord a where
+  superclass eqDict :: Main.Eq a
+  compare :: a -> a -> Prim.Int
+
+foreign import compareImpl :: Prim.Int -> Prim.Int -> Prim.Int
+
+dictionary ordInt :: { eqDict :: Main.Eq Prim.Int } => Main.Ord Prim.Int where
+  superclass eqDict = eqDict
+  compare :: Prim.Int -> Prim.Int -> Prim.Int
+  compare = compareImpl

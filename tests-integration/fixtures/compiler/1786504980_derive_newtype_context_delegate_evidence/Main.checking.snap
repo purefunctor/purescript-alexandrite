@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+Wrapper :: forall @value. value -> Main.Wrapper value
+
+Types
+Parent :: Prim.Type -> Prim.Constraint
+Relation :: Prim.Type -> Prim.Type -> Prim.Constraint
+Wrapper :: Prim.Type -> Prim.Type
+
+Classes
+class forall (value :: Prim.Type). Main.Parent value
+class forall (label :: Prim.Type) (value :: Prim.Type). Main.Parent value <= Main.Relation label value
+
+Derived
+derive forall label value. Main.Relation label value => Main.Relation label (Main.Wrapper value)
+
+Roles
+Wrapper = [Representational]

@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export compare = \dictionary%0 -> dictionary%0.compare
+
+@export foreign compareImpl
+
+@export instance ordInt = \eqIntDict%1 -> { "Eq0": \() -> eqIntDict%1, compare: compareImpl }

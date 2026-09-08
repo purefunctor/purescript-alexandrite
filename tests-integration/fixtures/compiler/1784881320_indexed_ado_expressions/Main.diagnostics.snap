@@ -1,0 +1,67 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: diagnostics_report
+---
+Error! · [MissingFFIModule] · Main.purs:12:1
+  •
+  │
+  • No JavaScript FFI module was found for foreign import 'map'
+  │
+  │   foreign import map ::
+  │   ╰────────────────────
+  •
+
+Error! · [MissingFFIModule] · Main.purs:20:1
+  •
+  │
+  • No JavaScript FFI module was found for foreign import 'apply'
+  │
+  │   foreign import apply ::
+  │   ╰──────────────────────
+  •
+
+Error! · [MissingFFIModule] · Main.purs:28:1
+  •
+  │
+  • No JavaScript FFI module was found for foreign import 'pure'
+  │
+  │   foreign import pure ::
+  │   ╰─────────────────────
+  •
+
+Error! · [MissingFFIModule] · Main.purs:35:1
+  •
+  │
+  • No JavaScript FFI module was found for foreign import 'stepZero'
+  │
+  │   foreign import stepZero :: Action 0 Int
+  │   ╰──────────────────────────────────────
+  •
+
+Error! · [MissingFFIModule] · Main.purs:37:1
+  •
+  │
+  • No JavaScript FFI module was found for foreign import 'stepOne'
+  │
+  │   foreign import stepOne :: Action 1 String
+  │   ╰────────────────────────────────────────
+  •
+
+Error! · [MissingFFIModule] · Main.purs:39:1
+  •
+  │
+  • No JavaScript FFI module was found for foreign import 'stepTwo'
+  │
+  │   foreign import stepTwo :: Action 2 Boolean
+  │   ╰─────────────────────────────────────────
+  •
+
+Error! · [MissingFFIModule] · Main.purs:41:1
+  •
+  │
+  • No JavaScript FFI module was found for foreign import 'stepThree'
+  │
+  │   foreign import stepThree :: Action 3 String
+  │   ╰──────────────────────────────────────────
+  •

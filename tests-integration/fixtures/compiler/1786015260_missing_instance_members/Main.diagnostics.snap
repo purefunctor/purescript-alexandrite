@@ -1,0 +1,29 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Warning! · [MissingInstanceMembers] · Main.purs:9:1
+  •
+  │
+  • Instance is missing class members
+  │
+  │   instance Render Int
+  │   ╰──────────────────
+  • while
+  │
+  │   render is not implemented
+  │   renderWithIndent is not implemented
+  •
+
+Warning! · [MissingInstanceMembers] · Main.purs:13:1
+  •
+  │
+  • Instance is missing class members
+  │
+  │   instance Fail (Text "partial") => Render String where
+  │   ╰────────────────────────────────────────────────────
+  • while
+  │
+  │   renderWithIndent is not implemented
+  •

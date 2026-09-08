@@ -1,0 +1,25 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Maybe :: Prim.Type -> Prim.Type
+data Maybe @a
+  | Just :: a -> Main.Maybe a
+  | Nothing :: Main.Maybe a
+
+test1 :: { x :: Prim.Int, y :: Prim.Int } -> Prim.Int
+test1 = \{ x, y } -> x
+
+test2 :: { x :: Main.Maybe Prim.Int } -> Prim.Int
+test2 = \{ x: (Just n) } -> n
+
+test3 :: { x :: Prim.Int, y :: Prim.Int } -> Prim.Int
+test3 = \{ x, y } -> x
+test3 = \r -> 0
+
+test4 :: { a :: Main.Maybe Prim.Int, b :: Main.Maybe Prim.String } -> Prim.Int
+test4 = \{ a: (Just n), b: (Just _) } -> n
+
+test5 :: { inner :: { x :: Prim.Int } } -> Prim.Int
+test5 = \{ inner: { x } } -> x

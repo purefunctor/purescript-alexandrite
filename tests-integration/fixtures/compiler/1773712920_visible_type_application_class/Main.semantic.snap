@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface Functor :: (Prim.Type -> Prim.Type) -> Prim.Constraint
+interface Functor f where
+  map :: forall a b. (a -> b) -> f a -> f b
+
+dictionary functorArray :: Main.Functor Prim.Array where
+  map :: forall a b. (a -> b) -> Prim.Array a -> Prim.Array b
+  map = \_ -> \_ -> []
+
+testMap :: forall t0 t1. (t0 -> t1) -> Prim.Array t0 -> Prim.Array t1
+testMap = map {functorArray}

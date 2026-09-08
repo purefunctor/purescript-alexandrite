@@ -1,0 +1,14 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Representation/0
+
+@export instance parentRepresentation = {  }
+
+@export instance childRepresentation = { "Parent0": \() -> parentRepresentation }
+
+@export instance parentWrapper = \gateParameterDict%0 -> {  }
+
+@export instance childWrapper = childRepresentation

@@ -1,0 +1,28 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+data Tree :: Prim.Type
+data Tree
+  | Leaf :: Prim.Int -> Main.Tree
+  | Branch :: Main.Tree -> Main.Tree -> Main.Tree
+
+data TreeStack :: Prim.Type
+data TreeStack
+  | Empty :: Main.TreeStack
+  | Push :: Main.Tree -> Main.TreeStack -> Main.TreeStack
+
+foreign import addInt :: Prim.Int -> Prim.Int -> Prim.Int
+
+sumTree :: Main.Tree -> Prim.Int
+sumTree = \tree -> walkTree tree Empty 0
+
+walkTree :: Main.Tree -> Main.TreeStack -> Prim.Int -> Prim.Int
+walkTree = \tree -> \stack -> \accumulator ->
+  case tree of
+    (Leaf value) ->
+      case stack of
+        Empty -> addInt accumulator value
+        (Push next rest) -> walkTree next rest (addInt accumulator value)
+    (Branch left right) -> walkTree left (Push right stack) accumulator

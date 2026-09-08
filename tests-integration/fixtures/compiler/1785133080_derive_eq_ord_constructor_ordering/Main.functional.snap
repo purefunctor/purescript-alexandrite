@@ -1,0 +1,55 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export instance eqVoid = {
+  eq:
+    \left%0 right%1 ->
+      case left%0, right%1 of
+        _, _ ->
+          false
+}
+
+@export instance ordVoid = { "Eq0": \() -> eqVoid, compare: \left%2 right%3 -> "EQ" }
+
+@export constructor First/0
+
+@export constructor Second/0
+
+@export constructor Third/0
+
+@export instance eqOrdering = {
+  eq:
+    \left%4 right%5 ->
+      case left%4, right%5 of
+        First, First ->
+          true
+        Second, Second ->
+          true
+        Third, Third ->
+          true
+        _, _ ->
+          false
+}
+
+@export instance ordOrdering = {
+  "Eq0": \() -> eqOrdering,
+  compare:
+    \left%6 right%7 ->
+      case left%6, right%7 of
+        First, First ->
+          "EQ"
+        First, _ ->
+          "LT"
+        _, First ->
+          "GT"
+        Second, Second ->
+          "EQ"
+        Second, _ ->
+          "LT"
+        _, Second ->
+          "GT"
+        Third, Third ->
+          "EQ"
+}

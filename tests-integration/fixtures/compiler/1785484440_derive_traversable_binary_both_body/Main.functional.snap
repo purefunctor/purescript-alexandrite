@@ -1,0 +1,50 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Duplicate/1
+
+@export instance functorDuplicateType = \bifunctorPDict%0 ->
+  {
+    map:
+      \function%1 $duplicate%3@(Duplicate value%2) ->
+        { tag: "Duplicate", _1: bimap bifunctorPDict%0 function%1 function%1 value%2 }
+  }
+
+@export instance foldableDuplicateType = \bifoldablePDict%4 ->
+  {
+    foldr:
+      \function%5 initial%6 $duplicate%8@(Duplicate value%7) ->
+        bifoldr bifoldablePDict%4 function%5 function%5 initial%6 value%7,
+    foldl:
+      \function%9 initial%10 $duplicate%12@(Duplicate value%11) ->
+        bifoldl bifoldablePDict%4 function%9 function%9 initial%10 value%11,
+    foldMap:
+      \monoidMDict%13 ->
+        \function%14 $duplicate%16@(Duplicate value%15) ->
+          bifoldMap bifoldablePDict%4 monoidMDict%13 function%14 function%14 value%15
+  }
+
+@export instance traversableDuplicateType = \bitraversablePDict%17 ->
+  {
+    "Functor0": \() -> functorDuplicateType (bitraversablePDict%17."Bifunctor0"()),
+    "Foldable1": \() -> foldableDuplicateType (bitraversablePDict%17."Bifoldable1"()),
+    traverse:
+      \applicativeMDict%21 ->
+        \function%18 value%19 ->
+          case value%19 of
+            Duplicate field0%20 ->
+              map ((applicativeMDict%21."Apply0"())."Functor0"())
+                (\field0Result%22 -> { tag: "Duplicate", _1: field0Result%22 })
+                (bitraverse bitraversablePDict%17 applicativeMDict%21
+                  (\element%23 -> function%18 element%23)
+                  (\element%24 -> function%18 element%24)
+                  field0%20),
+    sequence:
+      \applicativeMDict%26 ->
+        \value%25 ->
+          traverse (traversableDuplicateType bitraversablePDict%17) applicativeMDict%26
+            (\effect0%27 -> effect0%27)
+            value%25
+  }

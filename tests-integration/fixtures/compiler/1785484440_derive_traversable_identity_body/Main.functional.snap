@@ -1,0 +1,50 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Identity/1
+
+@export instance functorIdentity = {
+  map:
+    \function%0 value%1 ->
+      case value%1 of
+        Identity field0%2 ->
+          { tag: "Identity", _1: function%0 field0%2 }
+}
+
+@export instance foldableIdentity = {
+  foldr:
+    \function%3 accumulator%4 value%5 ->
+      case value%5 of
+        Identity field0%6 ->
+          function%3 field0%6 accumulator%4,
+  foldl:
+    \function%7 accumulator%8 value%9 ->
+      case value%9 of
+        Identity field0%10 ->
+          function%7 accumulator%8 field0%10,
+  foldMap:
+    \monoidMDict%14 ->
+      \function%11 value%12 ->
+        case value%12 of
+          Identity field0%13 ->
+            function%11 field0%13
+}
+
+@export instance traversableIdentity = {
+  "Functor0": \() -> functorIdentity,
+  "Foldable1": \() -> foldableIdentity,
+  traverse:
+    \applicativeMDict%18 ->
+      \function%15 value%16 ->
+        case value%16 of
+          Identity field0%17 ->
+            map ((applicativeMDict%18."Apply0"())."Functor0"())
+              (\field0Result%19 -> { tag: "Identity", _1: field0Result%19 })
+              (function%15 field0%17),
+  sequence:
+    \applicativeMDict%21 ->
+      \value%20 ->
+        traverse traversableIdentity applicativeMDict%21 (\effect0%22 -> effect0%22) value%20
+}

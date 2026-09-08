@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+Token :: Main.Token
+
+Types
+Token :: Prim.Type
+
+Instances
+instance Classes.Parent Main.Token => Classes.Child Main.Token
+
+Roles
+Token = []

@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor None/0
+
+@export constructor Some/1
+
+@export instance contravariantOptionalPredicate = {
+  cmap:
+    \function%0 value%1 ->
+      case value%1 of
+        None ->
+          "None"
+        Some field0%2 ->
+          { tag: "Some", _1: \argument%3 -> field0%2 (function%0 argument%3) }
+}

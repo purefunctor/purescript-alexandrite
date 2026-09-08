@@ -1,0 +1,60 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data T :: forall k0. (k0 -> Prim.Type) -> (Prim.Type -> k0) -> Prim.Type
+data T @f @g
+  | T :: f (g Prim.Int) -> Main.T f g
+
+data Maybe :: Prim.Type -> Prim.Type
+data Maybe @a
+  | Nothing :: Main.Maybe a
+  | Just :: a -> Main.Maybe a
+
+data U :: (Prim.Type -> Prim.Type) -> Prim.Type
+data U @f
+  | U :: f (Main.Maybe Prim.Int) -> Main.U f
+
+data V :: forall k0. (k0 -> Prim.Type) -> (Prim.Int -> k0) -> Prim.Type
+data V @f @g
+  | V :: f (g 42) -> Main.V f g
+
+dictionary eqMaybe :: forall a. { eqDict :: Data.Eq.Eq a } => Data.Eq.Eq (Main.Maybe a) where
+  eq :: Main.Maybe a -> Main.Maybe a -> Prim.Boolean
+  eq = \left right ->
+    case left, right of
+      Nothing, Nothing -> true
+      (Just left0), (Just right0) ->
+        if eq {eqDict} left0 right0 then true else false
+      _, _ -> false
+
+dictionary ordMaybe :: forall a. { ordDict :: Data.Ord.Ord a } => Data.Ord.Ord (Main.Maybe a) where
+  superclass eqDict = eqMaybe {ordDict.eqDict}
+  compare :: Main.Maybe a -> Main.Maybe a -> Data.Ordering.Ordering
+  compare = \left right ->
+    case left, right of
+      Nothing, Nothing -> EQ
+      Nothing, _ -> LT
+      _, Nothing -> GT
+      (Just left0), (Just right0) ->
+        case compare {ordDict} left0 right0 of
+          EQ -> EQ
+          ordering -> ordering
+
+dictionary eqU :: forall f. { eq1Dict :: Data.Eq.Eq1 f } => Data.Eq.Eq (Main.U f) where
+  eq :: Main.U f -> Main.U f -> Prim.Boolean
+  eq = \left right ->
+    case left, right of
+      (U left0), (U right0) ->
+        if eq1 {eq1Dict} {eqMaybe {eqInt}} left0 right0 then true else false
+
+dictionary ordU :: forall f. { ord1Dict :: Data.Ord.Ord1 f } => Data.Ord.Ord (Main.U f) where
+  superclass eqDict = eqU {ord1Dict.eq1Dict}
+  compare :: Main.U f -> Main.U f -> Data.Ordering.Ordering
+  compare = \left right ->
+    case left, right of
+      (U left0), (U right0) ->
+        case compare1 {ord1Dict} {ordMaybe {ordInt}} left0 right0 of
+          EQ -> EQ
+          ordering -> ordering

@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+show :: forall @a. Main.Show a => a -> Prim.String
+Box :: forall @a. a -> Main.Box a
+
+Types
+Show :: Prim.Type -> Prim.Constraint
+Box :: Prim.Type -> Prim.Type
+
+Classes
+class forall (a :: Prim.Type). Main.Show a
+  show :: forall @a. Main.Show a => a -> Prim.String
+
+Instances
+instance forall a. Main.Show a => Main.Show (Main.Box a)
+
+Roles
+Box = [Representational]

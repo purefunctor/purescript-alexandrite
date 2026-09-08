@@ -1,0 +1,24 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Predicate :: forall @a. (a -> Prim.Boolean) -> Main.Predicate a
+Comparison :: forall @a. (a -> a -> Prim.Boolean) -> Main.Comparison a
+Op :: forall @a @b. (b -> a) -> Main.Op a b
+
+Types
+Predicate :: Prim.Type -> Prim.Type
+Comparison :: Prim.Type -> Prim.Type
+Op :: Prim.Type -> Prim.Type -> Prim.Type
+
+Derived
+derive Data.Functor.Contravariant.Contravariant Main.Predicate
+derive Data.Functor.Contravariant.Contravariant Main.Comparison
+derive forall a. Data.Functor.Contravariant.Contravariant (Main.Op a)
+
+Roles
+Predicate = [Representational]
+Comparison = [Representational]
+Op = [Representational, Representational]

@@ -1,0 +1,26 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Maybe :: Prim.Type -> Prim.Type
+data Maybe @a
+  | Nothing :: Main.Maybe a
+  | Just :: a -> Main.Maybe a
+
+newtype Age :: Prim.Type
+newtype Age
+  | Age :: Prim.Int -> Main.Age
+
+newtype UserId :: Prim.Type
+newtype UserId
+  | UserId :: Prim.Int -> Main.UserId
+
+coerceMaybe :: Main.Maybe Main.Age -> Main.Maybe Prim.Int
+coerceMaybe = coerce {trivial}
+
+coerceMaybeReverse :: Main.Maybe Prim.Int -> Main.Maybe Main.Age
+coerceMaybeReverse = coerce {trivial}
+
+coerceNested :: Main.Maybe Main.UserId -> Main.Maybe Prim.Int
+coerceNested = coerce {trivial}

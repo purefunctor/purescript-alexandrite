@@ -1,0 +1,24 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+data Local :: Prim.Type -> Prim.Type -> Prim.Type
+data Local @a @b
+  | Local :: a -> b -> Main.Local a b
+
+data Empty :: Prim.Type
+data Empty
+  | Empty :: Main.Empty
+
+local :: Main.Local Prim.Int Prim.String
+local = Local 1 "local"
+
+partial :: forall a. a -> Main.Local Prim.Int a
+partial = Local 2
+
+empty :: Main.Empty
+empty = Empty
+
+external :: Library.External Prim.String
+external = External "external"

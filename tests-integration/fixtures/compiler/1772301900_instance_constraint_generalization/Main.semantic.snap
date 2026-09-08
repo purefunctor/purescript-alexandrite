@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface Eq :: Prim.Type -> Prim.Constraint
+interface Eq a where
+  eq :: a -> a -> Prim.Boolean
+
+interface Ord :: Prim.Type -> Prim.Constraint
+interface Ord a where
+  compare :: a -> a -> Prim.Int
+
+test1 :: forall t0. Main.Eq t0 => t0 -> Prim.Boolean
+test1 = \{eqDict} -> \x ->
+  if eq {eqDict} x x then eq {eqDict} x x else false
+
+test2 :: forall t0. Main.Ord t0 => Main.Eq t0 => t0 -> Prim.Int
+test2 = \{ordDict} -> \{eqDict} -> \x ->
+  if eq {eqDict} x x then compare {ordDict} x x else compare {ordDict} x x

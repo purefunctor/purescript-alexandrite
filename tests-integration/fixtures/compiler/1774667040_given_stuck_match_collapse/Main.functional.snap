@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export show = \dictionary%0 -> dictionary%0.show
+
+@export instance typeEquals = {  }
+
+@export instance match3TypeTypeType = \typeEqualsFFunctionDict%1 typeEqualsGFunctionDict%2 typeEqualsHFunctionDict%3 ->
+  {  }
+
+@export use = \match3FGHDict%7 -> \$f%4@(_) $g%5@(_) $h%6@(_) -> 0
+
+@export test = \showADict%9 showBDict%11 showCDict%13 ->
+  use (match3TypeTypeType typeEquals typeEquals typeEquals) (\x%8 -> show showADict%9 x%8)
+    (\y%10 -> show showBDict%11 y%10)
+    (\z%12 -> show showCDict%13 z%12)

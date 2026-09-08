@@ -1,0 +1,150 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Predicate/1
+
+@export instance contravariantPredicate = {
+  cmap:
+    \function%0 value%1 ->
+      case value%1 of
+        Predicate field0%2 ->
+          { tag: "Predicate", _1: \argument%3 -> field0%2 (function%0 argument%3) }
+}
+
+@export constructor UnaryContravariant/1
+
+@export instance contravariantUnaryContravariant = {
+  cmap:
+    \function%4 value%5 ->
+      case value%5 of
+        UnaryContravariant field0%6 ->
+          {
+            tag: "UnaryContravariant",
+            _1: cmap contravariantPredicate (\element%7 -> function%4 element%7) field0%6
+          }
+}
+
+@export constructor Box/1
+
+@export instance functorBox = {
+  map:
+    \function%8 value%9 ->
+      case value%9 of
+        Box field0%10 ->
+          { tag: "Box", _1: function%8 field0%10 }
+}
+
+@export constructor UnaryCovariant/1
+
+@export instance contravariantUnaryCovariant = {
+  cmap:
+    \function%11 value%12 ->
+      case value%12 of
+        UnaryCovariant field0%13 ->
+          {
+            tag: "UnaryCovariant",
+            _1:
+              map functorBox (\element%14 -> \argument%15 -> element%14 (function%11 argument%15))
+                field0%13
+          }
+}
+
+@export constructor Pair/2
+
+@export instance bifunctorPair = {
+  bimap:
+    \firstFunction%16 secondFunction%17 value%18 ->
+      case value%18 of
+        Pair field0%19 field1%20 ->
+          { tag: "Pair", _1: firstFunction%16 field0%19, _2: secondFunction%17 field1%20 }
+}
+
+@export instance functorPair = {
+  map:
+    \function%21 value%22 ->
+      case value%22 of
+        Pair field0%23 field1%24 ->
+          { tag: "Pair", _1: field0%23, _2: function%21 field1%24 }
+}
+
+@export constructor BinaryFirst/1
+
+@export instance contravariantBinaryFirst = {
+  cmap:
+    \function%25 value%26 ->
+      case value%26 of
+        BinaryFirst field0%27 ->
+          {
+            tag: "BinaryFirst",
+            _1:
+              bifunctorPairDictBimap
+                (\element%28 -> \argument%29 -> element%28 (function%25 argument%29))
+                (\unchanged%30 -> unchanged%30)
+                field0%27
+          }
+}
+
+@export constructor BinarySecond/1
+
+@export instance contravariantBinarySecond = {
+  cmap:
+    \function%31 value%32 ->
+      case value%32 of
+        BinarySecond field0%33 ->
+          {
+            tag: "BinarySecond",
+            _1:
+              map functorPair (\element%34 -> \argument%35 -> element%34 (function%31 argument%35))
+                field0%33
+          }
+}
+
+@export constructor BinaryBoth/1
+
+@export instance contravariantBinaryBoth = {
+  cmap:
+    \function%36 value%37 ->
+      case value%37 of
+        BinaryBoth field0%38 ->
+          {
+            tag: "BinaryBoth",
+            _1:
+              bifunctorPairDictBimap
+                (\element%39 -> \argument%40 -> element%39 (function%36 argument%40))
+                (\element%41 -> \argument%42 -> element%41 (function%36 argument%42))
+                field0%38
+          }
+}
+
+@export constructor FunctionLike/1
+
+@export instance profunctorFunctionLike = {
+  dimap:
+    \firstFunction%43 secondFunction%44 value%45 ->
+      case value%45 of
+        FunctionLike field0%46 ->
+          {
+            tag: "FunctionLike",
+            _1: \argument%47 -> secondFunction%44 (field0%46 (firstFunction%43 argument%47))
+          }
+}
+
+@export constructor NestedProfunctor/1
+
+@export instance profunctorNestedProfunctor = {
+  dimap:
+    \firstFunction%48 secondFunction%49 value%50 ->
+      case value%50 of
+        NestedProfunctor field0%51 ->
+          {
+            tag: "NestedProfunctor",
+            _1:
+              dimap profunctorFunctionLike (\element%52 -> firstFunction%48 element%52)
+                (\element%53 -> secondFunction%49 element%53)
+                field0%51
+          }
+}
+
+bifunctorPairDictBimap = bimap bifunctorPair

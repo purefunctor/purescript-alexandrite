@@ -1,0 +1,29 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export foreign unsafeCoerce
+
+@export constructor M/1
+
+@export bind = \$m%2@(M a%1) f%0 -> f%0 a%1
+
+@export ask = \dictionary%3 -> dictionary%3.ask
+
+@export instance askM = { ask: unsafeCoerce { tag: "M", _1: {  } } }
+
+@export consume = \rowToListRowListDict%5 -> \$record%4@(_) -> {  }
+
+@export produce = \dictionary%6 -> dictionary%6.produce
+
+@export instance produce1 = \rowToListInputInputListDict%7 ->
+  { produce: \$record%9@(_) input%8 -> input%8 }
+
+@export test = \rowToListOutputOutputListDict%11 produceContextInputOutputDict%13 ->
+  \input%14 ->
+    bind (ask askM)
+      (\context%10 ->
+        let
+          output%12 = produce produceContextInputOutputDict%13 context%10 input%14
+        in { tag: "M", _1: consume rowToListOutputOutputListDict%11 output%12 })

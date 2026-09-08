@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface Pick :: forall k0 k1 k2. k0 -> k1 -> k2 -> Prim.Constraint
+interface Pick a b result where
+
+dictionary pickSame ::
+  forall a.
+  { compareDict :: Prim.Int.Compare a a Prim.Ordering.EQ } =>
+  Main.Pick @Prim.Int @Prim.Int @Prim.Int a a a
+
+dictionary pickFallback :: forall t0 t1 a b. Main.Pick @t0 @t1 @t1 a b b
+
+choose :: forall t0 t1 t2 a b result.
+  Main.Pick @t0 @t1 @t2 a b result =>
+  Type.Proxy.Proxy @t0 a -> Type.Proxy.Proxy @t1 b -> Type.Proxy.Proxy @t2 result
+choose = \{pickDict} -> \_ -> \_ -> Proxy
+
+x :: Type.Proxy.Proxy @Prim.Type Prim.Int
+x = choose {pickSame {trivial}} Proxy Proxy

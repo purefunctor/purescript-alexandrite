@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Proxy/0
+
+@export coerceProxy = coerce <trivial evidence>
+
+@export constructor Nothing/0
+
+@export constructor Just/1
+
+@export coerceMaybe = coerce <trivial evidence>
+
+@export coerceMaybeReverse = coerce <trivial evidence>
+
+@export coerceRecord = coerce <trivial evidence>
+
+@export coerceFunction = coerce <trivial evidence>

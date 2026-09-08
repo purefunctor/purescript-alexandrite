@@ -1,0 +1,41 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+data Wrap :: forall k0 k1. (k0 -> Prim.Type) -> (k1 -> Prim.Type) -> k0 -> k1 -> Prim.Type
+data Wrap @f @g @a @b
+  | Wrap :: f a -> g b -> Main.Wrap f g a b
+
+dictionary bifoldableWrapTypeType ::
+  forall f g.
+  { foldableDict :: Data.Foldable.Foldable f } =>
+  { foldableDict1 :: Data.Foldable.Foldable g } =>
+  Data.Bifoldable.Bifoldable (Main.Wrap @Prim.Type @Prim.Type f g)
+  where
+  bifoldr :: forall a b c. (a -> c -> c) -> (b -> c -> c) -> c -> Main.Wrap @Prim.Type @Prim.Type f g a b -> c
+  bifoldr = \firstFunction secondFunction accumulator value ->
+    case value of
+      (Wrap field0 field1) -> foldr {foldableDict}
+        (\element accumulator -> firstFunction element accumulator)
+        (foldr {foldableDict1} (\element accumulator -> secondFunction element accumulator)
+          accumulator
+          field1)
+        field0
+  bifoldl :: forall a b c. (c -> a -> c) -> (c -> b -> c) -> c -> Main.Wrap @Prim.Type @Prim.Type f g a b -> c
+  bifoldl = \firstFunction secondFunction accumulator value ->
+    case value of
+      (Wrap field0 field1) -> foldl {foldableDict1}
+        (\accumulator element -> secondFunction accumulator element)
+        (foldl {foldableDict} (\accumulator element -> firstFunction accumulator element)
+          accumulator
+          field0)
+        field1
+  bifoldMap :: forall m a b.
+  Data.Monoid.Monoid m => (a -> m) -> (b -> m) -> Main.Wrap @Prim.Type @Prim.Type f g a b -> m
+  bifoldMap = \{monoidDict} ->
+    \firstFunction secondFunction value ->
+      case value of
+        (Wrap field0 field1) -> append {monoidDict.semigroupDict}
+          (foldMap {foldableDict} {monoidDict} (\element -> firstFunction element) field0)
+          (foldMap {foldableDict1} {monoidDict} (\element -> secondFunction element) field1)

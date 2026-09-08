@@ -1,0 +1,62 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Nothing/0
+
+@export constructor Just/1
+
+@export instance functorMaybe = {
+  map:
+    \function%0 value%1 ->
+      case value%1 of
+        Nothing ->
+          "Nothing"
+        Just field0%2 ->
+          { tag: "Just", _1: function%0 field0%2 }
+}
+
+@export instance foldableMaybe = {
+  foldr:
+    \function%3 accumulator%4 value%5 ->
+      case value%5 of
+        Nothing ->
+          accumulator%4
+        Just field0%6 ->
+          function%3 field0%6 accumulator%4,
+  foldl:
+    \function%7 accumulator%8 value%9 ->
+      case value%9 of
+        Nothing ->
+          accumulator%8
+        Just field0%10 ->
+          function%7 accumulator%8 field0%10,
+  foldMap:
+    \monoidMDict%13 ->
+      \function%11 value%12 ->
+        case value%12 of
+          Nothing ->
+            mempty monoidMDict%13
+          Just field0%14 ->
+            function%11 field0%14
+}
+
+@export instance traversableMaybe = {
+  "Functor0": \() -> functorMaybe,
+  "Foldable1": \() -> foldableMaybe,
+  traverse:
+    \applicativeMDict%17 ->
+      \function%15 value%16 ->
+        case value%16 of
+          Nothing ->
+            pure applicativeMDict%17 "Nothing"
+          Just field0%18 ->
+            map ((applicativeMDict%17."Apply0"())."Functor0"())
+              (\field0Result%19 -> { tag: "Just", _1: field0Result%19 })
+              (function%15 field0%18),
+  sequence:
+    \applicativeMDict%21 ->
+      \value%20 ->
+        traverse traversableMaybe applicativeMDict%21 (\effect0%22 -> effect0%22) value%20
+}

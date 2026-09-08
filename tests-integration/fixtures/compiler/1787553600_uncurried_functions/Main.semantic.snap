@@ -1,0 +1,48 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+foreign import chooseSecond :: Data.Function.Uncurried.Fn2 Prim.Int Prim.Int Prim.Int
+
+made :: Data.Function.Uncurried.Fn2 Prim.Int Prim.Int Prim.Int
+made = mkFn2 \first second -> second
+
+madeNested :: Data.Function.Uncurried.Fn3 Prim.Int Prim.Int Prim.Int Prim.Int
+madeNested = mkFn3 \first -> \second third -> third
+
+madeCaptured :: Prim.Int -> Data.Function.Uncurried.Fn2 Prim.Int Prim.Int Prim.Int
+madeCaptured = \captured -> mkFn2 \first second -> captured
+
+madeWithCurriedResult :: Data.Function.Uncurried.Fn2 Prim.Int Prim.Int (Prim.Int -> Prim.Int)
+madeWithCurriedResult = mkFn2 \first second third -> third
+
+directRun :: Prim.Int
+directRun = runFn2 chooseSecond 1 42
+
+directMadeRun :: Prim.Int
+directMadeRun = runFn2 (mkFn2 \first second -> second) 1 42
+
+directNestedRun :: Prim.Int
+directNestedRun = runFn3 madeNested 1 2 42
+
+directCapturedRun :: Prim.Int
+directCapturedRun = runFn2 (madeCaptured 42) 1 2
+
+directCurriedResultRun :: Prim.Int
+directCurriedResultRun = runFn2 madeWithCurriedResult 1 2 42
+
+partialRun :: Prim.Int -> Prim.Int
+partialRun = runFn2 chooseSecond 1
+
+indirectMake :: Data.Function.Uncurried.Fn2 Prim.Int Prim.Int Prim.Int
+indirectMake = mkFn2 chooseSecondCurried
+
+chooseSecondCurried :: Prim.Int -> Prim.Int -> Prim.Int
+chooseSecondCurried = \first -> \second -> second
+
+lookalikeMade :: Prim.Int -> Prim.Int -> Prim.Int
+lookalikeMade = mkFn2 \first second -> second
+
+lookalikeRun :: Prim.Int
+lookalikeRun = runFn2 lookalikeMade 1 42

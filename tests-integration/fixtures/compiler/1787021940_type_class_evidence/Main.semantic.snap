@@ -1,0 +1,38 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+interface Equal :: Prim.Type -> Prim.Constraint
+interface Equal a where
+  equal :: a -> a -> Prim.Boolean
+
+interface Ordered :: Prim.Type -> Prim.Constraint
+interface Ordered a where
+  superclass equalDict :: Main.Equal a
+  lessThan :: a -> a -> Prim.Boolean
+
+foreign import equalInt :: Prim.Int -> Prim.Int -> Prim.Boolean
+
+foreign import lessThanInt :: Prim.Int -> Prim.Int -> Prim.Boolean
+
+dictionary equalInt1 :: Main.Equal Prim.Int where
+  equal :: Prim.Int -> Prim.Int -> Prim.Boolean
+  equal = equalInt
+
+dictionary orderedInt :: Main.Ordered Prim.Int where
+  superclass equalDict = equalInt1
+  lessThan :: Prim.Int -> Prim.Int -> Prim.Boolean
+  lessThan = lessThanInt
+
+genericEqual :: forall a. Main.Equal a => a -> a -> Prim.Boolean
+genericEqual = \{equalDict} -> \left -> \right -> equal {equalDict} left right
+
+concreteEqual :: Prim.Boolean
+concreteEqual = equal {equalInt1} 1 2
+
+concreteLessThan :: Prim.Boolean
+concreteLessThan = lessThan {orderedInt} 1 2
+
+superclassEqual :: forall a. Main.Ordered a => a -> a -> Prim.Boolean
+superclassEqual = \{orderedDict} -> \left -> \right -> equal {orderedDict.equalDict} left right

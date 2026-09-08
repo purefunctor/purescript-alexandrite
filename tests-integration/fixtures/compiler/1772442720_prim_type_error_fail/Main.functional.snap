@@ -1,0 +1,14 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Proxy/0
+
+@export failBasic = \failTextDict%1 -> \x%0 -> x%0
+
+@export useFailBasic = failBasic (<error>) 42
+
+@export failComplex = \failAboveTextBesideTextDict%3 -> \p%2 -> p%2
+
+@export useFailComplex = failComplex (<error>) "Proxy"

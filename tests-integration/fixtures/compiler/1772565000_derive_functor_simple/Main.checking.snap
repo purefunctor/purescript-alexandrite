@@ -1,0 +1,25 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Identity :: forall @a. a -> Main.Identity a
+Const :: forall t0 @e (@a :: t0). e -> Main.Const @t0 e (a :: t0)
+Nothing :: forall @a. Main.Maybe a
+Just :: forall @a. a -> Main.Maybe a
+
+Types
+Identity :: Prim.Type -> Prim.Type
+Const :: forall t0. Prim.Type -> t0 -> Prim.Type
+Maybe :: Prim.Type -> Prim.Type
+
+Derived
+derive Data.Functor.Functor Main.Identity
+derive forall e. Data.Functor.Functor (Main.Const @Prim.Type e)
+derive Data.Functor.Functor Main.Maybe
+
+Roles
+Identity = [Representational]
+Const = [Representational, Phantom]
+Maybe = [Representational]

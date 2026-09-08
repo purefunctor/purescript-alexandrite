@@ -1,0 +1,28 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+example :: forall @a. Main.Example a => Prim.Boolean
+implementation ::
+  Prim.TypeError.Fail (Prim.TypeError.Text "first deferred error") =>
+  Main.Required Prim.Int =>
+  Prim.TypeError.Fail (Prim.TypeError.Text "second deferred error") =>
+  Prim.Boolean
+boolean :: Prim.Boolean
+
+Types
+Required :: Prim.Type -> Prim.Constraint
+Example :: Prim.Type -> Prim.Constraint
+
+Classes
+class forall (value :: Prim.Type). Main.Required value
+class forall (a :: Prim.Type). Main.Example a
+  example :: forall @a. Main.Example a => Prim.Boolean
+
+Instances
+instance Prim.TypeError.Fail (Prim.TypeError.Text "first deferred error") =>
+Main.Required Prim.Int =>
+Prim.TypeError.Fail (Prim.TypeError.Text "second deferred error") =>
+Main.Example Prim.Int

@@ -1,0 +1,70 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Tuple :: Prim.Type -> Prim.Type -> Prim.Type
+data Tuple @a @b
+  | Tuple :: a -> b -> Main.Tuple a b
+
+interface Functor :: (Prim.Type -> Prim.Type) -> Prim.Constraint
+interface Functor f where
+  map :: forall a b. (a -> b) -> f a -> f b
+
+interface Apply :: (Prim.Type -> Prim.Type) -> Prim.Constraint
+interface Apply f where
+  superclass functorDict :: Main.Functor f
+  apply :: forall a b. f (a -> b) -> f a -> f b
+
+interface Applicative :: (Prim.Type -> Prim.Type) -> Prim.Constraint
+interface Applicative f where
+  superclass applyDict :: Main.Apply f
+  pure :: forall a. a -> f a
+
+interface Discard :: (Prim.Type -> Prim.Type) -> Prim.Constraint
+interface Discard m where
+  superclass applicativeDict :: Main.Applicative m
+  discard :: forall a b. m a -> (a -> m b) -> m b
+
+interface Bind :: (Prim.Type -> Prim.Type) -> Prim.Constraint
+interface Bind m where
+  superclass applicativeDict :: Main.Applicative m
+  bind :: forall a b. m a -> (a -> m b) -> m b
+
+interface Monad :: (Prim.Type -> Prim.Type) -> Prim.Constraint
+interface Monad m where
+  superclass bindDict :: Main.Bind m
+
+testDo :: forall m. Main.Monad m => m (Main.Tuple Prim.Int Prim.String)
+testDo = \{monadDict} ->
+  bind {monadDict.bindDict} (pure {monadDict.bindDict.applicativeDict} 1) \x ->
+    bind {monadDict.bindDict} (pure {monadDict.bindDict.applicativeDict} "hello") \y ->
+      pure {monadDict.bindDict.applicativeDict} (Tuple x y)
+
+testDo' :: forall t0. Main.Bind t0 => t0 (Main.Tuple Prim.Int Prim.String)
+testDo' = \{bindDict} ->
+  bind {bindDict} (pure {bindDict.applicativeDict} 1) \x ->
+    bind {bindDict} (pure {bindDict.applicativeDict} "hello") \y ->
+      pure {bindDict.applicativeDict} (Tuple x y)
+
+testAdo :: forall f. Main.Applicative f => f (Main.Tuple Prim.Int Prim.String)
+testAdo = \{applicativeDict} ->
+  apply {applicativeDict.applyDict}
+    (map {applicativeDict.applyDict.functorDict} (\x y -> Tuple x y) (pure {applicativeDict} 1))
+    (pure {applicativeDict} "hello")
+
+testAdo' :: forall t0. Main.Applicative t0 => t0 (Main.Tuple Prim.Int Prim.String)
+testAdo' = \{applicativeDict} ->
+  apply {applicativeDict.applyDict}
+    (map {applicativeDict.applyDict.functorDict} (\x y -> Tuple x y) (pure {applicativeDict} 1))
+    (pure {applicativeDict} "hello")
+
+testDoDiscard :: forall m. Main.Monad m => m Prim.Int
+testDoDiscard = \{monadDict} ->
+  discard {error} (pure {monadDict.bindDict.applicativeDict} "ignored") \_ ->
+    pure {monadDict.bindDict.applicativeDict} 42
+
+testDoDiscard' :: forall t0. Main.Discard t0 => t0 Prim.Int
+testDoDiscard' = \{discardDict} ->
+  discard {discardDict} (pure {discardDict.applicativeDict} "ignored") \_ ->
+    pure {discardDict.applicativeDict} 42

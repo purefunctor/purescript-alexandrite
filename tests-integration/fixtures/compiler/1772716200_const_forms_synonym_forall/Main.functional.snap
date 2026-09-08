@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export poly0 = \a%0 b%1 -> a%0
+
+@export poly1 = \a%2 b%3 -> a%2
+
+@export poly2 = \a%5 -> \b%4 -> a%5
+
+@export poly3 = \a%6 -> \b%7 -> a%6

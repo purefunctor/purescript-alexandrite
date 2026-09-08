@@ -38,15 +38,7 @@ url = "2.5.8"
 datatest-stable = "0.3"
 
 [[test]]
-name = "backend"
-harness = false
-
-[[test]]
-name = "checking"
-harness = false
-
-[[test]]
-name = "semantic"
+name = "compiler"
 harness = false
 
 [[test]]
@@ -59,10 +51,6 @@ harness = false
 
 [[test]]
 name = "lsp"
-harness = false
-
-[[test]]
-name = "functional"
 harness = false
 
 [[test]]

@@ -1,0 +1,81 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Proxy :: forall k. k -> Prim.Type
+data Proxy @a
+  | Proxy :: Main.Proxy a
+
+warnBasic :: forall a. Prim.TypeError.Warn (Prim.TypeError.Text "This function is deprecated") => a -> a
+warnBasic = \{warnDict} -> \x -> x
+
+useWarnBasic :: Prim.Int
+useWarnBasic = warnBasic {trivial} 42
+
+warnBeside :: forall a.
+  Prim.TypeError.Warn
+    (Prim.TypeError.Beside (Prim.TypeError.Text "Left ") (Prim.TypeError.Text "Right")) =>
+  a -> a
+warnBeside = \{warnDict} -> \x -> x
+
+useWarnBeside :: Prim.Int
+useWarnBeside = warnBeside {trivial} 42
+
+warnAbove :: forall a.
+  Prim.TypeError.Warn
+    (Prim.TypeError.Above (Prim.TypeError.Text "Line 1") (Prim.TypeError.Text "Line 2")) =>
+  a -> a
+warnAbove = \{warnDict} -> \x -> x
+
+useWarnAbove :: Prim.Int
+useWarnAbove = warnAbove {trivial} 42
+
+warnQuote :: forall t0 a.
+  Prim.TypeError.Warn
+    (Prim.TypeError.Beside (Prim.TypeError.Text "Got type: ") (Prim.TypeError.Quote @t0 a)) =>
+  Main.Proxy @t0 a -> Main.Proxy @t0 a
+warnQuote = \{warnDict} -> \p -> p
+
+useWarnQuote :: Main.Proxy @Prim.Type Prim.Int
+useWarnQuote = warnQuote {trivial} Proxy
+
+warnQuoteLabel :: forall a.
+  Prim.TypeError.Warn
+    (Prim.TypeError.Beside (Prim.TypeError.Text "Label: ") (Prim.TypeError.QuoteLabel "myField")) =>
+  a -> a
+warnQuoteLabel = \{warnDict} -> \x -> x
+
+useWarnQuoteLabel :: Prim.Int
+useWarnQuoteLabel = warnQuoteLabel {trivial} 42
+
+warnQuoteLabelSpaces :: forall a.
+  Prim.TypeError.Warn
+    (Prim.TypeError.Beside
+      (Prim.TypeError.Text "Label: ")
+      (Prim.TypeError.QuoteLabel "h e l l o")) =>
+  a -> a
+warnQuoteLabelSpaces = \{warnDict} -> \x -> x
+
+useWarnQuoteLabelSpaces :: Prim.Int
+useWarnQuoteLabelSpaces = warnQuoteLabelSpaces {trivial} 42
+
+warnQuoteLabelQuote :: forall a.
+  Prim.TypeError.Warn
+    (Prim.TypeError.Beside (Prim.TypeError.Text "Label: ") (Prim.TypeError.QuoteLabel "hel\"lo")) =>
+  a -> a
+warnQuoteLabelQuote = \{warnDict} -> \x -> x
+
+useWarnQuoteLabelQuote :: Prim.Int
+useWarnQuoteLabelQuote = warnQuoteLabelQuote {trivial} 42
+
+warnQuoteLabelRaw :: forall a.
+  Prim.TypeError.Warn
+    (Prim.TypeError.Beside
+      (Prim.TypeError.Text "Label: ")
+      (Prim.TypeError.QuoteLabel """raw\nstring""")) =>
+  a -> a
+warnQuoteLabelRaw = \{warnDict} -> \x -> x
+
+useWarnQuoteLabelRaw :: Prim.Int
+useWarnQuoteLabelRaw = warnQuoteLabelRaw {trivial} 42

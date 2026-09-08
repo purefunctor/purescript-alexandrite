@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export rowToListSimple = \rowToListRowListDict%0 -> "Proxy"
+
+@export rowToListMultiple = \rowToListRowListDict%1 -> "Proxy"
+
+@export rowToListEmpty = \rowToListRowListDict%2 -> "Proxy"
+
+@export rowToListThree = \rowToListRowListDict%3 -> "Proxy"
+
+@export stuckOpenRow = \rowToListRowListDict%5 -> \$proxy%4@(_) -> "Proxy"
+
+@export forceSolve = {
+  rowToListSimple: rowToListSimple <trivial evidence>,
+  rowToListMultiple: rowToListMultiple <trivial evidence>,
+  rowToListEmpty: rowToListEmpty <trivial evidence>,
+  rowToListThree: rowToListThree <trivial evidence>,
+  nowSolved: stuckOpenRow <trivial evidence> "Proxy"
+}

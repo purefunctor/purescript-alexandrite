@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+foreign import unify :: forall r. Main.Box r -> Main.Box r -> Main.Box r
+
+foreign import withF :: forall r. Main.Box ( f :: Main.F | r )
+
+foreign import withG :: forall r. Main.Box ( g :: Main.G | r )
+
+test :: forall t0. Main.Box ( f :: Main.F, g :: Main.G | t0 )
+test = unify withF withG

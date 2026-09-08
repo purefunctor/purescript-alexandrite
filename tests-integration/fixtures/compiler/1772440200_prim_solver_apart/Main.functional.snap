@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export invalidAdd = \addDict%0 -> "Proxy"
+
+@export invalidCompare = \compareLTDict%1 -> "Proxy"
+
+@export invalidAppend = \appendDict%2 -> "Proxy"
+
+@export invalidCons = \consDict%3 -> "Proxy"
+
+@export forceSolve = {
+  invalidAdd: invalidAdd (<error>),
+  invalidCompare: invalidCompare (<error>),
+  invalidAppend: invalidAppend (<error>),
+  invalidCons: invalidCons (<error>)
+}

@@ -1,0 +1,31 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Warning! · [MissingPatterns] · Main.purs:8:1
+  •
+  │
+  • Pattern match is not exhaustive. Missing: { x: Nothing }
+  │
+  │   test2 :: { x :: Maybe Int } -> Int
+  │   ╰─────────────────────────────────
+  •
+
+Warning! · [RedundantPattern] · Main.purs:11:1
+  •
+  │
+  • Pattern match has redundant patterns: _
+  │
+  │   test3 :: { x :: Int, y :: Int } -> Int
+  │   ╰─────────────────────────────────────
+  •
+
+Warning! · [MissingPatterns] · Main.purs:15:1
+  •
+  │
+  • Pattern match is not exhaustive. Missing: { a: Nothing, b: _ }
+  │
+  │   test4 :: { a :: Maybe Int, b :: Maybe String } -> Int
+  │   ╰────────────────────────────────────────────────────
+  •

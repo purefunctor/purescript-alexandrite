@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+bareTail :: forall opts. opts -> Prim.Int
+bareTail = \_ -> 1
+
+plainTail :: forall opts. opts -> Prim.Int
+plainTail = \_ -> 2
+
+recordTail :: forall opts. {| opts } -> Prim.Int
+recordTail = \_ -> 3
+
+withBareTail :: Prim.Int
+withBareTail = bareTail { option: 1 }
+
+withPlainTail :: Prim.Int
+withPlainTail = plainTail { option: 1 }
+
+withRecordTail :: Prim.Int
+withRecordTail = recordTail { option: 1 }

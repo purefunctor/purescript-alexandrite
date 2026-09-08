@@ -1,0 +1,29 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+data Box :: Prim.Type
+data Box
+  | Box :: Main.Box
+
+newtype Identity :: Prim.Type -> Prim.Type
+newtype Identity @a
+  | Identity :: a -> Main.Identity a
+
+dictionary eqBox :: Data.Eq.Eq Main.Box where
+  eq :: Main.Box -> Main.Box -> Prim.Boolean
+  eq = \left right ->
+    case left, right of
+      Box, Box -> true
+
+equal :: Prim.Boolean
+equal = eq {eqBox} Box Box
+
+dictionary showIdentity ::
+  forall a.
+  { showDict :: Data.Show.Show a } =>
+  Data.Show.Show (Main.Identity a) = showDict
+
+rendered :: Prim.String
+rendered = show {showIdentity {showInt}} (Identity 42)

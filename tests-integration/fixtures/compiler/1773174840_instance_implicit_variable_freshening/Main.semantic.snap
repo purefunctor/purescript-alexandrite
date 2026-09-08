@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Proxy :: forall k. k -> Prim.Type
+data Proxy @a
+  | Proxy :: Main.Proxy a
+
+interface Top :: Prim.Type -> Prim.Constraint
+interface Top a where
+  top :: a
+
+dictionary topProxy :: forall t0 a. Main.Top (Main.Proxy @t0 a) where
+  top :: Main.Proxy @t0 a
+  top = Proxy

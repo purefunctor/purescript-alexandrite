@@ -1,8 +1,0 @@
----
-source: tests-integration/src/fixtures.rs
-expression: diagnostics_report
----
-Terms
-select :: { first :: Prim.Int, nested :: { second :: Prim.String } } -> Prim.String
-
-Types

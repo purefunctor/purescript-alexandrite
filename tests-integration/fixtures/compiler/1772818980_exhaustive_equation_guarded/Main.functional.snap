@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export testGuarded = \$boolean%0 ->
+  case $boolean%0 of
+    true ->
+      | false -> 1
+    false ->
+      0
+
+@export testGuardedBoth = \$boolean%1 ->
+  case $boolean%1 of
+    true ->
+      | true -> 1
+    false ->
+      | true -> 0

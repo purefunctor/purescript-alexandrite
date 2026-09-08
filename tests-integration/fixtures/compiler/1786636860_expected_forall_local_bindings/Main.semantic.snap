@@ -1,0 +1,82 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Unit :: Prim.Type
+data Unit
+  | Unit :: Main.Unit
+
+data Spec :: Prim.Type
+data Spec
+  | Spec :: Main.Spec
+
+data Token :: forall k0. k0 -> Prim.Type
+data Token @scope
+  | Token :: Main.Token scope
+
+interface Witness :: forall k0. k0 -> Prim.Constraint
+interface Witness value where
+
+dictionary witnessValue :: forall t0 value. Main.Witness @t0 value
+
+identity :: forall value. value -> value
+identity = \value -> value
+
+modify :: forall t0 scope. Main.Token @t0 scope -> Main.Token @t0 scope
+modify = \token -> token
+
+foreign import mkEval :: forall value. Main.Spec -> value -> value
+
+foreign import constrainedEval :: forall value. Main.Witness @Prim.Type value => Main.Spec -> value -> value
+
+foreign import consumeIdentity :: (forall value. value -> value) -> Main.Unit
+
+foreign import leak :: forall result. (forall scope. Main.Token @t0 scope -> result) -> result
+
+validLocalEval :: Main.Unit
+validLocalEval = consumeIdentity eval
+  where
+  eval :: value -> value
+  eval = mkEval Spec
+
+validNestedLocalEval :: Main.Unit
+validNestedLocalEval = consumeIdentity outer
+  where
+  outer :: value -> value
+  outer = inner
+    where
+    inner :: value -> value
+    inner = mkEval Spec
+
+escapedLocalEvidence :: Main.Unit
+escapedLocalEvidence = consumeIdentity eval
+  where
+  eval :: value -> value
+  eval = constrainedEval {witnessValue} Spec
+
+escapedLocalAlias :: forall t0. Main.Token @t0 scope
+escapedLocalAlias = escaped
+  where
+  escaped :: Main.Token @t0 scope
+  escaped = leak modify
+
+escapedEtaExpansion :: forall t0. Main.Token @t0 scope
+escapedEtaExpansion = leak \token -> modify token
+
+escapedIdentityWrapper :: forall t0. Main.Token @t0 scope
+escapedIdentityWrapper = identity (leak modify)
+
+escapedArrayWrapper :: forall t0. Prim.Array (Main.Token @t0 scope)
+escapedArrayWrapper = [leak modify]
+
+escapedConditionalWrapper :: forall t0. Main.Token @t0 scope
+escapedConditionalWrapper =
+  leak \token ->
+    if true then modify token else modify token
+
+escapedUnusedLocal :: Prim.Int
+escapedUnusedLocal = 0
+  where
+  escaped :: Main.Token @?61 scope
+  escaped = leak modify

@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+
+Types
+Add :: Prim.Type -> Prim.Type -> Prim.Type
++ :: Prim.Type -> Prim.Type -> Prim.Type
+Bad :: Prim.Type
+
+Synonyms
+type Add a b = a
+type Bad = Main.Add Prim.Int "hello"

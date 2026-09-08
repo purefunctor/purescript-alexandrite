@@ -1,6 +1,6 @@
 ---
 name: workflow-integration-tests
-description: "Workflow for adding and updating Alexandrite integration-test fixtures for backend, checking, semantic trees, lowering, resolving, and LSP behavior. Use when creating compiler integration tests, reviewing fixture snapshots or generated JavaScript, or using `just t <category>`."
+description: "Workflow for adding and updating Alexandrite integration-test fixtures for unified compiler, lowering, resolving, and LSP behavior. Use when creating compiler integration tests, reviewing snapshots or generated JavaScript, or using `just t <category>`."
 ---
 
 # Workflow: Alexandrite Integration Tests
@@ -13,9 +13,7 @@ Use the command reference at `reference/compiler-scripts.md` for test runner syn
 
 | Category | Alias | Use for | Harness pattern |
 |----------|-------|---------|-----------------|
-| `backend` | `b` | SSA, generated JavaScript, foreign modules, and JavaScript execution | `Main.purs`, generated `output/`, optional `verify.mjs` |
-| `checking` | `c` | Type checking, inference, kinds, roles, constraints, diagnostics after checking | `Main.purs` only |
-| `semantic` | `s` | Checked semantic tree declarations, typed expressions and binders, and explicit evidence | `Main.purs` only |
+| `compiler` | `c` | Types, diagnostics, semantic recovery, functional conversion, generated JavaScript, and execution | `Main.purs`, named reports, `output/`, optional `verify.mjs` |
 | `lowering` | `l` | Lowered core output, binding/equation structure, source-to-core name links | every `.purs` file |
 | `resolving` | `r` | Name resolution, imports, exports, qualification, duplicate-name diagnostics | every `.purs` file |
 | `lsp` | - | Hover, definition, completion, import edits, source locations in LSP reports | `Main.purs` only |
@@ -38,15 +36,26 @@ Tests are auto-discovered by the datatest harnesses in `tests-integration/tests/
 
 Keep each fixture about one behavior. Use a small `Main.purs` by default, and add supporting modules only when imports, exports, qualification, or cross-module behavior are part of the test.
 
-#### Backend fixtures
+#### Compiler fixtures
 
-Use backend fixtures for functional trees or generated JavaScript behavior. The harness compares only fixture-owned generated JavaScript and FFI with the tracked `output/` tree. Add `verify.mjs` when the behavior must also be executed with Node; it runs against the full freshly generated dependency closure in a temporary ESM workspace. Do not add a fixture `package.json` or commit registry output or copies of `runtime.js`.
+Use `tests-integration/fixtures/compiler/<fixture>/Main.purs` as the entry point.
+`Main.checking.snap` contains checked types, kinds, and declaration metadata, without
+diagnostics. `Main.diagnostics.snap` contains parser, checking, foreign, and backend
+diagnostics for all fixture-owned modules with stable fixture-relative paths.
+`Main.semantic.snap` contains checked trees, including recovery. `Main.functional.snap` contains a
+successful functional tree or an explicit rejection.
 
-Backend errors belong in the diagnostic `Main.snap`; `Main.functional.snap` records successful trees only.
+Track generated JavaScript and adjacent FFI under `output/` only for
+fixture-owned modules reachable from `Main.purs`. Add `verify.mjs` when Node
+execution is part of the contract; it runs against a fresh full dependency
+closure, never tracked goldens. Do not commit registry output, `runtime.js`, or a
+fixture `package.json`.
 
-Backend, checking, and semantic fixtures use the package-set version and root packages in `tests-integration/packages.json`. Edit its `package_set` field to update dependencies; preparation resolves and caches the package list automatically, without a committed lockfile. `just t` prepares them before running fixtures; for direct nextest use, run `just integration-prepare` first. Use package modules instead of vendoring stand-ins. Deliberate malformed-module cases require a fixture-local `replacements.json` mapping each replaced registry module to a nonempty reason. Prim and fixture/fixture collisions cannot be replaced. See `CONTRIBUTING.md` for dependency updates and distribution boundaries.
-
-#### Checking fixtures
+Compiler fixtures use `tests-integration/packages.json`. Prefer real package
+modules to stand-ins. Deliberately malformed package cases require a fixture-local
+`replacements.json` mapping every replaced registry module to a nonempty reason;
+Prim and fixture-module collisions cannot be replaced. Keep both ordinary and
+malformed fixtures focused on one behavior.
 
 Pair explicitly checked and inferred variants when both modes matter:
 
@@ -63,9 +72,8 @@ test' [x] = x
 
 Name declarations predictably: `test`, `test'`, `test2`, `test2'`, etc. Include only edge cases relevant to the behavior.
 
-#### Semantic fixtures
-
-Write source that exposes the checked semantic structure being tested. Keep fixtures focused on the smallest declaration, expression, binder, or evidence shape that distinguishes the behavior.
+For semantic behavior, write the smallest source that distinguishes the recovery,
+declaration, expression, binder, or evidence shape under test.
 
 #### Lowering fixtures
 
@@ -85,13 +93,13 @@ Use `Main.purs` as the scenario driver. Add supporting modules for imported symb
 just t <category> NNN MMM
 ```
 
-When an intentional backend change affects generated JavaScript, review the reported files and update only the relevant fixtures:
+When an intentional compiler change affects generated JavaScript, review the reported files and update only the relevant fixtures:
 
 ```bash
-just t backend NNN --update-output
+just t compiler NNN --update-output
 ```
 
-Ordinary backend runs must remain read-only. Do not set `ALEXANDRITE_UPDATE_JAVASCRIPT_OUTPUT` directly; `compiler-scripts` owns that implementation detail.
+Ordinary compiler runs must remain read-only. Do not set `ALEXANDRITE_UPDATE_JAVASCRIPT_OUTPUT` directly; `compiler-scripts` owns that implementation detail.
 
 ### 4. Accept or reject snapshots
 
@@ -107,10 +115,14 @@ just t <category> --accept --confirm # Accept all pending snapshots
 For imports, re-exports, or cross-module behavior:
 
 ```
-tests-integration/fixtures/<category>/NNN_import_test/
+tests-integration/fixtures/compiler/NNN_import_test/
 ├── Main.purs    # Scenario driver
 ├── Lib.purs     # Supporting module
-└── Main.snap    # Generated snapshot where the harness snapshots Main.purs
+├── Main.checking.snap
+├── Main.diagnostics.snap
+├── Main.semantic.snap
+├── Main.functional.snap
+└── output/      # Reachable fixture-owned JavaScript
 ```
 
 **Lib.purs:**
@@ -134,16 +146,21 @@ test = Just life
 ```
 
 - Module name must match filename
-- Checking, semantic, and LSP fixtures snapshot only `Main.purs`
+- Compiler fixtures enter through `Main.purs`; diagnostics cover all fixture-owned modules
+- LSP fixtures snapshot only `Main.purs`
 - Lowering and resolving fixtures snapshot every `.purs` file
 
 ## Snapshot Review Focus
 
-### Backend
+### Compiler
 
-Review functional snapshots, backend diagnostics, and every changed file under `output/`. Check module paths, imports, exports, fixture foreign-module copies, and emitted expressions. Registry modules are compiled for execution but excluded from goldens. When a fixture has `verify.mjs`, confirm it passes against generated output before accepting changes.
+Review each named report against its contract. Checking contains only types;
+diagnostics cover all fixture-owned modules with stable paths; semantic preserves
+useful recovery structure; and functional records success or explicit rejection.
+Review every changed `output/` file for reachability and fixture ownership. When
+`verify.mjs` exists, confirm it passes against fresh full generated output.
 
-### Checking
+Checking output resembles:
 
 ```
 Terms
@@ -154,15 +171,11 @@ Types
 TypeName :: Kind
 ...
 
-Errors
-ErrorKind { details } at [location]
 ```
 
-Check inferred/checked types, kind/role output, constraints, diagnostics, and source locations.
-
-### Semantic
-
-Check semantic declaration kinds, finalized types and kinds, constructor arguments, binders, expressions, and explicit evidence. Confirm that syntax sugar expected to disappear is absent and syntax intentionally preserved by checking remains present.
+Check diagnostics and locations in `Main.diagnostics.snap`, not the types-only
+checking report. In `Main.semantic.snap`, check declarations, finalized types and
+kinds, binders, expressions, evidence, and recovery.
 
 ### Lowering
 
@@ -181,9 +194,8 @@ Check hover text, definitions, completions, edits, and reported positions. Revie
 Before accepting, verify:
 
 1. **The category is appropriate**
-   - Backend owns SSA and generated or executed JavaScript behavior
-   - Checking owns type inference/checking behavior
-   - Semantic owns the typed semantic tree produced by checking
+   - Compiler owns types, diagnostics, semantic recovery, functional conversion,
+     and generated or executed JavaScript
    - Lowering owns lowered core/source-link behavior
    - Resolving owns name/import/export behavior
    - LSP owns editor-facing reports
@@ -193,8 +205,7 @@ Before accepting, verify:
    - Supporting modules exist only when they clarify the behavior
 
 3. **Snapshots are intentional**
-   - Backend SSA and generated JavaScript changes are correct
-   - Checking types are correct
+   - Compiler reports and generated JavaScript changes are correct
    - `test :: Array Int -> Int` - signature preserved
    - `test' :: forall t. Array t -> t` - polymorphism inferred
    - Semantic/lowering/resolving/LSP changes match the feature or bug being tested
@@ -207,7 +218,7 @@ Before accepting, verify:
    - Confirm error kind matches (`NoInstanceFound`, `CannotUnify`)
    - Verify location points to correct declaration
 
-6. **Polymorphism is appropriate in checking snapshots**
+6. **Polymorphism is appropriate in `Main.checking.snap`**
    - Type variables scoped correctly
    - Constraints propagate as expected
 
@@ -219,5 +230,5 @@ Before accepting, verify:
 | Unexpected monomorphism | Missing polymorphic context |
 | Wrong error location | Check binder/expression placement |
 | Missing types in snapshot | Module header or imports incorrect |
-| Missing expected module snapshot | Category snapshots only `Main.purs` (`checking`, `semantic`, `lsp`) or module filename does not match module header |
+| Missing compiler diagnostics | Confirm the source is fixture-owned and loaded; diagnostics include unreferenced supporting modules and use source paths, not module-header names |
 | Extra resolving/lowering snapshot | Every `.purs` file is snapshotted in `resolving` and `lowering` |

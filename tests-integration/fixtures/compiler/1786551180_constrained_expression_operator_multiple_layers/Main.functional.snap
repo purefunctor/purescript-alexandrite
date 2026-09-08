@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export foreign apply
+
+@export foreign multiplyConstrained
+
+@export foreign consumeMultiplyConstrained
+
+@export multipleConstraintLayers = apply consumeMultiplyConstrained
+  (\firstIntDict%0 -> \secondIntDict%1 -> multiplyConstrained firstIntDict%0 secondIntDict%1)

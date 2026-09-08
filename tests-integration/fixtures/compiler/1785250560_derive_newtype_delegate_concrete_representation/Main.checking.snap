@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+NonZero :: Prim.Int -> Main.NonZero
+
+Types
+NonZero :: Prim.Type
+
+Derived
+derive Data.Show.Show Main.NonZero
+
+Roles
+NonZero = []

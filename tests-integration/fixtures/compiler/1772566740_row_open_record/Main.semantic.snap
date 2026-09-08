@@ -1,0 +1,25 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+foreign import unsafeCoerce :: forall a b. a -> b
+
+union :: forall r1 r2 r3. Prim.Row.Union @Prim.Type r1 r2 r3 => {| r1 } -> {| r2 } -> {| r3 }
+union = \{unionDict} -> \_ -> \_ -> unsafeCoerce { }
+
+addField :: forall r. { a :: Prim.Int | r } -> { a :: Prim.Int, b :: Prim.String | r }
+addField = \x -> union {trivial} x { b: "hi" }
+
+test :: { a :: Prim.Int, b :: Prim.String, c :: Prim.Boolean }
+test = addField { a: 1, c: true }
+
+insertX :: forall r. Prim.Row.Lacks @Prim.Type "x" r => {| r } -> { x :: Prim.Int | r }
+insertX = \{lacksDict} -> \_ -> unsafeCoerce { }
+
+insertOpen :: forall r.
+  Prim.Row.Lacks @Prim.Type "x" r => { a :: Prim.Int | r } -> { a :: Prim.Int, x :: Prim.Int | r }
+insertOpen = \{lacksDict} -> \x -> insertX {trivial} x
+
+test2 :: { a :: Prim.Int, b :: Prim.String, x :: Prim.Int }
+test2 = insertOpen {trivial} { a: 1, b: "hi" }

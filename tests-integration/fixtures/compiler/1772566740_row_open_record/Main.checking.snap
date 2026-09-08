@@ -1,0 +1,33 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+unsafeCoerce :: forall a b. a -> b
+union ::
+  forall (r1 :: Prim.Row Prim.Type) (r2 :: Prim.Row Prim.Type) (r3 :: Prim.Row Prim.Type).
+    Prim.Row.Union @Prim.Type
+      (r1 :: Prim.Row Prim.Type)
+      (r2 :: Prim.Row Prim.Type)
+      (r3 :: Prim.Row Prim.Type) =>
+    {| (r1 :: Prim.Row Prim.Type) } ->
+    {| (r2 :: Prim.Row Prim.Type) } ->
+    {| (r3 :: Prim.Row Prim.Type) }
+addField ::
+  forall (r :: Prim.Row Prim.Type).
+    { a :: Prim.Int | (r :: Prim.Row Prim.Type) } ->
+    { a :: Prim.Int, b :: Prim.String | (r :: Prim.Row Prim.Type) }
+test :: { a :: Prim.Int, b :: Prim.String, c :: Prim.Boolean }
+insertX ::
+  forall (r :: Prim.Row Prim.Type).
+    Prim.Row.Lacks @Prim.Type "x" (r :: Prim.Row Prim.Type) =>
+    {| (r :: Prim.Row Prim.Type) } -> { x :: Prim.Int | (r :: Prim.Row Prim.Type) }
+insertOpen ::
+  forall (r :: Prim.Row Prim.Type).
+    Prim.Row.Lacks @Prim.Type "x" (r :: Prim.Row Prim.Type) =>
+    { a :: Prim.Int | (r :: Prim.Row Prim.Type) } ->
+    { a :: Prim.Int, x :: Prim.Int | (r :: Prim.Row Prim.Type) }
+test2 :: { a :: Prim.Int, b :: Prim.String, x :: Prim.Int }
+
+Types

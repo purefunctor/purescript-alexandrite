@@ -1,0 +1,61 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Record/1
+
+@export instance functorRecord = {
+  map:
+    \function%0 value%1 ->
+      case value%1 of
+        Record field0%2 ->
+          {
+            tag: "Record",
+            _1: field0%2 { alpha = function%0 field0%2.alpha, zeta = function%0 field0%2.zeta }
+          }
+}
+
+@export instance foldableRecord = {
+  foldr:
+    \function%3 accumulator%4 value%5 ->
+      case value%5 of
+        Record field0%6 ->
+          function%3 field0%6.alpha (function%3 field0%6.zeta accumulator%4),
+  foldl:
+    \function%7 accumulator%8 value%9 ->
+      case value%9 of
+        Record field0%10 ->
+          function%7 (function%7 accumulator%8 field0%10.alpha) field0%10.zeta,
+  foldMap:
+    \monoidMDict%14 ->
+      \function%11 value%12 ->
+        case value%12 of
+          Record field0%13 ->
+            append (monoidMDict%14."Semigroup0"()) (function%11 field0%13.alpha)
+              (function%11 field0%13.zeta)
+}
+
+@export instance traversableRecord = {
+  "Functor0": \() -> functorRecord,
+  "Foldable1": \() -> foldableRecord,
+  traverse:
+    \applicativeMDict%18 ->
+      \function%15 value%16 ->
+        let
+          Apply0Dict%20 = applicativeMDict%18."Apply0"()
+          Functor0Dict%21 = Apply0Dict%20."Functor0"()
+        in case value%16 of
+          Record field0%17 ->
+            map Functor0Dict%21 (\field0Result%19 -> { tag: "Record", _1: field0Result%19 })
+              (apply Apply0Dict%20
+                (map Functor0Dict%21
+                  (\recordField0%22 recordField1%23 ->
+                    field0%17 { alpha = recordField0%22, zeta = recordField1%23 })
+                  (function%15 field0%17.alpha))
+                (function%15 field0%17.zeta)),
+  sequence:
+    \applicativeMDict%25 ->
+      \value%24 ->
+        traverse traversableRecord applicativeMDict%25 (\effect0%26 -> effect0%26) value%24
+}

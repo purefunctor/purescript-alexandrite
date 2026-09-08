@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+value :: forall a. a
+Packed :: (forall r. (forall z. z -> r) -> r) -> Main.Packed
+recover :: forall a. Main.Packed -> a
+
+Types
+Packed :: Prim.Type
+
+Roles
+Packed = []

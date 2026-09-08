@@ -1,0 +1,25 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Option :: Prim.Type
+data Option
+  | Yes :: Main.Option
+  | No :: Main.Option
+
+interface Select :: Prim.Type -> Prim.Constraint
+interface Select a where
+  select :: a -> Main.Option
+
+localOption :: Main.Option
+localOption = Yes
+
+option :: Main.Option
+option = <error>
+
+imported :: Lib.ImportedOption
+imported = <error>
+
+method :: forall a. Main.Select a => a -> Main.Option
+method = \{selectDict} -> <error>

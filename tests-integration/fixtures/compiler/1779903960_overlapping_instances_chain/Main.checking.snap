@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+test :: forall @a. Main.Test a => a -> a
+value :: Prim.Int
+
+Types
+Test :: Prim.Type -> Prim.Constraint
+
+Classes
+class forall (a :: Prim.Type). Main.Test a
+  test :: forall @a. Main.Test a => a -> a
+
+Instances
+instance Main.Test Prim.Int
+instance forall a. Main.Test a

@@ -1,0 +1,23 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+foreign import constructEffect :: forall a. Prim.String -> a -> Effect.Effect a
+
+foreign import mark :: forall a. Prim.String -> a -> a
+
+identity :: forall a. a -> a
+identity = \value -> value
+
+mapped :: Prim.String -> Effect.Effect Prim.String
+mapped = \value ->
+  map {functorEffect} (mark "map-function" identity) (constructEffect "map-action" value)
+
+applied :: Prim.String -> Effect.Effect Prim.String
+applied = \value ->
+  apply {applyEffect} (constructEffect "apply-function-action" identity)
+    (constructEffect "apply-value-action" value)
+
+capturedPure :: Prim.String -> Effect.Effect Prim.String
+capturedPure = \value -> pure {applicativeEffect} (mark "pure-value" value)

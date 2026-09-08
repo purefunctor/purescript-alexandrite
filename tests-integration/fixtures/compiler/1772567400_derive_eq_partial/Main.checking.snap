@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Left :: forall @a @b. a -> Main.Either a b
+Right :: forall @a @b. b -> Main.Either a b
+
+Types
+Either :: Prim.Type -> Prim.Type -> Prim.Type
+
+Derived
+derive forall b. Data.Eq.Eq b => Data.Eq.Eq (Main.Either Prim.Int b)
+derive forall b. Data.Eq.Eq (Main.Either Prim.Int b)
+
+Roles
+Either = [Representational, Representational]

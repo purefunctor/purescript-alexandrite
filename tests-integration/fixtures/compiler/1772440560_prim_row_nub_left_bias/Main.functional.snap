@@ -1,0 +1,11 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export foreign unsafeCoerce
+
+@export merge = \unionR1R2R3Dict%2 nubR3R4Dict%3 ->
+  \$record%0@(_) $record%1@(_) -> unsafeCoerce {  }
+
+@export test = merge <trivial evidence> <trivial evidence> { a: 42, b: "life" } { b: 42 }

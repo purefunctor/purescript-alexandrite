@@ -1,0 +1,116 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+identity :: forall a. a -> a
+identity = \value -> value
+
+inlineGlobal :: Prim.Boolean -> Prim.Boolean
+inlineGlobal = \value -> identity value
+
+inlineProperty :: { value :: Prim.Boolean } -> Prim.Boolean
+inlineProperty = \record -> identity record.value
+
+inlineLiteral :: Prim.Boolean -> Prim.Boolean
+inlineLiteral = \condition ->
+  if condition then true else false
+
+inlineClosure :: Prim.Boolean -> Prim.Boolean
+inlineClosure = \value -> (\item -> item) value
+
+inlineCall :: (Prim.Boolean -> Prim.Boolean) -> Prim.Boolean -> Prim.Boolean
+inlineCall = \function -> \value -> function value
+
+inlineArray :: Prim.Boolean -> Prim.Array Prim.Boolean
+inlineArray = \value -> [value]
+
+inlineRecord :: Prim.Boolean -> { value :: Prim.Boolean }
+inlineRecord = \value -> { value }
+
+inlineCapturedClosure :: Prim.Boolean -> Prim.Boolean -> Prim.Boolean
+inlineCapturedClosure = \captured -> \_ -> captured
+
+inlineAlias :: Prim.Boolean -> Prim.Boolean
+inlineAlias = \value ->
+  let
+    alias :: Prim.Boolean
+    alias = value
+  in
+    alias
+
+inlineRepeatedAlias :: Prim.Boolean -> { first :: Prim.Boolean, second :: Prim.Boolean }
+inlineRepeatedAlias = \value ->
+  let
+    alias :: Prim.Boolean
+    alias = value
+  in
+    { first: alias, second: alias }
+
+inlineSingleUseProperty :: { value :: Prim.Boolean } -> Prim.Boolean
+inlineSingleUseProperty = \record ->
+  let
+    value :: Prim.Boolean
+    value = record.value
+  in
+    identity value
+
+keepMultiUseClosure :: Prim.Boolean -> { first :: Prim.Boolean -> Prim.Boolean, second :: Prim.Boolean -> Prim.Boolean }
+keepMultiUseClosure = \captured ->
+  let
+    closure :: Prim.Boolean -> Prim.Boolean
+    closure = \_ -> captured
+  in
+    { first: closure, second: closure }
+
+keepMultiUse :: { value :: Prim.Boolean } -> { first :: Prim.Boolean, second :: Prim.Boolean }
+keepMultiUse = \record ->
+  let
+    value :: Prim.Boolean
+    value = record.value
+  in
+    { first: value, second: value }
+
+inlineAcrossCall :: { value :: Prim.Boolean } ->
+(Prim.Boolean -> Prim.Boolean) ->
+{ called :: Prim.Boolean, projected :: Prim.Boolean }
+inlineAcrossCall = \record -> \function -> { projected: record.value, called: function true }
+
+inlineOrderedCalls :: (Prim.Boolean -> Prim.Boolean) ->
+(Prim.Boolean -> Prim.Boolean) ->
+{ first :: Prim.Boolean, second :: Prim.Boolean }
+inlineOrderedCalls = \first -> \second -> { first: first true, second: second false }
+
+keepReorderedCalls :: (Prim.Boolean -> Prim.Boolean) ->
+(Prim.Boolean -> Prim.Boolean) ->
+{ first :: Prim.Boolean, second :: Prim.Boolean }
+keepReorderedCalls = \first -> \second ->
+  let
+    firstResult :: Prim.Boolean
+    firstResult = first true
+    secondResult :: Prim.Boolean
+    secondResult = second false
+  in
+    { first: secondResult, second: firstResult }
+
+keepMultiUseCall :: (Prim.Boolean -> Prim.Boolean) -> Prim.Boolean -> { first :: Prim.Boolean, second :: Prim.Boolean }
+keepMultiUseCall = \function -> \value ->
+  let
+    result :: Prim.Boolean
+    result = function value
+  in
+    { first: result, second: result }
+
+keepCallBeforeBranch :: Prim.Boolean -> (Prim.Boolean -> Prim.Boolean) -> Prim.Boolean -> Prim.Boolean
+keepCallBeforeBranch = \condition -> \function -> \value ->
+  let
+    result :: Prim.Boolean
+    result = function value
+  in
+    if condition then result else value
+
+keepTestCall :: (Prim.Boolean -> Prim.Array Prim.Boolean) -> Prim.Boolean -> Prim.Boolean
+keepTestCall = \function -> \value ->
+  case function value of
+    [] -> true
+    _ -> false

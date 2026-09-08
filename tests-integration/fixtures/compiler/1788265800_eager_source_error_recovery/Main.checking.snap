@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 297
+expression: checking_report
+---
+Terms
+observe :: Prim.Int -> Prim.Int
+broken :: Prim.Array Prim.Int
+
+Types

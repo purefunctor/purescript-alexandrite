@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+
+Types
+RowBox :: Prim.Row Prim.Type -> Prim.Type
+Apply :: forall k. (k -> Prim.Type) -> k -> Prim.Type
+RowDesugared :: Prim.Type
+
+Synonyms
+type Apply f a = (f :: k -> Prim.Type) (a :: k)
+type RowDesugared = Main.Apply @(Prim.Row Prim.Type) Main.RowBox ()
+
+Roles
+RowBox = [Phantom]

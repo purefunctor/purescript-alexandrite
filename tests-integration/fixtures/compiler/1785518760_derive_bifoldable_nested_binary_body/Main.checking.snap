@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+Nested ::
+  forall t0 t1 (@p :: t0 -> t1 -> Prim.Type) (@a :: t0) (@b :: t1).
+    (p :: t0 -> t1 -> Prim.Type) (a :: t0) (b :: t1) ->
+    Main.Nested @t0 @t1 (p :: t0 -> t1 -> Prim.Type) (a :: t0) (b :: t1)
+
+Types
+Nested :: forall t0 t1. (t0 -> t1 -> Prim.Type) -> t0 -> t1 -> Prim.Type
+
+Derived
+derive forall (p :: Prim.Type -> Prim.Type -> Prim.Type).
+  Data.Bifoldable.Bifoldable (p :: Prim.Type -> Prim.Type -> Prim.Type) =>
+  Data.Bifoldable.Bifoldable
+    (Main.Nested @Prim.Type @Prim.Type (p :: Prim.Type -> Prim.Type -> Prim.Type))
+
+Roles
+Nested = [Representational, Nominal, Representational]

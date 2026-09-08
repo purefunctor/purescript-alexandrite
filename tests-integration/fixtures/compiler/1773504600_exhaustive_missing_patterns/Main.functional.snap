@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Just/1
+
+@export constructor Nothing/0
+
+@export fromJust = \partialDict%2 -> \$maybe%1@(Just x%0) -> x%0
+
+@export test = let
+  silent%5 = \partialDict%8 -> \$maybe%7@(Just x%6) -> x%6
+in let
+  loud%3 = \$maybe%4@(Nothing) -> 42
+in 42

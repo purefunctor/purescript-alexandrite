@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface Render :: Prim.Type -> Prim.Constraint
+interface Render a where
+  render :: a -> Prim.String
+  renderWithIndent :: Prim.Int -> a -> Prim.String
+
+dictionary renderInt :: Main.Render Prim.Int
+
+dictionary renderBoolean ::
+  { failDict :: Prim.TypeError.Fail (Prim.TypeError.Text "empty") } =>
+  Main.Render Prim.Boolean
+
+dictionary renderString ::
+  { failDict :: Prim.TypeError.Fail (Prim.TypeError.Text "partial") } =>
+  Main.Render Prim.String
+  where
+  render :: Prim.String -> Prim.String
+  render = \value -> value

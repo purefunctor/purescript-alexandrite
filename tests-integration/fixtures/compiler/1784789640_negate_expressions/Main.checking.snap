@@ -1,0 +1,15 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+negate :: forall a. Main.Negative a => a -> a
+negative :: forall a. Main.Negative a => a -> a
+shadowedNegate :: (Prim.Int -> Prim.Int) -> Prim.Int -> Prim.Int
+
+Types
+Negative :: Prim.Type -> Prim.Constraint
+
+Classes
+class forall (a :: Prim.Type). Main.Negative a

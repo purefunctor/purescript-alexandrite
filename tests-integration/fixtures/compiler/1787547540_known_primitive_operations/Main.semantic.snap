@@ -1,0 +1,69 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+foreign import observe :: forall value. Prim.String -> value -> value
+
+foreign import readTrace :: Prim.Boolean -> Prim.Array Prim.String
+
+booleanNot :: Prim.Boolean -> Prim.Boolean
+booleanNot = \value -> not {heytingAlgebraBoolean} value
+
+integerAdd :: Prim.Int -> Prim.Int -> Prim.Int
+integerAdd = \left -> \right -> add {semiringInt} left right
+
+inlineIntegerAdd :: Prim.Int -> Prim.Int -> Prim.Int
+inlineIntegerAdd = \left -> \right ->
+  let
+    result :: Prim.Int
+    result = add {semiringInt} left right
+  in
+    result
+
+integerSubtract :: Prim.Int -> Prim.Int -> Prim.Int
+integerSubtract = \left -> \right -> sub {ringInt} left right
+
+integerMultiply :: Prim.Int -> Prim.Int -> Prim.Int
+integerMultiply = \left -> \right -> mul {semiringInt} left right
+
+integerNegate :: Prim.Int -> Prim.Int
+integerNegate = \value -> negate {ringInt} value
+
+integerNegateLiteral :: Prim.Int
+integerNegateLiteral = negate {ringInt} 20
+
+inlineIntegerNegateLiteral :: Prim.Int
+inlineIntegerNegateLiteral =
+  let
+    value :: Prim.Int
+    value = 20
+  in
+    negate {ringInt} value
+
+numberNegate :: Prim.Number -> Prim.Number
+numberNegate = \value -> negate {ringNumber} value
+
+numberNegateLiteral :: Prim.Number
+numberNegateLiteral = negate {ringNumber} 20.5
+
+numberNegateZero :: Prim.Number
+numberNegateZero = negate {ringNumber} 0.0
+
+genericNegate :: forall value. Data.Ring.Ring value => value -> value
+genericNegate = \{ringDict} -> \value -> negate {ringDict} value
+
+partiallyAppliedNegate :: Prim.Int -> Prim.Int
+partiallyAppliedNegate = negate {ringInt}
+
+integerAddOrder :: Prim.Boolean -> Prim.Int
+integerAddOrder = \_ -> add {semiringInt} (observe "left" 20) (observe "right" 22)
+
+partiallyAppliedAdd :: Prim.Int -> Prim.Int
+partiallyAppliedAdd = add {semiringInt} 1
+
+lookalikeAdd :: Prim.Int -> Prim.Int -> Prim.Int
+lookalikeAdd = \left -> \right -> add {semiringInt} left right
+
+lookalikeNegate :: Prim.Int -> Prim.Int
+lookalikeNegate = \value -> negate value

@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface Show :: Prim.Type -> Prim.Constraint
+interface Show a where
+  show :: a -> Prim.String
+
+data Box :: Prim.Type -> Prim.Type
+data Box @a
+  | Box :: a -> Main.Box a
+
+dictionary showBox :: forall a. { showDict :: Main.Show a } => Main.Show (Main.Box a) where
+  show :: Main.Box a -> Prim.String
+  show = \(Box x) -> show {showDict} x

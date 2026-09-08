@@ -1,0 +1,11 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+newtype Wrapper :: Prim.Type -> Prim.Type
+newtype Wrapper @a
+  | Wrapper :: a -> Main.Wrapper a
+
+dictionary newtypeWrapper :: forall a. Data.Newtype.Newtype (Main.Wrapper a) a where
+  superclass coercibleDict = trivial

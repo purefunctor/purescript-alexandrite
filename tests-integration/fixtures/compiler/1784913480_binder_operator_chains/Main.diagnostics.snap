@@ -1,0 +1,40 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: diagnostics_report
+---
+Warning! · [MissingPatterns] · Main.purs:7:1
+  •
+  │
+  • Pattern match is not exhaustive. Missing: Nil
+  │
+  │   first :: forall a. List a -> a
+  │   ╰─────────────────────────────
+  •
+
+Warning! · [MissingPatterns] · Main.purs:10:1
+  •
+  │
+  • Pattern match is not exhaustive. Missing: Nil
+  │
+  │   second :: forall a. List a -> a
+  │   ╰──────────────────────────────
+  •
+
+Warning! · [MissingPatterns] · Main.purs:13:1
+  •
+  │
+  • Pattern match is not exhaustive. Missing: Nil
+  │
+  │   inferred (value : _) = value
+  │   ╰───────────────────────────
+  •
+
+Warning! · [MissingPatterns] · Main.purs:19:1
+  •
+  │
+  • Pattern match is not exhaustive. Missing: Empty
+  │
+  │   second' :: forall a. Snoc a -> a
+  │   ╰───────────────────────────────
+  •

@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Just/1
+
+@export constructor Nothing/0
+
+@export recover = \fallback%2 input%0 ->
+  | Just value%1 <- input%0 -> value%1
+  | true -> fallback%2

@@ -1,0 +1,26 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+predicate :: forall @a. Main.Predicate a => a -> Prim.Boolean
+defaultValue :: forall @value. Main.Default value => value
+checked :: Prim.Boolean -> Prim.Int
+inferred :: Prim.Boolean -> Prim.String
+constrained :: forall value. Main.Predicate value => value -> Prim.Int
+constrainedBranches :: forall value. Main.Default value => Prim.Boolean -> value
+higherRank :: Prim.Boolean -> (forall value. value -> value)
+nested :: Prim.Boolean -> Prim.Boolean -> Prim.Int
+asArgument :: Prim.Boolean -> Prim.Int
+identity :: forall value. value -> value
+
+Types
+Predicate :: Prim.Type -> Prim.Constraint
+Default :: Prim.Type -> Prim.Constraint
+
+Classes
+class forall (a :: Prim.Type). Main.Predicate a
+  predicate :: forall @a. Main.Predicate a => a -> Prim.Boolean
+class forall (value :: Prim.Type). Main.Default value
+  defaultValue :: forall @value. Main.Default value => value

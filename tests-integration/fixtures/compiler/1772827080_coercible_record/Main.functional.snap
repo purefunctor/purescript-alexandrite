@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export coerceRecord = coerce <trivial evidence>
+
+@export coerceRecordReverse = coerce <trivial evidence>
+
+@export coerceMultiple = coerce <trivial evidence>

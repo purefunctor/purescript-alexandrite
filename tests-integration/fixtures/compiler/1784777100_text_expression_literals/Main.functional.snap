@@ -1,0 +1,28 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export string = "line\n\"quote\"\\end"
+
+@export rawString = "line\\n\"quoted\"\\\\end"
+
+@export character = 'λ'
+
+@export characterNewline = '\n'
+
+@export characterCarriageReturn = '\r'
+
+@export characterTab = '\t'
+
+@export characterQuote = '\''
+
+@export characterBackslash = '\\'
+
+@export characterNull = '\0'
+
+@export characterHexadecimal = '☃'
+
+@export characterDelete = '\u{7f}'
+
+@export characterControl = '\u{85}'

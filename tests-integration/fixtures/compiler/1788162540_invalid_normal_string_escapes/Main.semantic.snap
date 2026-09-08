@@ -1,0 +1,11 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+invalidExpression :: Prim.String
+invalidExpression = <error>
+
+invalidBinder :: Prim.String -> Prim.Boolean
+invalidBinder = \<error> -> true
+invalidBinder = \_ -> false

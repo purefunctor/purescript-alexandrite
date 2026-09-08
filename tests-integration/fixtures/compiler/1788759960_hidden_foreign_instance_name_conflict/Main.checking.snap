@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 297
+expression: checking_report
+---
+Terms
+classInt :: Prim.Int
+test :: Prim.Int
+
+Types
+Class :: Prim.Type -> Prim.Constraint
+
+Classes
+class forall (a :: Prim.Type). Main.Class a
+
+Instances
+instance Main.Class Prim.Int

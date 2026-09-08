@@ -1,0 +1,33 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor RightNested/1
+
+@export instance foldableRightNestedType = \foldablePIntDict%0 ->
+  {
+    foldr:
+      \function%1 accumulator%2 value%3 ->
+        case value%3 of
+          RightNested field0%4 ->
+            foldr foldablePIntDict%0
+              (\element%5 accumulator%6 -> function%1 element%5 accumulator%6)
+              accumulator%2
+              field0%4,
+    foldl:
+      \function%7 accumulator%8 value%9 ->
+        case value%9 of
+          RightNested field0%10 ->
+            foldl foldablePIntDict%0
+              (\accumulator%11 element%12 -> function%7 accumulator%11 element%12)
+              accumulator%8
+              field0%10,
+    foldMap:
+      \monoidMDict%16 ->
+        \function%13 value%14 ->
+          case value%14 of
+            RightNested field0%15 ->
+              foldMap foldablePIntDict%0 monoidMDict%16 (\element%17 -> function%13 element%17)
+                field0%15
+  }

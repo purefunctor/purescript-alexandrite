@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+foreign import constructEffect :: forall a. Prim.String -> a -> Effect.Effect a
+
+branched :: Prim.Boolean -> Prim.String -> Effect.Effect Prim.String
+branched = \choose -> \seed ->
+  bind {bindEffect} (constructEffect "branch-action" seed) \value ->
+    if choose then constructEffect "branch-then" value else constructEffect "branch-else" value
+
+patternLet :: Prim.String -> Effect.Effect Prim.String
+patternLet = \seed ->
+  bind {bindEffect} (constructEffect "pattern-action" seed) \value ->
+    let
+      { selected } = { selected: value }
+    in
+      constructEffect "pattern-result" selected

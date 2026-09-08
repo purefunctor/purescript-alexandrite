@@ -1,0 +1,8 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export foreign select
+
+@export specialize = \defaultADict%0 -> select defaultADict%0

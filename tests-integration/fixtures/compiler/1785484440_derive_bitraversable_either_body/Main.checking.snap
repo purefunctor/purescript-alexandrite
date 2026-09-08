@@ -1,0 +1,19 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+Left :: forall @a @b. a -> Main.Either a b
+Right :: forall @a @b. b -> Main.Either a b
+
+Types
+Either :: Prim.Type -> Prim.Type -> Prim.Type
+
+Derived
+derive Data.Bifunctor.Bifunctor Main.Either
+derive Data.Bifoldable.Bifoldable Main.Either
+derive Data.Bitraversable.Bitraversable Main.Either
+
+Roles
+Either = [Representational, Representational]

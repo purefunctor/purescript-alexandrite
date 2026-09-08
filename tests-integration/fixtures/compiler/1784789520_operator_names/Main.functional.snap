@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export combine = \dictionary%0 -> dictionary%0.combine
+
+@export operatorName = \combineADict%1 -> combine combineADict%1
+
+@export operatorApplication = \combineADict%2 ->
+  \left%3 right%4 -> combine combineADict%2 left%3 right%4
+
+@export constructor Cons/2
+
+@export constructor Nil/0
+
+@export constructorOperator = Cons

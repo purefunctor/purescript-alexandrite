@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+interface Empty :: (Prim.Type -> Prim.Type) -> Prim.Constraint
+interface Empty f where
+  empty :: f Prim.Int
+
+newtype Vector :: forall k0. k0 -> Prim.Type -> Prim.Type
+newtype Vector @n @a
+  | Vector :: Prim.Array a -> Main.Vector n a
+
+newtype InvalidVector :: forall k0. Prim.Type -> k0 -> Prim.Type
+newtype InvalidVector @a @n
+  | InvalidVector :: Prim.Array a -> Main.InvalidVector a n
+
+dictionary emptyArray :: Main.Empty Prim.Array where
+  empty :: Prim.Array Prim.Int
+  empty = []
+
+dictionary emptyVector :: forall t0 n. Main.Empty (Main.Vector @t0 n) = emptyArray

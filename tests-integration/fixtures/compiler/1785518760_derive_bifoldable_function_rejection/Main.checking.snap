@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+ReaderPair :: forall @a @b. a -> (Prim.Int -> b) -> Main.ReaderPair a b
+
+Types
+ReaderPair :: Prim.Type -> Prim.Type -> Prim.Type
+
+Derived
+derive Data.Bifoldable.Bifoldable Main.ReaderPair
+
+Roles
+ReaderPair = [Representational, Representational]

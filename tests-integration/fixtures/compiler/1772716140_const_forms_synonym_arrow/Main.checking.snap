@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+const0 :: forall a b. Main.Const a b
+const1 :: forall a b. Main.Const a b
+const2 :: forall a b. Main.Const a b
+const3 :: forall a b. Main.Const a b
+
+Types
+Const :: Prim.Type -> Prim.Type -> Prim.Type
+
+Synonyms
+type Const a b = a -> b -> a

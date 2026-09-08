@@ -1,0 +1,176 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Void :: Prim.Type
+data Void
+
+data MyUnit :: Prim.Type
+data MyUnit
+  | MyUnit :: Main.MyUnit
+
+data Identity :: Prim.Type -> Prim.Type
+data Identity @a
+  | Identity :: a -> Main.Identity a
+
+data Either :: Prim.Type -> Prim.Type -> Prim.Type
+data Either @a @b
+  | Left :: a -> Main.Either a b
+  | Right :: b -> Main.Either a b
+
+data Tuple :: Prim.Type -> Prim.Type -> Prim.Type
+data Tuple @a @b
+  | Tuple :: a -> b -> Main.Tuple a b
+
+newtype Wrapper :: Prim.Type -> Prim.Type
+newtype Wrapper @a
+  | Wrapper :: a -> Main.Wrapper a
+
+data Proxy :: forall k0. k0 -> Prim.Type
+data Proxy @a
+  | Proxy :: Main.Proxy a
+
+dictionary genericVoidNoConstructors ::
+  Data.Generic.Rep.Generic Main.Void Data.Generic.Rep.NoConstructors
+  where
+  to :: Data.Generic.Rep.NoConstructors -> Main.Void
+  to = \value ->
+    case value of
+      _ -> to {genericVoidNoConstructors} value
+  from :: Main.Void -> Data.Generic.Rep.NoConstructors
+  from = \value ->
+    case value of
+      _ -> from {genericVoidNoConstructors} value
+
+dictionary genericMyUnitConstructorNoArguments ::
+  Data.Generic.Rep.Generic
+  Main.MyUnit
+  (Data.Generic.Rep.Constructor "MyUnit" Data.Generic.Rep.NoArguments)
+  where
+  to :: Data.Generic.Rep.Constructor "MyUnit" Data.Generic.Rep.NoArguments -> Main.MyUnit
+  to = \representation ->
+    case representation of
+      (Constructor NoArguments) -> MyUnit
+  from :: Main.MyUnit -> Data.Generic.Rep.Constructor "MyUnit" Data.Generic.Rep.NoArguments
+  from = \value ->
+    case value of
+      MyUnit -> Constructor NoArguments
+
+dictionary genericIdentityConstructorArgument ::
+  forall a.
+  Data.Generic.Rep.Generic
+  (Main.Identity a)
+  (Data.Generic.Rep.Constructor "Identity" (Data.Generic.Rep.Argument a))
+  where
+  to :: Data.Generic.Rep.Constructor "Identity" (Data.Generic.Rep.Argument a) -> Main.Identity a
+  to = \representation ->
+    case representation of
+      (Constructor (Argument field0)) -> Identity field0
+  from :: Main.Identity a -> Data.Generic.Rep.Constructor "Identity" (Data.Generic.Rep.Argument a)
+  from = \value ->
+    case value of
+      (Identity field0) -> Constructor (Argument field0)
+
+dictionary genericEitherSumConstructorArgumentConstructorArgument ::
+  forall a b.
+  Data.Generic.Rep.Generic
+  (Main.Either a b)
+  (Data.Generic.Rep.Sum
+    (Data.Generic.Rep.Constructor "Left" (Data.Generic.Rep.Argument a))
+    (Data.Generic.Rep.Constructor "Right" (Data.Generic.Rep.Argument b)))
+  where
+  to :: Data.Generic.Rep.Sum
+  (Data.Generic.Rep.Constructor "Left" (Data.Generic.Rep.Argument a))
+  (Data.Generic.Rep.Constructor "Right" (Data.Generic.Rep.Argument b)) ->
+Main.Either a b
+  to = \representation ->
+    case representation of
+      (Inl (Constructor (Argument field0))) -> Left field0
+      (Inr (Constructor (Argument field0))) -> Right field0
+  from :: Main.Either a b ->
+Data.Generic.Rep.Sum
+  (Data.Generic.Rep.Constructor "Left" (Data.Generic.Rep.Argument a))
+  (Data.Generic.Rep.Constructor "Right" (Data.Generic.Rep.Argument b))
+  from = \value ->
+    case value of
+      (Left field0) -> Inl (Constructor (Argument field0))
+      (Right field0) -> Inr (Constructor (Argument field0))
+
+dictionary genericTupleConstructorProductArgumentArgument ::
+  forall a b.
+  Data.Generic.Rep.Generic
+  (Main.Tuple a b)
+  (Data.Generic.Rep.Constructor
+    "Tuple"
+    (Data.Generic.Rep.Product (Data.Generic.Rep.Argument a) (Data.Generic.Rep.Argument b)))
+  where
+  to :: Data.Generic.Rep.Constructor
+  "Tuple"
+  (Data.Generic.Rep.Product (Data.Generic.Rep.Argument a) (Data.Generic.Rep.Argument b)) ->
+Main.Tuple a b
+  to = \representation ->
+    case representation of
+      (Constructor (Product (Argument field0) (Argument field1))) -> Tuple field0 field1
+  from :: Main.Tuple a b ->
+Data.Generic.Rep.Constructor
+  "Tuple"
+  (Data.Generic.Rep.Product (Data.Generic.Rep.Argument a) (Data.Generic.Rep.Argument b))
+  from = \value ->
+    case value of
+      (Tuple field0 field1) -> Constructor (Product (Argument field0) (Argument field1))
+
+dictionary genericWrapperConstructorArgument ::
+  forall a.
+  Data.Generic.Rep.Generic
+  (Main.Wrapper a)
+  (Data.Generic.Rep.Constructor "Wrapper" (Data.Generic.Rep.Argument a))
+  where
+  to :: Data.Generic.Rep.Constructor "Wrapper" (Data.Generic.Rep.Argument a) -> Main.Wrapper a
+  to = \representation ->
+    case representation of
+      (Constructor (Argument field0)) -> Wrapper field0
+  from :: Main.Wrapper a -> Data.Generic.Rep.Constructor "Wrapper" (Data.Generic.Rep.Argument a)
+  from = \value ->
+    case value of
+      (Wrapper field0) -> Constructor (Argument field0)
+
+getVoid :: forall rep. Data.Generic.Rep.Generic Main.Void rep => Main.Proxy @Prim.Type rep
+getVoid = \{genericDict} -> Proxy
+
+getMyUnit :: forall rep. Data.Generic.Rep.Generic Main.MyUnit rep => Main.Proxy @Prim.Type rep
+getMyUnit = \{genericDict} -> Proxy
+
+getIdentity :: forall a rep. Data.Generic.Rep.Generic (Main.Identity a) rep => Main.Proxy @Prim.Type rep
+getIdentity = \{genericDict} -> Proxy
+
+getEither :: forall a b rep. Data.Generic.Rep.Generic (Main.Either a b) rep => Main.Proxy @Prim.Type rep
+getEither = \{genericDict} -> Proxy
+
+getTuple :: forall a b rep. Data.Generic.Rep.Generic (Main.Tuple a b) rep => Main.Proxy @Prim.Type rep
+getTuple = \{genericDict} -> Proxy
+
+getWrapper :: forall a rep. Data.Generic.Rep.Generic (Main.Wrapper a) rep => Main.Proxy @Prim.Type rep
+getWrapper = \{genericDict} -> Proxy
+
+forceSolve :: forall t0 t1 t2 t3 t4 t5.
+  { getEither ::
+      Main.Proxy @Prim.Type
+        (Data.Generic.Rep.Sum
+          (Data.Generic.Rep.Constructor "Left" (Data.Generic.Rep.Argument t0))
+          (Data.Generic.Rep.Constructor "Right" (Data.Generic.Rep.Argument t1)))
+  , getIdentity ::
+      Main.Proxy @Prim.Type (Data.Generic.Rep.Constructor "Identity" (Data.Generic.Rep.Argument t2))
+  , getMyUnit ::
+      Main.Proxy @Prim.Type (Data.Generic.Rep.Constructor "MyUnit" Data.Generic.Rep.NoArguments)
+  , getTuple ::
+      Main.Proxy @Prim.Type
+        (Data.Generic.Rep.Constructor
+          "Tuple"
+          (Data.Generic.Rep.Product (Data.Generic.Rep.Argument t3) (Data.Generic.Rep.Argument t4)))
+  , getVoid :: Main.Proxy @Prim.Type Data.Generic.Rep.NoConstructors
+  , getWrapper ::
+      Main.Proxy @Prim.Type (Data.Generic.Rep.Constructor "Wrapper" (Data.Generic.Rep.Argument t5))
+  }
+forceSolve =
+  { getVoid: getVoid {genericVoidNoConstructors}, getMyUnit: getMyUnit {genericMyUnitConstructorNoArguments}, getIdentity: getIdentity {genericIdentityConstructorArgument}, getEither: getEither {genericEitherSumConstructorArgumentConstructorArgument}, getTuple: getTuple {genericTupleConstructorProductArgumentArgument}, getWrapper: getWrapper {genericWrapperConstructorArgument} }

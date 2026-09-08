@@ -1,0 +1,76 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Nested/1
+
+@export instance bifunctorNestedTypeType = \bifunctorPDict%0 ->
+  {
+    bimap:
+      \firstFunction%1 secondFunction%2 value%3 ->
+        case value%3 of
+          Nested field0%4 ->
+            {
+              tag: "Nested",
+              _1:
+                bimap bifunctorPDict%0 (\element%5 -> firstFunction%1 element%5)
+                  (\element%6 -> secondFunction%2 element%6)
+                  field0%4
+            }
+  }
+
+@export instance bifoldableNestedTypeType = \bifoldablePDict%7 ->
+  {
+    bifoldr:
+      \firstFunction%8 secondFunction%9 accumulator%10 value%11 ->
+        case value%11 of
+          Nested field0%12 ->
+            bifoldr bifoldablePDict%7
+              (\element%13 accumulator%14 -> firstFunction%8 element%13 accumulator%14)
+              (\element%15 accumulator%16 -> secondFunction%9 element%15 accumulator%16)
+              accumulator%10
+              field0%12,
+    bifoldl:
+      \firstFunction%17 secondFunction%18 accumulator%19 value%20 ->
+        case value%20 of
+          Nested field0%21 ->
+            bifoldl bifoldablePDict%7
+              (\accumulator%22 element%23 -> firstFunction%17 accumulator%22 element%23)
+              (\accumulator%24 element%25 -> secondFunction%18 accumulator%24 element%25)
+              accumulator%19
+              field0%21,
+    bifoldMap:
+      \monoidMDict%30 ->
+        \firstFunction%26 secondFunction%27 value%28 ->
+          case value%28 of
+            Nested field0%29 ->
+              bifoldMap bifoldablePDict%7 monoidMDict%30
+                (\element%31 -> firstFunction%26 element%31)
+                (\element%32 -> secondFunction%27 element%32)
+                field0%29
+  }
+
+@export instance bitraversableNestedTypeType = \bitraversablePDict%33 ->
+  {
+    "Bifunctor0": \() -> bifunctorNestedTypeType (bitraversablePDict%33."Bifunctor0"()),
+    "Bifoldable1": \() -> bifoldableNestedTypeType (bitraversablePDict%33."Bifoldable1"()),
+    bitraverse:
+      \applicativeFDict%38 ->
+        \firstFunction%34 secondFunction%35 value%36 ->
+          case value%36 of
+            Nested field0%37 ->
+              map ((applicativeFDict%38."Apply0"())."Functor0"())
+                (\field0Result%39 -> { tag: "Nested", _1: field0Result%39 })
+                (bitraverse bitraversablePDict%33 applicativeFDict%38
+                  (\element%40 -> firstFunction%34 element%40)
+                  (\element%41 -> secondFunction%35 element%41)
+                  field0%37),
+    bisequence:
+      \applicativeFDict%43 ->
+        \value%42 ->
+          bitraverse (bitraversableNestedTypeType bitraversablePDict%33) applicativeFDict%43
+            (\effect0%44 -> effect0%44)
+            (\effect1%45 -> effect1%45)
+            value%42
+  }

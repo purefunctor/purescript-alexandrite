@@ -1,0 +1,20 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Tuple :: Prim.Type -> Prim.Type -> Prim.Type
+data Tuple @a @b
+  | Tuple :: a -> b -> Main.Tuple a b
+
+foreign import map :: forall f a b. (a -> b) -> f a -> f b
+
+foreign import apply :: forall f a b. f (a -> b) -> f a -> f b
+
+foreign import pure :: forall f a. a -> f a
+
+test :: forall f. f (Main.Tuple Prim.Int Prim.String)
+test = apply (map (\x y -> Tuple x y) (pure 1)) (pure "hello")
+
+test' :: forall t0. t0 (Main.Tuple Prim.Int Prim.String)
+test' = apply (map (\x y -> Tuple x y) (pure 1)) (pure "hello")

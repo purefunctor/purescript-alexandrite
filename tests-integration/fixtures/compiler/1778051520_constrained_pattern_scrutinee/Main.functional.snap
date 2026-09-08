@@ -1,0 +1,25 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Box/1
+
+@export method = \dictionary%0 -> dictionary%0.method
+
+@export routeCase = \routeRouteDict%1 ->
+  case method routeRouteDict%1 of
+    Box value%2 ->
+      value%2
+
+@export routeLet = \routeRouteDict%4 ->
+  let
+    Box value%3 = method routeRouteDict%4
+  in value%3
+
+@export routeGuard = \routeRouteDict%5 ->
+  case  of
+     ->
+      | Box value%6 <- method routeRouteDict%5 -> value%6
+     ->
+      routeCase routeRouteDict%5

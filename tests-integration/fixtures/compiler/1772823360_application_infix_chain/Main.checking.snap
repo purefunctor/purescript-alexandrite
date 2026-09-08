@@ -1,0 +1,29 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+add :: Prim.Int -> Prim.Int -> Prim.Int
+sub :: Prim.Int -> Prim.Int -> Prim.Int
+mul :: Prim.Int -> Prim.Int -> Prim.Int
+test1 :: Prim.Int
+test1' :: Prim.Int
+test2 :: Prim.Int
+test2' :: Prim.Int
+test3 :: Prim.Int
+test3' :: Prim.Int
+const :: forall a b. a -> b -> a
+test4 :: Prim.Int
+test4' :: Prim.Int
+test5 :: Prim.Int
+test5' :: Prim.Int
+apply :: forall a b. (a -> b) -> a -> b
+chain :: forall a b c. (b -> c) -> (a -> b) -> a -> c
+test6 :: Prim.Int
+test6' :: Prim.Int
+curry :: forall a b c. (a -> b -> c) -> a -> b -> c
+test7 :: Prim.Int -> Prim.Int
+test7' :: Prim.Int -> Prim.Int
+
+Types

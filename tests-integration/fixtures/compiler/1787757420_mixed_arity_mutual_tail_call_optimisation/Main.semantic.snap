@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+foreign import equalInt :: Prim.Int -> Prim.Int -> Prim.Boolean
+
+foreign import decrementInt :: Prim.Int -> Prim.Int
+
+singleArgument :: Prim.Int -> Prim.Int
+singleArgument = \value ->
+  if equalInt value 0 then value else twoArguments (decrementInt value) 0
+
+twoArguments :: Prim.Int -> Prim.Int -> Prim.Int
+twoArguments = \value -> \accumulator ->
+  if equalInt value 0 then accumulator else singleArgument (decrementInt value)

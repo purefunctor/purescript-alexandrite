@@ -1,0 +1,35 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+data Identity :: Prim.Type -> Prim.Type
+data Identity @a
+  | Identity :: a -> Main.Identity a
+
+dictionary eqIdentity :: forall a. { eqDict :: Data.Eq.Eq a } => Data.Eq.Eq (Main.Identity a) where
+  eq :: Main.Identity a -> Main.Identity a -> Prim.Boolean
+  eq = \left right ->
+    case left, right of
+      (Identity left0), (Identity right0) ->
+        if eq {eqDict} left0 right0 then true else false
+
+dictionary eq1Identity :: Data.Eq.Eq1 Main.Identity where
+  eq1 :: forall a. Data.Eq.Eq a => Main.Identity a -> Main.Identity a -> Prim.Boolean
+  eq1 = \{eqDict} -> eq {eqIdentity {eqDict}}
+
+dictionary ordIdentity :: forall a. { ordDict :: Data.Ord.Ord a } => Data.Ord.Ord (Main.Identity a)
+  where
+  superclass eqDict = eqIdentity {ordDict.eqDict}
+  compare :: Main.Identity a -> Main.Identity a -> Data.Ordering.Ordering
+  compare = \left right ->
+    case left, right of
+      (Identity left0), (Identity right0) ->
+        case compare {ordDict} left0 right0 of
+          EQ -> EQ
+          ordering -> ordering
+
+dictionary ord1Identity :: Data.Ord.Ord1 Main.Identity where
+  superclass eq1Dict = eq1Identity
+  compare1 :: forall a. Data.Ord.Ord a => Main.Identity a -> Main.Identity a -> Data.Ordering.Ordering
+  compare1 = \{ordDict} -> compare {ordIdentity {ordDict}}

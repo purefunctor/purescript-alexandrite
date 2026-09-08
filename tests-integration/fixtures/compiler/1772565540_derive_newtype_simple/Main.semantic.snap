@@ -1,0 +1,10 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+newtype Wrapper :: Prim.Type
+newtype Wrapper
+  | Wrapper :: Prim.Int -> Main.Wrapper
+
+dictionary showWrapper :: Data.Show.Show Main.Wrapper = showInt

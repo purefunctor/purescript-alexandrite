@@ -1,0 +1,138 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Id :: Prim.Type -> Prim.Type
+data Id @a
+  | Id :: a -> Main.Id a
+
+data Pair :: Prim.Type -> Prim.Type
+data Pair @a
+  | Pair :: a -> a -> Main.Pair a
+
+data Mixed :: Prim.Type -> Prim.Type
+data Mixed @a
+  | Mixed :: Prim.Int -> a -> Prim.Boolean -> Main.Mixed a
+
+data Rec :: Prim.Type -> Prim.Type
+data Rec @a
+  | Rec :: { count :: Prim.Int, value :: a } -> Main.Rec a
+
+data Wrap :: forall k0. (k0 -> Prim.Type) -> k0 -> Prim.Type
+data Wrap @f @a
+  | Wrap :: f a -> Main.Wrap f a
+
+data Compose :: forall k0 k1. (k0 -> Prim.Type) -> (k1 -> k0) -> k1 -> Prim.Type
+data Compose @f @g @a
+  | Compose :: f (g a) -> Main.Compose f g a
+
+data Either' :: Prim.Type -> Prim.Type
+data Either' @a
+  | Left' :: a -> Main.Either' a
+  | Right' :: a -> Main.Either' a
+
+data NoEq :: Prim.Type -> Prim.Type
+data NoEq @a
+  | NoEq :: a -> Main.NoEq a
+
+dictionary eqId :: forall a. { eqDict :: Data.Eq.Eq a } => Data.Eq.Eq (Main.Id a) where
+  eq :: Main.Id a -> Main.Id a -> Prim.Boolean
+  eq = \left right ->
+    case left, right of
+      (Id left0), (Id right0) ->
+        if eq {eqDict} left0 right0 then true else false
+
+dictionary eq1Id :: Data.Eq.Eq1 Main.Id where
+  eq1 :: forall a. Data.Eq.Eq a => Main.Id a -> Main.Id a -> Prim.Boolean
+  eq1 = \{eqDict} -> eq {eqId {eqDict}}
+
+dictionary eqPair :: forall a. { eqDict :: Data.Eq.Eq a } => Data.Eq.Eq (Main.Pair a) where
+  eq :: Main.Pair a -> Main.Pair a -> Prim.Boolean
+  eq = \left right ->
+    case left, right of
+      (Pair left0 left1), (Pair right0 right1) ->
+        if eq {eqDict} left0 right0 then if eq {eqDict} left1 right1 then true else false else false
+
+dictionary eq1Pair :: Data.Eq.Eq1 Main.Pair where
+  eq1 :: forall a. Data.Eq.Eq a => Main.Pair a -> Main.Pair a -> Prim.Boolean
+  eq1 = \{eqDict} -> eq {eqPair {eqDict}}
+
+dictionary eqMixed :: forall a. { eqDict :: Data.Eq.Eq a } => Data.Eq.Eq (Main.Mixed a) where
+  eq :: Main.Mixed a -> Main.Mixed a -> Prim.Boolean
+  eq = \left right ->
+    case left, right of
+      (Mixed left0 left1 left2), (Mixed right0 right1 right2) ->
+        if eq {eqInt} left0 right0 then
+          if eq {eqDict} left1 right1 then
+            if eq {eqBoolean} left2 right2 then true else false
+          else
+            false
+        else
+          false
+
+dictionary eq1Mixed :: Data.Eq.Eq1 Main.Mixed where
+  eq1 :: forall a. Data.Eq.Eq a => Main.Mixed a -> Main.Mixed a -> Prim.Boolean
+  eq1 = \{eqDict} -> eq {eqMixed {eqDict}}
+
+dictionary eqRec :: forall a. { eqDict :: Data.Eq.Eq a } => Data.Eq.Eq (Main.Rec a) where
+  eq :: Main.Rec a -> Main.Rec a -> Prim.Boolean
+  eq = \left right ->
+    case left, right of
+      (Rec left0), (Rec right0) ->
+        if eq {eqRec {trivial} {eqRowCons {eqRowCons {eqRowNil} {trivial} {isSymbol("value")} {eqDict}} {trivial} {isSymbol("count")} {eqInt}}}
+          left0
+          right0 then
+          true
+        else
+          false
+
+dictionary eq1Rec :: Data.Eq.Eq1 Main.Rec where
+  eq1 :: forall a. Data.Eq.Eq a => Main.Rec a -> Main.Rec a -> Prim.Boolean
+  eq1 = \{eqDict} -> eq {eqRec {eqDict}}
+
+dictionary eqWrapType ::
+  forall f a.
+  { eq1Dict :: Data.Eq.Eq1 f } =>
+  { eqDict :: Data.Eq.Eq a } =>
+  Data.Eq.Eq (Main.Wrap @Prim.Type f a)
+  where
+  eq :: Main.Wrap @Prim.Type f a -> Main.Wrap @Prim.Type f a -> Prim.Boolean
+  eq = \left right ->
+    case left, right of
+      (Wrap left0), (Wrap right0) ->
+        if eq1 {eq1Dict} {eqDict} left0 right0 then true else false
+
+dictionary eq1WrapType ::
+  forall f.
+  { eq1Dict :: Data.Eq.Eq1 f } =>
+  Data.Eq.Eq1 (Main.Wrap @Prim.Type f)
+  where
+  eq1 :: forall a. Data.Eq.Eq a => Main.Wrap @Prim.Type f a -> Main.Wrap @Prim.Type f a -> Prim.Boolean
+  eq1 = \{eqDict} -> eq {eqWrapType {eq1Dict} {eqDict}}
+
+dictionary eqComposeType ::
+  forall f t0 g a.
+  { eq1Dict :: Data.Eq.Eq1 f } =>
+  { eqDict :: Data.Eq.Eq (g a) } =>
+  Data.Eq.Eq (Main.Compose @Prim.Type @t0 f g a)
+  where
+  eq :: Main.Compose @Prim.Type @t0 f g a -> Main.Compose @Prim.Type @t0 f g a -> Prim.Boolean
+  eq = \left right ->
+    case left, right of
+      (Compose left0), (Compose right0) ->
+        if eq1 {eq1Dict} {eqDict} left0 right0 then true else false
+
+dictionary eqEither' :: forall a. { eqDict :: Data.Eq.Eq a } => Data.Eq.Eq (Main.Either' a) where
+  eq :: Main.Either' a -> Main.Either' a -> Prim.Boolean
+  eq = \left right ->
+    case left, right of
+      (Left' left0), (Left' right0) ->
+        if eq {eqDict} left0 right0 then true else false
+      (Right' left0), (Right' right0) ->
+        if eq {eqDict} left0 right0 then true else false
+      _, _ -> false
+
+dictionary eq1Either' :: Data.Eq.Eq1 Main.Either' where
+  eq1 :: forall a. Data.Eq.Eq a => Main.Either' a -> Main.Either' a -> Prim.Boolean
+  eq1 = \{eqDict} -> eq {eqEither' {eqDict}}

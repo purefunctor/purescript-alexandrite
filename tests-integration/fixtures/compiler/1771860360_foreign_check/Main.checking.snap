@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+
+Types
+M :: Prim.Type -> Prim.Type
+P :: forall k. k -> Prim.Type
+T :: forall t0 (k :: t0). Main.P @t0 (k :: t0) -> Prim.Type
+
+Roles
+M = [Nominal]
+P = [Nominal]
+T = [Nominal]

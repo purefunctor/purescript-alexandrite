@@ -1,0 +1,45 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export add = \left%0 right%1 -> left%0
+
+@export use = \integer%3 string%2 -> string%2
+
+@export checked = \section40%4 -> add section40%4 1
+
+@export inferred = \section48%5 -> add section48%5 1
+
+@export ordered = \section64%6 section66%7 -> use section64%6 section66%7
+
+@export nested = \section71%8 -> section71%8 (\section75%9 -> section75%9 1)
+
+@export access = \section82%10 -> section82%10.value
+
+@export update = \section88%11 section91%12 section93%13 ->
+  section88%11 { first = section91%12, second = section93%13 }
+
+@export conditional = \section99%14 section101%15 section103%16 ->
+  if section99%14 then section101%15 else section103%16
+
+@export caseScrutinee = \section109%17 ->
+  case section109%17 of
+    true ->
+      1
+    false ->
+      0
+
+@export caseScrutinees = \section128%18 section129%19 ->
+  case section128%18, section129%19 of
+    true, value%20 ->
+      value%20
+    false, _ ->
+      0
+
+@export caseAlternatives = \section150%21 ->
+  case section150%21 of
+    true ->
+      \section158%22 -> section158%22.value
+    false ->
+      \section166%23 -> section166%23.value

@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Error! · [CustomFailure] · Main.purs:14:1
+  •
+  │
+  • failure was demanded
+  │
+  │   useFailure :: Int
+  │   ╰────────────────
+  •
+
+Warning! · [CustomWarning] · Main.purs:20:1
+  •
+  │
+  • warning was demanded
+  │
+  │   useWarning :: Int
+  │   ╰────────────────
+  •

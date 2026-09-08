@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+interface Empty :: Prim.Type -> Prim.Constraint
+interface Empty a where
+
+interface Example :: forall k. k -> Prim.Type -> Prim.Constraint
+interface Example value result where
+  identity :: result -> result
+  alternate :: forall intermediate. intermediate -> result
+  constrained :: forall intermediate. Main.Empty intermediate => intermediate -> result

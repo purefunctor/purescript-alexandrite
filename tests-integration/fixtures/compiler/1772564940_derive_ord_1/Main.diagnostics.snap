@@ -1,0 +1,54 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Error! · [NoInstanceFound] · Main.purs:25:1
+  •
+  │
+  • No instance found for: Eq ((g :: Type -> Type) t0)
+  │
+  │   derive instance Eq1 f => Eq1 (Compose f g)
+  │   ╰─────────────────────────────────────────
+  • while
+  │
+  │   Eq1 (f :: Type -> Type) is in scope
+  │   Eq t0 is in scope
+  •
+
+Error! · [NoInstanceFound] · Main.purs:26:1
+  •
+  │
+  • No instance found for: Ord ((g1 :: Type -> Type) t1)
+  │
+  │   derive instance Ord1 f => Ord1 (Compose f g)
+  │   ╰───────────────────────────────────────────
+  • while
+  │
+  │   Ord1 (f1 :: Type -> Type) is in scope
+  │   Ord t1 is in scope
+  │   Eq1 (f1 :: Type -> Type) is in scope
+  │   Eq t1 is in scope
+  •
+
+Error! · [NoInstanceFound] · Main.purs:32:1
+  •
+  │
+  • No instance found for: Ord (NoOrd t2)
+  │
+  │   derive instance Ord1 NoOrd
+  │   ╰─────────────────────────
+  • while
+  │
+  │   Ord t2 is in scope
+  │   Eq t2 is in scope
+  •
+
+Error! · [FunctionalCodegen] · Main.purs:1:1
+  •
+  │
+  • checked instance declaration is missing
+  │
+  │   module Main where
+  │   ╰────────────────
+  •

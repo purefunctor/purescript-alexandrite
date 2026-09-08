@@ -1,0 +1,124 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+data Recursive :: Prim.Type
+data Recursive
+
+compareTwice :: forall a. Data.Eq.Eq a => a -> a -> Prim.Boolean
+compareTwice = \{eqDict} -> \left -> \right ->
+  if eq {eqDict} left right then eq {eqDict} right left else false
+
+compareIntsTwice :: Prim.Int -> Prim.Int -> Prim.Boolean
+compareIntsTwice = \left -> \right ->
+  if eq {eqInt} left right then eq {eqInt} right left else false
+
+compareArraysTwice :: Prim.Array Prim.Int -> Prim.Array Prim.Int -> Prim.Boolean
+compareArraysTwice = \left -> \right ->
+  if eq {eqArray {eqInt}} left right then eq {eqArray {eqInt}} right left else false
+
+compareArraysOnce :: Prim.Array Prim.Int -> Prim.Array Prim.Int -> Prim.Boolean
+compareArraysOnce = \left -> \right -> eq {eqArray {eqInt}} left right
+
+compareGenericArraysTwice :: forall a. Data.Eq.Eq a => Prim.Array a -> Prim.Array a -> Prim.Boolean
+compareGenericArraysTwice = \{eqDict} -> \left -> \right ->
+  if eq {eqArray {eqDict}} left right then eq {eqArray {eqDict}} right left else false
+
+compareNestedArraysTwice :: Prim.Array Prim.Int ->
+Prim.Array Prim.Int ->
+Prim.Array (Prim.Array Prim.Int) ->
+Prim.Array (Prim.Array Prim.Int) ->
+Prim.Boolean
+compareNestedArraysTwice = \left -> \right -> \nestedLeft -> \nestedRight ->
+  if eq {eqArray {eqArray {eqInt}}} nestedLeft nestedRight then
+    eq {eqArray {eqArray {eqInt}}} nestedRight nestedLeft
+  else
+    eq {eqArray {eqInt}} left right
+
+distinctGivens :: forall a b.
+  Data.Eq.Eq a =>
+  Data.Eq.Eq b =>
+  Prim.Array a -> Prim.Array a -> Prim.Array b -> Prim.Array b -> Prim.Boolean
+distinctGivens = \{eqDict} -> \{eqDict1} -> \leftA -> \rightA -> \leftB -> \rightB ->
+  if eq {eqArray {eqDict}} leftA rightA then
+    eq {eqArray {eqDict}} rightA leftA
+  else
+    if eq {eqArray {eqDict1}} leftB rightB then eq {eqArray {eqDict1}} rightB leftB else false
+
+distinctSubgoals :: Prim.Array Prim.Int ->
+Prim.Array Prim.Int ->
+Prim.Array Prim.Boolean ->
+Prim.Array Prim.Boolean ->
+Prim.Boolean
+distinctSubgoals = \leftInt -> \rightInt -> \leftBoolean -> \rightBoolean ->
+  if eq {eqArray {eqInt}} leftInt rightInt then
+    eq {eqArray {eqInt}} rightInt leftInt
+  else
+    if eq {eqArray {eqBoolean}} leftBoolean rightBoolean then
+      eq {eqArray {eqBoolean}} rightBoolean leftBoolean
+    else
+      false
+
+compareArraysThrice :: Prim.Array Prim.Int -> Prim.Array Prim.Int -> Prim.Boolean
+compareArraysThrice = \left -> \right ->
+  if eq {eqArray {eqInt}} left right then
+    if eq {eqArray {eqInt}} right left then eq {eqArray {eqInt}} left right else false
+  else
+    false
+
+compareNestedArraysWhole :: Prim.Array (Prim.Array Prim.Int) -> Prim.Array (Prim.Array Prim.Int) -> Prim.Boolean
+compareNestedArraysWhole = \left -> \right ->
+  if eq {eqArray {eqArray {eqInt}}} left right then
+    eq {eqArray {eqArray {eqInt}}} right left
+  else
+    false
+
+compareSuperclassArraysTwice :: forall a. Library.Ordered a => Prim.Array a -> Prim.Array a -> Prim.Boolean
+compareSuperclassArraysTwice = \{orderedDict} -> \left -> \right ->
+  if eq {eqArray {orderedDict.eqDict}} left right then
+    eq {eqArray {orderedDict.eqDict}} right left
+  else
+    false
+
+compareSuperclassTwice :: forall a. Library.Ordered a => a -> a -> Prim.Boolean
+compareSuperclassTwice = \{orderedDict} -> \left -> \right ->
+  if eq {orderedDict.eqDict} left right then eq {orderedDict.eqDict} right left else false
+
+lambdaScope :: Prim.Array Prim.Int -> Prim.Array Prim.Int -> Prim.Boolean
+lambdaScope = \left -> \right ->
+  if eq {eqArray {eqInt}} left right then
+    (\lambdaLeft lambdaRight ->
+      if eq {eqArray {eqInt}} lambdaLeft lambdaRight then
+        eq {eqArray {eqInt}} lambdaRight lambdaLeft
+      else
+        false)
+      left
+      right
+  else
+    false
+
+whereIsolation :: Prim.Array Prim.Int -> Prim.Array Prim.Int -> Prim.Boolean
+whereIsolation = \left -> \right ->
+  if helper left right then eq {eqArray {eqInt}} left right else false
+  where
+  helper :: Prim.Array Prim.Int -> Prim.Array Prim.Int -> Prim.Boolean
+  helper = \helperLeft -> \helperRight -> eq {eqArray {eqInt}} helperLeft helperRight
+
+equationScope :: Prim.Boolean -> Prim.Array Prim.Int -> Prim.Array Prim.Int -> Prim.Boolean
+equationScope = \true -> \left -> \right -> eq {eqArray {eqInt}} left right
+equationScope = \false -> \left -> \right -> eq {eqArray {eqInt}} right left
+
+firstComparison :: Prim.Boolean
+firstComparison = eq {eqInt} 1 2
+
+secondComparison :: Prim.Boolean
+secondComparison = eq {eqInt} 3 4
+
+dictionary eqRecursive :: Data.Eq.Eq Main.Recursive where
+  eq :: Main.Recursive -> Main.Recursive -> Prim.Boolean
+  eq = \left -> \right -> eq {eqRecursive} left right
+
+compareRecursiveTwice :: Main.Recursive -> Main.Recursive -> Prim.Boolean
+compareRecursiveTwice = \left -> \right ->
+  if eq {eqRecursive} left right then eq {eqRecursive} right left else false

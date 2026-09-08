@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Error! · [CannotUnify] · Main.purs:17:1
+  •
+  │
+  • Cannot unify 'String' with 'Int'
+  │
+  │   forceSolve =
+  │   ╰───────────
+  •
+
+Error! · [CannotUnify] · Main.purs:17:1
+  •
+  │
+  • Cannot unify '( a :: String )' with '( a :: Int )'
+  │
+  │   forceSolve =
+  │   ╰───────────
+  •

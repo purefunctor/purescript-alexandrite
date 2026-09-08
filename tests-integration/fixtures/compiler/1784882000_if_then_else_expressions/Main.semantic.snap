@@ -1,0 +1,42 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+interface Predicate :: Prim.Type -> Prim.Constraint
+interface Predicate a where
+  predicate :: a -> Prim.Boolean
+
+interface Default :: Prim.Type -> Prim.Constraint
+interface Default value where
+  defaultValue :: value
+
+checked :: Prim.Boolean -> Prim.Int
+checked = \condition ->
+  if condition then 1 else 2
+
+inferred :: Prim.Boolean -> Prim.String
+inferred = \condition ->
+  if condition then "yes" else "no"
+
+constrained :: forall value. Main.Predicate value => value -> Prim.Int
+constrained = \{predicateDict} -> \value ->
+  if predicate {predicateDict} value then 1 else 2
+
+constrainedBranches :: forall value. Main.Default value => Prim.Boolean -> value
+constrainedBranches = \{defaultDict} -> \condition ->
+  if condition then defaultValue {defaultDict} else defaultValue {defaultDict}
+
+higherRank :: Prim.Boolean -> (forall value. value -> value)
+higherRank = \condition ->
+  if condition then identity else identity
+
+nested :: Prim.Boolean -> Prim.Boolean -> Prim.Int
+nested = \first -> \second ->
+  if first then if second then 1 else 2 else 3
+
+asArgument :: Prim.Boolean -> Prim.Int
+asArgument = \condition -> identity if condition then 1 else 2
+
+identity :: forall value. value -> value
+identity = \value -> value

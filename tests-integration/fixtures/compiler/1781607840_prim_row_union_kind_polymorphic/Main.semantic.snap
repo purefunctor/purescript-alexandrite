@@ -1,0 +1,16 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+openLeftHigherKinded :: forall tail output.
+  Prim.Row.Union @(Prim.Type -> Prim.Type) ( effect :: Main.Effect | tail ) () output =>
+  Type.Proxy.Proxy @(Prim.Row (Prim.Type -> Prim.Type)) output
+openLeftHigherKinded = \{unionDict} -> Proxy
+
+forceSolve :: forall tail output.
+  Prim.Row.Union @(Prim.Type -> Prim.Type) tail () output =>
+  { openLeftHigherKinded ::
+      Type.Proxy.Proxy @(Prim.Row (Prim.Type -> Prim.Type)) ( effect :: Main.Effect | output )
+  }
+forceSolve = \{unionDict} -> { openLeftHigherKinded: openLeftHigherKinded {trivial} }

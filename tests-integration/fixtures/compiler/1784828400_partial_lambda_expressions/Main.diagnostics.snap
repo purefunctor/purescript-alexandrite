@@ -1,0 +1,13 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: diagnostics_report
+---
+Warning! · [MissingPatterns] · Main.purs:8:12
+  •
+  │
+  • Pattern match is not exhaustive. Missing: Nothing
+  │
+  │   inferred = \(Just value) -> value
+  │              ╰─────────────────────
+  •

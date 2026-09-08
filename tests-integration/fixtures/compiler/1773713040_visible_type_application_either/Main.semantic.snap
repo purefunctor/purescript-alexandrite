@@ -1,0 +1,27 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Either :: Prim.Type -> Prim.Type -> Prim.Type
+data Either @a @b
+  | Left :: a -> Main.Either a b
+  | Right :: b -> Main.Either a b
+
+testBothLeft :: Prim.Int -> Main.Either Prim.Int Prim.String
+testBothLeft = Left
+
+testBothRight :: Prim.String -> Main.Either Prim.Int Prim.String
+testBothRight = Right
+
+testLeftLeft :: forall t0. Prim.Int -> Main.Either Prim.Int t0
+testLeftLeft = Left
+
+testLeftRight :: forall t0. t0 -> Main.Either t0 Prim.String
+testLeftRight = Left
+
+testRightLeft :: forall t0. t0 -> Main.Either Prim.Int t0
+testRightLeft = Right
+
+testRightRight :: forall t0. Prim.String -> Main.Either t0 Prim.String
+testRightRight = Right

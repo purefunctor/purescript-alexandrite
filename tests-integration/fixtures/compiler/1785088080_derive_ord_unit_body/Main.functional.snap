@@ -1,0 +1,23 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Unit/0
+
+@export instance eqUnit = {
+  eq:
+    \left%0 right%1 ->
+      case left%0, right%1 of
+        Unit, Unit ->
+          true
+}
+
+@export instance ordUnit = {
+  "Eq0": \() -> eqUnit,
+  compare:
+    \left%2 right%3 ->
+      case left%2, right%3 of
+        Unit, Unit ->
+          "EQ"
+}

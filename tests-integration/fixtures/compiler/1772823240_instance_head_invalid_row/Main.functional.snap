@@ -1,0 +1,14 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export constructor Proxy/0
+
+@export instance tRowTypeRow = {  }
+
+@export instance tTypeRecordRow = {  }
+
+@export instance tTypeProxyRowTypeRow = {  }
+
+@export instance tTypeProxyTypeRecordRow = {  }

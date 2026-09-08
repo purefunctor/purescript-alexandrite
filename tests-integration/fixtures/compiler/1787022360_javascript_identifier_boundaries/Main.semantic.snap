@@ -1,0 +1,28 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+data Tagged :: Prim.Type
+data Tagged
+  | Tagged :: { hyphen-label :: Prim.Int } -> Main.Tagged
+
+foreign import await :: Prim.Int
+
+arguments :: Prim.Int
+arguments = await
+
+default :: { hyphen-label :: Prim.Int }
+default = { hyphen-label: arguments }
+
+readLabel :: { hyphen-label :: Prim.Int } -> Prim.Int
+readLabel = \record -> record.hyphen-label
+
+emptyLabel :: {  :: Prim.Int }
+emptyLabel = { : arguments }
+
+readEmptyLabel :: {  :: Prim.Int } -> Prim.Int
+readEmptyLabel = \record -> record.
+
+tagged :: Main.Tagged
+tagged = Tagged default

@@ -1,0 +1,9 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export partialValue = \partialDict%0 -> 0
+
+@export recursive[1] test = \partialDict%1 ->
+  if true then test else partialValue partialDict%1

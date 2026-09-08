@@ -1,0 +1,22 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+Just :: forall @a. a -> Main.Maybe a
+Nothing :: forall @a. Main.Maybe a
+MkId :: (forall a. a -> a) -> Main.Id
+identity :: forall a. Main.Maybe (a -> a)
+test :: Prim.Partial => Prim.Int
+test2 :: Main.Id -> Prim.Boolean
+test3 :: Prim.Partial => Prim.Int
+test4 :: Main.Id -> Prim.Boolean
+
+Types
+Maybe :: Prim.Type -> Prim.Type
+Id :: Prim.Type
+
+Roles
+Maybe = [Representational]
+Id = []

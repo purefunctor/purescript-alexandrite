@@ -1,0 +1,39 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+data Unit :: Prim.Type
+data Unit
+  | Unit :: Main.Unit
+
+interface Parent :: Prim.Type -> Prim.Constraint
+interface Parent a where
+  parent :: a -> a
+
+interface Child :: Prim.Type -> Prim.Constraint
+interface Child a where
+  superclass parentDict :: Main.Parent a
+  child :: a -> a
+
+ordinaryUnit :: Main.Unit -> Main.Unit
+ordinaryUnit = \value -> value
+
+ordinaryUnitCall :: Main.Unit
+ordinaryUnitCall = ordinaryUnit Unit
+
+dictionary parentInt :: Main.Parent Prim.Int where
+  parent :: Prim.Int -> Prim.Int
+  parent = \value -> value
+
+dictionary childArray ::
+  forall a.
+  { parentDict :: Main.Parent (Prim.Array a) } =>
+  Main.Child (Prim.Array a)
+  where
+  superclass parentDict = parentDict
+  child :: Prim.Array a -> Prim.Array a
+  child = \value -> value
+
+useSuperclass :: forall a. Main.Child a => a -> a
+useSuperclass = \{childDict} -> \value -> parent {childDict.parentDict} value

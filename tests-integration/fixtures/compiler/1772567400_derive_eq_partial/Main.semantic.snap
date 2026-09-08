@@ -1,0 +1,23 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Either :: Prim.Type -> Prim.Type -> Prim.Type
+data Either @a @b
+  | Left :: a -> Main.Either a b
+  | Right :: b -> Main.Either a b
+
+dictionary eqEitherInt ::
+  forall b.
+  { eqDict :: Data.Eq.Eq b } =>
+  Data.Eq.Eq (Main.Either Prim.Int b)
+  where
+  eq :: Main.Either Prim.Int b -> Main.Either Prim.Int b -> Prim.Boolean
+  eq = \left right ->
+    case left, right of
+      (Left left0), (Left right0) ->
+        if eq {eqInt} left0 right0 then true else false
+      (Right left0), (Right right0) ->
+        if eq {eqDict} left0 right0 then true else false
+      _, _ -> false

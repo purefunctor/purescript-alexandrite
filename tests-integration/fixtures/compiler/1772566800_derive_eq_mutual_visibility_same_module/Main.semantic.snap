@@ -1,0 +1,33 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data DurationComponent :: Prim.Type
+data DurationComponent
+  | Hours :: Main.DurationComponent
+  | Minutes :: Main.DurationComponent
+  | Seconds :: Main.DurationComponent
+
+data Duration :: Prim.Type
+data Duration
+  | Duration :: Main.DurationComponent -> Prim.Int -> Main.Duration
+
+dictionary eqDuration :: Data.Eq.Eq Main.Duration where
+  eq :: Main.Duration -> Main.Duration -> Prim.Boolean
+  eq = \left right ->
+    case left, right of
+      (Duration left0 left1), (Duration right0 right1) ->
+        if eq {eqDurationComponent} left0 right0 then
+          if eq {eqInt} left1 right1 then true else false
+        else
+          false
+
+dictionary eqDurationComponent :: Data.Eq.Eq Main.DurationComponent where
+  eq :: Main.DurationComponent -> Main.DurationComponent -> Prim.Boolean
+  eq = \left right ->
+    case left, right of
+      Hours, Hours -> true
+      Minutes, Minutes -> true
+      Seconds, Seconds -> true
+      _, _ -> false

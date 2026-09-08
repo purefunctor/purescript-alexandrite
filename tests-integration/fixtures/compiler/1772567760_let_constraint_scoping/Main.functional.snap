@@ -1,0 +1,14 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
+---
+@export method = \dictionary%0 -> dictionary%0.method
+
+@export instance myClassInt = { method: \$int%1@(_) -> 42 }
+
+@export test = \myClassADict%6 ->
+  \x%3 ->
+    let
+      baz%4 = \myClassIntDict%5 -> method myClassIntDict%5 42
+    in (\y%7 -> method myClassADict%6 y%7) x%3

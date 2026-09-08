@@ -1,0 +1,39 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 310
+expression: semantic_report
+---
+data Choice :: Prim.Type
+data Choice
+  | None :: Main.Choice
+  | Some :: Prim.Int -> Main.Choice
+
+data Box :: Prim.Type
+data Box
+  | Box :: Prim.Int -> Main.Box
+
+multiEquation :: Main.Choice -> Prim.Int
+multiEquation = \None -> 0
+multiEquation = \(Some value) -> value
+
+mixedArity :: Prim.Boolean -> Prim.Int -> Prim.Int
+mixedArity = \true -> \value -> value
+mixedArity = \false -> \value -> value
+
+singleConstructor :: Main.Box -> Prim.Int
+singleConstructor = \(Box value) -> value
+
+singleWildcards :: Prim.Int -> Prim.Int -> Prim.Boolean
+singleWildcards = \_ -> \_ -> true
+
+functionWildcard :: (Prim.Int -> Prim.Int) -> Prim.Int
+functionWildcard = \_ -> 0
+
+rigidWildcard :: forall value. value -> Prim.Boolean
+rigidWildcard = \_ -> true
+
+namedPattern :: { value :: Prim.Int } -> { value :: Prim.Int }
+namedPattern = \record@{ value: _ } -> record
+
+capture :: Prim.Int -> Prim.Boolean -> Prim.Int
+capture = \captured -> \_ -> captured

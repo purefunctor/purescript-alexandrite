@@ -1,0 +1,18 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: checking_report
+---
+Terms
+RecordPair :: forall @a @b. { alpha :: a, fixed :: Prim.Int, zeta :: b } -> Main.RecordPair a b
+
+Types
+RecordPair :: Prim.Type -> Prim.Type -> Prim.Type
+
+Derived
+derive Data.Bifunctor.Bifunctor Main.RecordPair
+derive Data.Bifoldable.Bifoldable Main.RecordPair
+derive Data.Bitraversable.Bitraversable Main.RecordPair
+
+Roles
+RecordPair = [Representational, Representational]

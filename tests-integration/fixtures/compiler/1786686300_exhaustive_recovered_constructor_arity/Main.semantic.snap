@@ -1,0 +1,17 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 308
+expression: semantic_report
+---
+data Box :: Prim.Type -> Prim.Type
+data Box @a
+  | Box :: a -> Main.Box a
+  | Other :: Main.Box a
+
+test :: forall t0. Prim.Partial => Main.Box t0 -> Prim.Int
+test = \{partialDict} -> \(Box _) -> 0
+test = \{partialDict} -> \Box -> 1
+
+test2 :: forall t0. Prim.Partial => (t0 -> Main.Box t0) -> Prim.Int
+test2 = \{partialDict} -> \Box -> 0
+test2 = \{partialDict} -> \(Box _) -> 1

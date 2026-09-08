@@ -1,0 +1,46 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 311
+expression: functional_report
+---
+@export constructor Leaf/1
+
+@export constructor Branch/2
+
+@export instance foldableTree = {
+  foldr:
+    \function%0 accumulator%1 value%2 ->
+      case value%2 of
+        Leaf field0%3 ->
+          function%0 field0%3 accumulator%1
+        Branch field0%4 field1%5 ->
+          foldr foldableTree (\element%6 accumulator%7 -> function%0 element%6 accumulator%7)
+            (foldr foldableTree (\element%8 accumulator%9 -> function%0 element%8 accumulator%9)
+              accumulator%1
+              field1%5)
+            field0%4,
+  foldl:
+    \function%10 accumulator%11 value%12 ->
+      case value%12 of
+        Leaf field0%13 ->
+          function%10 accumulator%11 field0%13
+        Branch field0%14 field1%15 ->
+          foldl foldableTree (\accumulator%16 element%17 -> function%10 accumulator%16 element%17)
+            (foldl foldableTree
+              (\accumulator%18 element%19 -> function%10 accumulator%18 element%19)
+              accumulator%11
+              field0%14)
+            field1%15,
+  foldMap:
+    \monoidMDict%25 ->
+      \function%20 value%21 ->
+        case value%21 of
+          Leaf field0%22 ->
+            function%20 field0%22
+          Branch field0%23 field1%24 ->
+            append (monoidMDict%25."Semigroup0"())
+              (foldMap foldableTree monoidMDict%25 (\element%26 -> function%20 element%26)
+                field0%23)
+              (foldMap foldableTree monoidMDict%25 (\element%27 -> function%20 element%27)
+                field1%24)
+}

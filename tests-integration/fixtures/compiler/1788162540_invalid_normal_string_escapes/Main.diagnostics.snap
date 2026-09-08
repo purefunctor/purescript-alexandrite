@@ -1,0 +1,49 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 307
+expression: diagnostics_report
+---
+Error! · [InvalidStringEscape] · Main.purs:4:21
+  •
+  │
+  • Invalid escape sequence in string literal
+  │
+  │   invalidExpression = "\q"
+  │                       ╰───
+  •
+
+Error! · [InvalidStringEscape] · Main.purs:7:15
+  •
+  │
+  • Invalid escape sequence in string literal
+  │
+  │   invalidBinder "\q" = true
+  │                 ╰───
+  •
+
+Error! · [InvalidStringEscape] · Main.purs:10:20
+  •
+  │
+  • Invalid escape sequence in string literal
+  │
+  │   type InvalidType = "\q"
+  │                      ╰───
+  •
+
+Warning! · [RedundantPattern] · Main.purs:6:1
+  •
+  │
+  • Pattern match has redundant patterns: _
+  │
+  │   invalidBinder :: String -> Boolean
+  │   ╰─────────────────────────────────
+  •
+
+Error! · [FunctionalCodegen] · Main.purs:1:1
+  •
+  │
+  • checked binder Idx::<Binder>(0) contains an error
+  │
+  │   module Main where
+  │   ╰────────────────
+  •

@@ -1,0 +1,12 @@
+---
+source: tests-integration/src/fixtures.rs
+assertion_line: 306
+expression: checking_report
+---
+Terms
+
+Types
+Test :: Prim.Row Prim.Type
+
+Synonyms
+type Test = ( test :: forall a. a )
