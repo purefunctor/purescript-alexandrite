@@ -6,6 +6,20 @@ use path_absolutize::Absolutize;
 use tracing::level_filters::LevelFilter;
 use usage::{Args, Subcommands, ValueEnum};
 
+/// Supply the terminal width to help rendering unless explicitly overridden.
+///
+/// # Safety
+///
+/// Call only during single-threaded startup, before starting any worker threads.
+pub unsafe fn initialize_terminal_width() {
+    if std::env::var_os("COLUMNS").is_none()
+        && let Some((_, columns)) = console::Term::stdout().size_checked()
+    {
+        // SAFETY: The caller guarantees single-threaded startup.
+        unsafe { std::env::set_var("COLUMNS", columns.to_string()) };
+    }
+}
+
 fn absolute_path(value: PathBuf) -> io::Result<PathBuf> {
     value.absolutize().map(Cow::into_owned)
 }
