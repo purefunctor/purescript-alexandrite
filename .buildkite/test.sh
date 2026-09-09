@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Buildkite indexes jobs from zero; nextest partitions start at one.
-partition="hash:$((BUILDKITE_PARALLEL_JOB + 1))/${BUILDKITE_PARALLEL_JOB_COUNT}"
+partition="hash:$((${BUILDKITE_PARALLEL_JOB:-0} + 1))/${BUILDKITE_PARALLEL_JOB_COUNT:-1}"
 
 case "${1:-}" in
   integration)

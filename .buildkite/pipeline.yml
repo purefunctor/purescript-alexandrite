@@ -7,8 +7,13 @@ env:
   INSTA_UPDATE: "no"
 
 steps:
-  - label: ":rust: Linux build and unit tests"
+  - label: ":rust: Build and unit tests ({{matrix}})"
     key: build
+    matrix: &platforms
+      - linux-medium
+      - macos-26-medium
+    agents: &platform-agents
+      queue: "{{matrix}}"
     commands:
       - source .buildkite/setup.sh
       - cargo build --workspace --locked
@@ -16,18 +21,20 @@ steps:
       - cargo nextest run -p tests-support --locked --no-fail-fast
     timeout_in_minutes: 30
 
-  - label: ":test_tube: Integration %N/%t"
+  - label: ":test_tube: Integration ({{matrix}})"
     key: integration
+    matrix: *platforms
+    agents: *platform-agents
     commands:
       - source .buildkite/setup.sh
       - bash .buildkite/test.sh integration
-    parallelism: 8
     timeout_in_minutes: 30
 
-  - label: ":terminal: End-to-end %N/%t"
+  - label: ":terminal: End-to-end ({{matrix}})"
     key: e2e
+    matrix: *platforms
+    agents: *platform-agents
     commands:
       - source .buildkite/setup.sh
       - bash .buildkite/test.sh e2e
-    parallelism: 4
     timeout_in_minutes: 30
