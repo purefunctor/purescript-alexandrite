@@ -73,6 +73,7 @@ impl TestWorkspace {
             .env("ALEXANDRITE_SPAGO", env!("CARGO_BIN_EXE_spago-e2e"))
             .env("ALEXANDRITE_E2E_SPAGO", spago_executable())
             .env("ALEXANDRITE_E2E_SPAGO_LOG", self.path().join("spago-calls"))
+            .env("COLUMNS", "120")
             .env("NO_COLOR", "1");
         command
     }

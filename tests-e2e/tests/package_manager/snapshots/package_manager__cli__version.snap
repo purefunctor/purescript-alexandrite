@@ -1,0 +1,7 @@
+---
+source: tests-e2e/tests/package_manager/cli.rs
+---
+status: 0
+--- stdout
+purescript-alexandrite 0.1.0
+--- stderr
