@@ -1,0 +1,14 @@
+---
+source: tests-e2e/tests/package_manager/cli.rs
+---
+status: 0
+--- stdout
+Generate TypeScript declarations for the documentation JSON schema.
+
+Usage: purescript-alexandrite docs typescript [--output <DIR>]
+
+Flags:
+      --output <DIR>  Output directory for the generated TypeScript schema.
+                      (default: src-generated)
+  -h, --help          Print help
+--- stderr

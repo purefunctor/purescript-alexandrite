@@ -2,240 +2,287 @@ use std::borrow::Cow;
 use std::io;
 use std::path::PathBuf;
 
-use clap::builder::{BoolishValueParser, PathBufValueParser, TypedValueParser};
-use clap::{ArgAction, Args, Parser, Subcommand, ValueEnum};
 use path_absolutize::Absolutize;
 use tracing::level_filters::LevelFilter;
-
-use crate::compile::Resilience;
-
-const VERSION: &str = env!("CARGO_PKG_VERSION");
+use usage::{Args, Subcommands, ValueEnum};
 
 fn absolute_path(value: PathBuf) -> io::Result<PathBuf> {
     value.absolutize().map(Cow::into_owned)
 }
 
-fn absolute_path_parser() -> impl TypedValueParser<Value = PathBuf> {
-    PathBufValueParser::new().try_map(absolute_path)
-}
-
-fn resilience_parser() -> impl TypedValueParser<Value = Resilience> {
-    BoolishValueParser::new()
-        .map(|resilient| if resilient { Resilience::Resilient } else { Resilience::Strict })
-}
-
-#[derive(Debug, Parser)]
-#[command(about, version(VERSION))]
-pub struct Cli {
+#[derive(Debug, usage::Cli)]
+#[usage(
+    bin = "purescript-alexandrite",
+    about = env!("CARGO_PKG_DESCRIPTION"),
+    version,
+    unknown_flags = "error",
+    args_override_self = false
+)]
+pub struct Program {
     /// Print log path.
-    #[arg(long)]
+    #[usage(long)]
     pub log_file: bool,
-    #[command(flatten)]
+    #[usage(flatten)]
     pub lsp: LspOptions,
-    #[command(subcommand)]
+    #[usage(subcommand)]
     pub command: Option<Command>,
 }
 
-impl Cli {
-    pub fn command(self) -> Command {
-        self.command.unwrap_or(Command::Lsp(self.lsp))
+impl Program {
+    pub fn into_command(self) -> io::Result<Command> {
+        let mut command = self.command.unwrap_or(Command::Lsp(self.lsp));
+        match &mut command {
+            Command::Build(options) => options.build.normalize_paths()?,
+            Command::Watch(options) => options.normalize_paths()?,
+            Command::Run(options) => options.build.normalize_paths()?,
+            Command::Test(options) => options.build.normalize_paths()?,
+            Command::Compile(options) => {
+                options.build.output = absolute_path(std::mem::take(&mut options.build.output))?;
+                for package in &mut options.packages {
+                    *package = absolute_path(std::mem::take(package))?;
+                }
+            }
+            Command::Docs(options) => {
+                options.output = absolute_path(std::mem::take(&mut options.output))?;
+                options.spago_project =
+                    options.spago_project.take().map(absolute_path).transpose()?;
+                for package in &mut options.packages {
+                    *package = absolute_path(std::mem::take(package))?;
+                }
+                if let Some(DocsCommand::TypeScript(options)) = &mut options.command {
+                    options.output = absolute_path(std::mem::take(&mut options.output))?;
+                }
+            }
+            Command::New(_) | Command::Add(_) | Command::Lsp(_) => {}
+        }
+        Ok(command)
     }
 }
 
-#[derive(Debug, Subcommand)]
+#[derive(Debug, Subcommands)]
 pub enum Command {
-    /// Run the language server.
-    Lsp(LspOptions),
     /// Create a Spago project in the current directory.
+    #[usage(help_heading = "Project commands")]
     New(NewOptions),
-    /// Build a Spago workspace or package.
-    Build(ProjectBuildCommandOptions),
     /// Add dependencies to a Spago package.
+    #[usage(help_heading = "Project commands")]
     Add(AddOptions),
+    /// Build a Spago workspace or package.
+    #[usage(help_heading = "Project commands")]
+    Build(ProjectBuildCommandOptions),
+    /// Build a Spago workspace or package and rebuild when inputs change.
+    #[usage(help_heading = "Project commands")]
+    Watch(ProjectBuildOptions),
+    /// Run the language server.
+    #[usage(help_heading = "Project commands")]
+    Lsp(LspOptions),
     /// Build and run a Spago package with Node.js.
+    #[usage(help_heading = "Project commands")]
     Run(RunOptions),
     /// Build and test one or more Spago packages with Node.js.
+    #[usage(help_heading = "Project commands")]
     Test(TestOptions),
     /// Compile PureScript modules to JavaScript (experimental).
+    #[usage(help_heading = "Legacy commands")]
     Compile(CompileOptions),
-    /// Build a Spago workspace or package and rebuild when inputs change.
-    Watch(ProjectBuildOptions),
     /// Documentation utilities.
+    #[usage(help_heading = "Documentation commands")]
     Docs(DocsOptions),
 }
 
 #[derive(Debug, Args)]
 pub struct LoggingOptions {
     /// Log level for the query engine.
-    #[arg(long, value_name("LevelFilter"), default_value("off"))]
+    #[usage(
+        long,
+        value_name = "LevelFilter",
+        default = "off",
+        choices("off", "error", "warn", "info", "debug", "trace")
+    )]
     pub query_log: LevelFilter,
 
     /// Log level for the type checker.
-    #[arg(long, value_name("LevelFilter"), default_value("off"))]
+    #[usage(
+        long,
+        value_name = "LevelFilter",
+        default = "off",
+        choices("off", "error", "warn", "info", "debug", "trace")
+    )]
     pub checking_log: LevelFilter,
 }
 
 #[derive(Debug, Args)]
+#[usage(args_override_self = false)]
 pub struct LspOptions {
-    #[command(flatten)]
+    #[usage(flatten)]
     pub logging: LoggingOptions,
 
-    #[arg(long)]
+    #[usage(long)]
     pub stdio: bool,
 
     /// Log level for the language server.
-    #[arg(long, value_name("LevelFilter"), default_value("info"))]
+    #[usage(
+        long,
+        value_name = "LevelFilter",
+        default = "info",
+        choices("off", "error", "warn", "info", "debug", "trace")
+    )]
     pub lsp_log: LevelFilter,
 
     /// Command to use to get source files.
     ///
     /// This argument also disables the spago.lock integration.
-    #[arg(long)]
+    #[usage(long)]
     pub source_command: Option<String>,
 
     /// Publish diagnostics on textDocument/didOpen.
-    #[arg(long, value_name("bool"), action = ArgAction::Set, default_value_t = true)]
-    pub diagnostics_on_open: bool,
+    #[usage(long, value_name = "bool", default = "true")]
+    pub diagnostics_on_open: Option<bool>,
 
     /// Publish diagnostics on textDocument/didSave.
-    #[arg(long, value_name("bool"), action = ArgAction::Set, default_value_t = true)]
-    pub diagnostics_on_save: bool,
+    #[usage(long, value_name = "bool", default = "true")]
+    pub diagnostics_on_save: Option<bool>,
 
     /// Publish diagnostics on textDocument/didChange.
-    #[arg(long, default_value_t = false)]
+    #[usage(long)]
     pub diagnostics_on_change: bool,
 }
 
 #[derive(Debug, Args)]
+#[usage(args_override_self = false)]
 pub struct CompileOptions {
-    #[command(flatten)]
+    #[usage(flatten)]
     pub build: BuildOptions,
 
     /// Package folder to compile.
-    #[arg(
-        id = "package",
-        long = "package",
-        value_name("DIR"),
-        value_parser = absolute_path_parser()
-    )]
+    #[usage(name = "package", long = "package", value_name = "DIR")]
     pub packages: Vec<PathBuf>,
 
     /// PureScript source paths or glob patterns.
-    #[arg(value_name("INPUT"), required_unless_present("package"))]
+    #[usage(value_name = "INPUT", required_unless = "--package")]
     pub inputs: Vec<PathBuf>,
 
     /// Code generation targets requested by build tools.
-    #[arg(long, value_name("TARGETS"))]
+    #[usage(long, value_name = "TARGETS")]
     pub codegen: Option<String>,
 
     /// Emit a Spago-compatible JSON result.
     ///
     /// Full structured JSON diagnostics are not yet supported.
-    #[arg(long)]
+    #[usage(long)]
     pub json_errors: bool,
 }
 
 #[derive(Debug, Args)]
 pub struct BuildOptions {
-    #[command(flatten)]
+    #[usage(flatten)]
     pub logging: LoggingOptions,
 
     /// Output directory for compiled modules.
-    #[arg(short, long, value_name("DIR"), default_value("output"), value_parser = absolute_path_parser())]
+    #[usage(short, long, value_name = "DIR", default = "output")]
     pub output: PathBuf,
 
     /// Suppress build progress output.
-    #[arg(short, long)]
+    #[usage(short, long)]
     pub quiet: bool,
 
     /// When to use colors in human-readable diagnostics.
-    #[arg(long, value_enum, default_value_t = ColorChoice::Auto)]
+    #[usage(long, value_enum, default = "auto")]
     pub color: ColorChoice,
 }
 
 #[derive(Debug, Args)]
+#[usage(args_override_self = false)]
 pub struct NewOptions {
     /// Package name. Defaults to the current directory name.
-    #[arg(long, value_name("NAME"))]
+    #[usage(long, value_name = "NAME")]
     pub name: Option<String>,
 }
 
 #[derive(Debug, Args)]
+#[usage(args_override_self = false)]
 pub struct ProjectBuildOptions {
-    #[command(flatten)]
+    #[usage(flatten)]
     pub logging: LoggingOptions,
 
     /// Workspace package to build.
-    #[arg(short, long, value_name("NAME"))]
+    #[usage(short, long, value_name = "NAME")]
     pub package: Option<String>,
 
     /// Output directory for compiled modules. Defaults to output in the workspace root.
-    #[arg(short, long, value_name("DIR"), value_parser = absolute_path_parser())]
+    #[usage(short, long, value_name = "DIR")]
     pub output: Option<PathBuf>,
 
     /// Suppress build progress output.
-    #[arg(short, long)]
+    #[usage(short, long)]
     pub quiet: bool,
 
     /// When to use colors in human-readable diagnostics.
-    #[arg(long, value_enum, default_value_t = ColorChoice::Auto)]
+    #[usage(long, value_enum, default = "auto")]
     pub color: ColorChoice,
 }
 
-#[derive(Debug, Args)]
-pub struct ProjectBuildCommandOptions {
-    #[command(flatten)]
-    pub build: ProjectBuildOptions,
-
-    /// Write JavaScript output even when compilation reports errors.
-    #[arg(
-        long = "resilient",
-        action = ArgAction::SetTrue,
-        value_parser = resilience_parser()
-    )]
-    pub resilience: Resilience,
+impl ProjectBuildOptions {
+    fn normalize_paths(&mut self) -> io::Result<()> {
+        self.output = self.output.take().map(absolute_path).transpose()?;
+        Ok(())
+    }
 }
 
 #[derive(Debug, Args)]
+#[usage(args_override_self = false)]
+pub struct ProjectBuildCommandOptions {
+    #[usage(flatten)]
+    pub build: ProjectBuildOptions,
+
+    /// Write JavaScript output even when compilation reports errors.
+    #[usage(long)]
+    pub resilient: bool,
+}
+
+#[derive(Debug, Args)]
+#[usage(args_override_self = false)]
 pub struct AddOptions {
     /// Workspace package whose dependencies should change.
-    #[arg(short, long, value_name("NAME"))]
+    #[usage(short, long, value_name = "NAME")]
     pub package: Option<String>,
 
     /// Add packages as test dependencies.
-    #[arg(long)]
+    #[usage(long)]
     pub test: bool,
 
     /// Packages to add.
-    #[arg(value_name("DEPENDENCY"), required = true)]
+    #[usage(value_name = "DEPENDENCY", required = true)]
     pub dependencies: Vec<String>,
 }
 
 #[derive(Debug, Args)]
+#[usage(args_override_self = false)]
 pub struct RunOptions {
-    #[command(flatten)]
+    #[usage(flatten)]
     pub build: ProjectBuildOptions,
 
     /// Module containing the program entry point.
-    #[arg(long, value_name("MODULE"))]
+    #[usage(long, value_name = "MODULE")]
     pub main: Option<String>,
 
     /// Arguments passed to the program.
-    #[arg(last = true)]
+    #[usage(double_dash = "required")]
     pub arguments: Vec<String>,
 }
 
 #[derive(Debug, Args)]
+#[usage(args_override_self = false)]
 pub struct TestOptions {
-    #[command(flatten)]
+    #[usage(flatten)]
     pub build: ProjectBuildOptions,
 
     /// Module containing the test entry point.
-    #[arg(long, value_name("MODULE"))]
+    #[usage(long, value_name = "MODULE")]
     pub main: Option<String>,
 
     /// Arguments passed to each test program.
-    #[arg(last = true)]
+    #[usage(double_dash = "required")]
     pub arguments: Vec<String>,
 }
 
@@ -247,46 +294,51 @@ pub enum ColorChoice {
 }
 
 #[derive(Debug, Args)]
-#[command(subcommand_negates_reqs = true)]
+#[usage(subcommand_negates_reqs = true, args_override_self = false)]
 pub struct DocsOptions {
-    #[command(flatten)]
+    #[usage(flatten)]
     pub logging: LoggingOptions,
     /// Log level for the documentation tool.
-    #[arg(long, value_name("LEVEL"), default_value("info"))]
+    #[usage(
+        long,
+        value_name = "LEVEL",
+        default = "info",
+        choices("off", "error", "warn", "info", "debug", "trace")
+    )]
     pub docs_log: LevelFilter,
-    #[command(subcommand)]
+    #[usage(subcommand)]
     pub command: Option<DocsCommand>,
     /// Output directory for the generated documentation.
-    #[arg(long, value_name("DIR"), default_value("docs"), value_parser = absolute_path_parser())]
+    #[usage(long, value_name = "DIR", default = "docs")]
     pub output: PathBuf,
     /// Suppress documentation progress output.
-    #[arg(short, long)]
+    #[usage(short, long)]
     pub quiet: bool,
     /// Spago project directory containing spago.lock.
-    #[arg(long, value_name("DIR"), conflicts_with("package"), value_parser = absolute_path_parser())]
+    #[usage(long, value_name = "DIR", conflicts = "--package")]
     pub spago_project: Option<PathBuf>,
     /// Package folder to document.
-    #[arg(
-        id = "package",
+    #[usage(
+        name = "package",
         long = "package",
-        value_name("DIR"),
-        value_parser = absolute_path_parser(),
-        required_unless_present("spago_project")
+        value_name = "DIR",
+        required_unless = "--spago-project"
     )]
     pub packages: Vec<PathBuf>,
 }
 
-#[derive(Debug, Subcommand)]
+#[derive(Debug, Subcommands)]
 pub enum DocsCommand {
     /// Generate TypeScript declarations for the documentation JSON schema.
-    #[command(name = "typescript")]
+    #[usage(name = "typescript")]
     TypeScript(DocsTypeScriptOptions),
 }
 
 #[derive(Debug, Args)]
+#[usage(args_override_self = false)]
 pub struct DocsTypeScriptOptions {
     /// Output directory for the generated TypeScript schema.
-    #[arg(long, value_name("DIR"), default_value("src-generated"), value_parser = absolute_path_parser())]
+    #[usage(long, value_name = "DIR", default = "src-generated")]
     pub output: PathBuf,
 }
 
@@ -303,8 +355,8 @@ impl Default for LspOptions {
             stdio: false,
             lsp_log: LevelFilter::INFO,
             source_command: None,
-            diagnostics_on_open: true,
-            diagnostics_on_save: true,
+            diagnostics_on_open: Some(true),
+            diagnostics_on_save: Some(true),
             diagnostics_on_change: false,
         }
     }
@@ -313,14 +365,26 @@ impl Default for LspOptions {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use clap::error::ErrorKind;
+    use std::ffi::OsStr;
     use std::path::Path;
+    use usage::diagnostic::Code;
+
+    fn parse(argv: Vec<&str>) -> Program {
+        let argv: Vec<_> = argv.into_iter().map(OsStr::new).collect();
+        Program::try_parse_from(&argv).unwrap()
+    }
+
+    fn error_kind(argv: Vec<&str>) -> Code {
+        let argv: Vec<_> = argv.into_iter().map(OsStr::new).collect();
+        let error = Program::try_parse_from(&argv).unwrap_err();
+        usage::diagnostic::report(Program::spec(), &argv[1..], &error).code
+    }
 
     fn lsp(args: &[&str]) -> LspOptions {
         let mut argv = vec!["alexandrite"];
         argv.extend(args);
-        let cli = Cli::parse_from(argv);
-        match cli.command() {
+        let program = parse(argv);
+        match program.into_command().unwrap() {
             Command::Lsp(options) => options,
             _ => unreachable!("parsed command was not `lsp`"),
         }
@@ -329,9 +393,9 @@ mod tests {
     fn docs(args: &[&str]) -> DocsOptions {
         let mut argv = vec!["alexandrite", "docs"];
         argv.extend(args);
-        let cli = Cli::parse_from(argv);
-        match cli.command {
-            Some(Command::Docs(options)) => options,
+        let program = parse(argv);
+        match program.into_command().unwrap() {
+            Command::Docs(options) => options,
             _ => unreachable!("parsed command was not `docs`"),
         }
     }
@@ -339,25 +403,25 @@ mod tests {
     fn compile(args: &[&str]) -> CompileOptions {
         let mut argv = vec!["alexandrite", "compile"];
         argv.extend(args);
-        let cli = Cli::parse_from(argv);
-        match cli.command {
-            Some(Command::Compile(options)) => options,
+        let program = parse(argv);
+        match program.into_command().unwrap() {
+            Command::Compile(options) => options,
             _ => unreachable!("parsed command was not `compile`"),
         }
     }
 
-    fn compile_error_kind(args: &[&str]) -> ErrorKind {
+    fn compile_error_kind(args: &[&str]) -> Code {
         let mut argv = vec!["alexandrite", "compile"];
         argv.extend(args);
-        Cli::try_parse_from(argv).unwrap_err().kind()
+        error_kind(argv)
     }
 
     fn build(args: &[&str]) -> ProjectBuildCommandOptions {
         let mut argv = vec!["alexandrite", "build"];
         argv.extend(args);
-        let cli = Cli::parse_from(argv);
-        match cli.command {
-            Some(Command::Build(options)) => options,
+        let program = parse(argv);
+        match program.into_command().unwrap() {
+            Command::Build(options) => options,
             _ => unreachable!("parsed command was not `build`"),
         }
     }
@@ -365,17 +429,17 @@ mod tests {
     fn watch(args: &[&str]) -> ProjectBuildOptions {
         let mut argv = vec!["alexandrite", "watch"];
         argv.extend(args);
-        let cli = Cli::parse_from(argv);
-        match cli.command {
-            Some(Command::Watch(options)) => options,
+        let program = parse(argv);
+        match program.into_command().unwrap() {
+            Command::Watch(options) => options,
             _ => unreachable!("parsed command was not `watch`"),
         }
     }
 
-    fn docs_error_kind(args: &[&str]) -> ErrorKind {
+    fn docs_error_kind(args: &[&str]) -> Code {
         let mut argv = vec!["alexandrite", "docs"];
         argv.extend(args);
-        Cli::try_parse_from(argv).unwrap_err().kind()
+        error_kind(argv)
     }
 
     fn typescript(args: &[&str]) -> DocsTypeScriptOptions {
@@ -399,6 +463,16 @@ mod tests {
 
         assert!(options.stdio);
         assert!(options.diagnostics_on_change);
+        assert_eq!(options.diagnostics_on_open, Some(true));
+        assert_eq!(options.diagnostics_on_save, Some(true));
+
+        let options = lsp(&["--diagnostics-on-open", "false", "--diagnostics-on-save", "true"]);
+        assert_eq!(options.diagnostics_on_open, Some(false));
+        assert_eq!(options.diagnostics_on_save, Some(true));
+
+        let options = lsp(&["lsp", "--diagnostics-on-open=true", "--diagnostics-on-save=false"]);
+        assert_eq!(options.diagnostics_on_open, Some(true));
+        assert_eq!(options.diagnostics_on_save, Some(false));
     }
 
     #[test]
@@ -443,8 +517,8 @@ mod tests {
     fn build_accepts_resilient_output() {
         let options = build(&["--resilient"]);
 
-        assert_eq!(options.resilience, Resilience::Resilient);
-        assert_eq!(build(&[]).resilience, Resilience::Strict);
+        assert!(options.resilient);
+        assert!(!build(&[]).resilient);
     }
 
     #[test]
@@ -465,7 +539,7 @@ mod tests {
 
     #[test]
     fn compile_requires_inputs_or_a_package() {
-        insta::assert_debug_snapshot!(compile_error_kind(&[]), @"MissingRequiredArgument");
+        insta::assert_debug_snapshot!(compile_error_kind(&[]), @"MissingRequired");
     }
 
     #[test]
@@ -501,7 +575,7 @@ mod tests {
     fn spago_project_conflicts_with_package_specs() {
         insta::assert_debug_snapshot!(
             docs_error_kind(&["--spago-project", ".", "--package", "packages/effect"]),
-            @"ArgumentConflict"
+            @"ConflictingFlags"
         );
     }
 
@@ -531,12 +605,12 @@ mod tests {
 
     #[test]
     fn missing_package_path_is_rejected() {
-        insta::assert_debug_snapshot!(docs_error_kind(&["--package"]), @"InvalidValue");
+        insta::assert_debug_snapshot!(docs_error_kind(&["--package"]), @"MissingFlagValue");
     }
 
     #[test]
     fn package_is_required() {
-        insta::assert_debug_snapshot!(docs_error_kind(&[]), @"MissingRequiredArgument");
+        insta::assert_debug_snapshot!(docs_error_kind(&[]), @"MissingRequired");
     }
 
     #[test]

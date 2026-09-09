@@ -1,0 +1,163 @@
+use std::process::Output;
+
+use super::support::TestWorkspace;
+
+fn snapshot_output(name: &str, output: &Output) {
+    let status = output.status.code().map_or_else(|| "signal".to_owned(), |code| code.to_string());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    insta::with_settings!({omit_expression => true}, {
+        insta::assert_snapshot!(
+            name,
+            format!("status: {status}\n--- stdout\n{stdout}--- stderr\n{stderr}")
+        );
+    });
+}
+
+#[test]
+fn prints_help_for_every_command_path() {
+    let workspace = TestWorkspace::empty();
+    let paths: &[(&str, &[&str])] = &[
+        ("help_root", &["--help"]),
+        ("help_new", &["new", "--help"]),
+        ("help_add", &["add", "--help"]),
+        ("help_build", &["build", "--help"]),
+        ("help_watch", &["watch", "--help"]),
+        ("help_lsp", &["lsp", "--help"]),
+        ("help_run", &["run", "--help"]),
+        ("help_test", &["test", "--help"]),
+        ("help_compile", &["compile", "--help"]),
+        ("help_docs", &["docs", "--help"]),
+        ("help_docs_typescript", &["docs", "typescript", "--help"]),
+    ];
+
+    for (name, arguments) in paths {
+        let output = workspace.command(arguments);
+        assert!(output.status.success(), "{name} failed");
+        assert!(!output.stdout.is_empty(), "{name} did not write stdout");
+        assert!(output.stderr.is_empty(), "{name} wrote stderr");
+        snapshot_output(name, &output);
+    }
+}
+
+#[test]
+fn root_help_groups_commands_by_role() {
+    let workspace = TestWorkspace::empty();
+    let output = workspace.command(&["--help"]);
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    let project = stdout.find("Project commands:").unwrap();
+    let legacy = stdout.find("Legacy commands:").unwrap();
+    let documentation = stdout.find("Documentation commands:").unwrap();
+    assert!(project < legacy && legacy < documentation);
+    for command in ["new", "add", "build", "watch", "lsp", "run", "test"] {
+        assert!(stdout[project..legacy].contains(command));
+    }
+    assert!(stdout[legacy..documentation].contains("compile"));
+    assert!(stdout[documentation..].contains("docs"));
+}
+
+#[test]
+fn prints_version_to_stdout() {
+    let workspace = TestWorkspace::empty();
+    let output = workspace.command(&["--version"]);
+    assert!(output.status.success());
+    assert!(!output.stdout.is_empty());
+    assert!(output.stderr.is_empty());
+    snapshot_output("version", &output);
+}
+
+#[test]
+fn rejects_unknown_flags_and_duplicate_scalar_options() {
+    let workspace = TestWorkspace::empty();
+    let cases: &[(&str, &[&str])] = &[
+        ("unknown_root_flag", &["--unknown"]),
+        (
+            "duplicate_root_scalar",
+            &["--diagnostics-on-open", "true", "--diagnostics-on-open", "false"],
+        ),
+        ("unknown_build_flag", &["build", "--unknown"]),
+        ("duplicate_build_scalar", &["build", "--package", "one", "--package", "two"]),
+        ("unknown_compile_flag", &["compile", "--unknown", "Main.purs"]),
+        (
+            "duplicate_compile_scalar",
+            &["compile", "--output", "one", "--output", "two", "Main.purs"],
+        ),
+        ("unknown_docs_flag", &["docs", "--unknown", "--package", "."]),
+        (
+            "duplicate_docs_scalar",
+            &["docs", "--output", "one", "--output", "two", "--package", "."],
+        ),
+        ("unknown_typescript_flag", &["docs", "typescript", "--unknown"]),
+        (
+            "duplicate_typescript_scalar",
+            &["docs", "typescript", "--output", "one", "--output", "two"],
+        ),
+    ];
+
+    for (name, arguments) in cases {
+        let output = workspace.command(arguments);
+        assert!(!output.status.success(), "{name} unexpectedly succeeded");
+        assert!(output.stdout.is_empty(), "{name} wrote stdout");
+        assert!(!output.stderr.is_empty(), "{name} did not write stderr");
+        snapshot_output(name, &output);
+    }
+}
+
+#[test]
+fn rejects_missing_required_arguments() {
+    let workspace = TestWorkspace::empty();
+    let cases: &[(&str, &[&str])] = &[
+        ("add_requires_dependencies", &["add"]),
+        ("compile_requires_input_or_package", &["compile"]),
+        ("compile_package_requires_value", &["compile", "--package"]),
+        ("docs_requires_package_or_project", &["docs"]),
+        ("docs_package_requires_value", &["docs", "--package"]),
+        ("docs_project_requires_value", &["docs", "--spago-project"]),
+    ];
+
+    for (name, arguments) in cases {
+        let output = workspace.command(arguments);
+        assert!(!output.status.success(), "{name} unexpectedly succeeded");
+        snapshot_output(name, &output);
+    }
+}
+
+#[test]
+fn run_and_test_require_separator_before_trailing_arguments() {
+    let workspace = TestWorkspace::empty();
+    for (name, arguments) in [
+        ("run_requires_separator", &["run", "argument"][..]),
+        ("test_requires_separator", &["test", "argument"][..]),
+    ] {
+        let output = workspace.command(arguments);
+        assert!(!output.status.success(), "{name} unexpectedly succeeded");
+        snapshot_output(name, &output);
+    }
+}
+
+#[test]
+fn lsp_boolean_options_require_boolean_values() {
+    let workspace = TestWorkspace::empty();
+    let cases: &[(&str, &[&str])] = &[
+        ("lsp_open_requires_value", &["lsp", "--diagnostics-on-open"]),
+        ("lsp_open_rejects_invalid_value", &["lsp", "--diagnostics-on-open", "yes"]),
+        ("lsp_save_requires_value", &["lsp", "--diagnostics-on-save"]),
+        ("lsp_save_rejects_invalid_value", &["lsp", "--diagnostics-on-save", "yes"]),
+    ];
+
+    for (name, arguments) in cases {
+        let output = workspace.command(arguments);
+        assert!(!output.status.success(), "{name} unexpectedly succeeded");
+        snapshot_output(name, &output);
+    }
+}
+
+#[test]
+fn typescript_output_resolves_relative_to_the_working_directory() {
+    let workspace = TestWorkspace::empty();
+    let output =
+        workspace.command_in("project", &["docs", "typescript", "--output", "../generated"]);
+    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    assert!(workspace.path().join("generated/docs-schema.ts").is_file());
+}
