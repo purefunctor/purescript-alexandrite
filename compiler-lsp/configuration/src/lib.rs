@@ -21,7 +21,11 @@
 //! just configuration-schema
 //! ```
 //!
-//! The schema describes named JSON objects, not Serde's positional-array struct representation.
+//! The schema defines the supported JSON representation exchanged with external producers and
+//! consumers. Serializing valid configuration values produces schema-compliant JSON, and
+//! deserialization accepts schema-compliant JSON produced externally. Serde may also deserialize
+//! position-encoded arrays; that permissiveness is an implementation detail, not a supported
+//! configuration format or a compatibility guarantee.
 
 use serde::{Deserialize, Deserializer, Serialize, de};
 
