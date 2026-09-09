@@ -294,7 +294,7 @@ jobs:
           exit "$COMPARISON_STATUS"
 
   wasm:
-    name: Compilation (docs-lib)
+    name: Compilation (analyzer WASM)
     runs-on: ubuntu-latest
 
     steps:
@@ -312,7 +312,7 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Check Wasm crates
-        run: cargo check -p analyzer -p docs-lib --target wasm32-unknown-unknown
+        run: cargo check -p analyzer --target wasm32-unknown-unknown
 
   coverage:
     name: Coverage

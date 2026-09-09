@@ -6,7 +6,6 @@ members = [
   "compiler-frontend/*",
   "compiler-lsp/*",
   "compiler-scripts",
-  "docs/src/wasm",
   "tests-compatibility",
   "tests-e2e",
   "tests-integration",
