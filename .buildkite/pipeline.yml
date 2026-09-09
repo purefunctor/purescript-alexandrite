@@ -10,6 +10,7 @@ steps:
   - label: ":rust: Linux build and unit tests"
     key: build
     commands:
+      - source .buildkite/setup.sh
       - cargo build --workspace --locked
       - cargo nextest run --locked --no-fail-fast
       - cargo nextest run -p tests-support --locked --no-fail-fast
@@ -17,12 +18,16 @@ steps:
 
   - label: ":test_tube: Integration %N/%t"
     key: integration
-    command: bash .buildkite/test.sh integration
+    commands:
+      - source .buildkite/setup.sh
+      - bash .buildkite/test.sh integration
     parallelism: 8
     timeout_in_minutes: 30
 
   - label: ":terminal: End-to-end %N/%t"
     key: e2e
-    command: bash .buildkite/test.sh e2e
+    commands:
+      - source .buildkite/setup.sh
+      - bash .buildkite/test.sh e2e
     parallelism: 4
     timeout_in_minutes: 30
