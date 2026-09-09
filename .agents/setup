@@ -1,65 +1,41 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-step() {
-  local label="$1" started=$SECONDS
-  shift
-  printf '\n==> %s\n' "$label"
-  "$@"
-  printf '%s completed in %ss\n' "$label" "$((SECONDS - started))"
-}
-
-export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
-
-if ! command -v rustup >/dev/null 2>&1; then
-  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+mise_version=2026.9.3
+export PATH="$HOME/.local/bin:$PATH"
+if [[ "$("$HOME/.local/bin/mise" version 2>/dev/null | cut -d' ' -f1 || true)" != "$mise_version" ]]; then
+  echo '--- Installing mise'
+  curl --proto '=https' --tlsv1.2 -fsSL https://mise.run \
+    | MISE_VERSION="$mise_version" sh
 fi
 
-# Keep snapshot toolchains and Cargo caches; upgrade deliberately with rustup update.
-for toolchain in stable nightly; do
-  if ! rustup run "$toolchain" rustc --version >/dev/null 2>&1; then
-    step "Installing $toolchain Rust" rustup toolchain install "$toolchain" --profile minimal
-  fi
+echo '--- Installing configured development tools'
+mise trust mise.toml
+mise install --yes
+eval "$(mise env --shell bash)"
+mise ls --current
 
-  components=(rustfmt)
-  if [[ "$toolchain" == stable ]]; then
-    components+=(clippy)
-  fi
-  installed_components=$(rustup component list --toolchain "$toolchain" --installed)
-  for component in "${components[@]}"; do
-    if ! grep -Eq "^${component}(-|$)" <<< "$installed_components"; then
-      step "Installing $toolchain $component" rustup component add --toolchain "$toolchain" "$component"
+# Amp and supervised services start in fresh non-interactive login shells.
+repository_root="$PWD"
+profile_marker="# Alexandrite mise environment: $repository_root"
+if ! grep -Fqx "$profile_marker" "$HOME/.bash_profile" 2>/dev/null; then
+  if [[ ! -e "$HOME/.bash_profile" ]]; then
+    # Creating .bash_profile must not hide the previously selected login file.
+    if [[ -r "$HOME/.bash_login" ]]; then
+      printf '%s\n' '[[ ! -r "$HOME/.bash_login" ]] || . "$HOME/.bash_login"' >> "$HOME/.bash_profile"
+    else
+      printf '%s\n' '[[ ! -r "$HOME/.profile" ]] || . "$HOME/.profile"' >> "$HOME/.bash_profile"
     fi
-  done
-done
+  fi
+  cat >> "$HOME/.bash_profile" <<EOF
 
-installed_targets=$(rustup target list --toolchain stable --installed)
-if ! grep -Fxq wasm32-unknown-unknown <<< "$installed_targets"; then
-  step 'Installing WASM target' rustup target add --toolchain stable wasm32-unknown-unknown
+$profile_marker
+if [[ "\${ALEXANDRITE_MISE_ACTIVATING:-}" != 1 && "\$PWD/" == "$repository_root/"* ]]; then
+  export ALEXANDRITE_MISE_ACTIVATING=1
+  eval "\$("$HOME/.local/bin/mise" env --shell bash)"
+  unset ALEXANDRITE_MISE_ACTIVATING
 fi
-
-if [[ "$(rustup default 2>/dev/null || true)" != stable-* ]]; then
-  step 'Selecting stable Rust' rustup default stable
-fi
-
-missing_tools=()
-for package in just cargo-nextest cargo-insta cargo-edit cargo-bundle-licenses; do
-  executable="$package"
-  if [[ "$package" == cargo-edit ]]; then
-    executable=cargo-set-version
-  fi
-  if ! command -v "$executable" >/dev/null 2>&1; then
-    missing_tools+=("$package")
-  fi
-done
-
-if ((${#missing_tools[@]})); then
-  if ! command -v cargo-binstall >/dev/null 2>&1; then
-    curl --proto '=https' --tlsv1.2 -LsSf \
-      https://raw.githubusercontent.com/cargo-bins/cargo-binstall/aaa84a43aec4955a42c5ffc65d258961e39f276e/install-from-binstall-release.sh \
-      | BINSTALL_VERSION=1.19.1 bash
-  fi
-  step 'Installing missing development tools' cargo binstall --no-confirm "${missing_tools[@]}"
+EOF
 fi
 
 printf '\nSetup complete in %ss.\n' "$SECONDS"

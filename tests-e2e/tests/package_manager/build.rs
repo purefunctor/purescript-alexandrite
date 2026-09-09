@@ -11,6 +11,9 @@ fn diagnostic_settings(workspace: &TestWorkspace) -> insta::Settings {
     settings.add_filter(
         concat!(
             r"(?m)^(?:Reading Spago workspace configuration\.\.\.",
+            r"|Refreshing the Registry Index\.\.\.",
+            r"|Cloning https://github\.com/purescript/registry-index\.git",
+            r"|Cloning https://github\.com/purescript/registry\.git",
             r"|✓ Selecting package to build: application",
             r#"|Adding dependency ranges to the config in "spago.yaml""#,
             r"|Downloading dependencies\.\.\.",
