@@ -9,6 +9,8 @@ env:
 steps:
   - label: ":rust: Build and unit tests (Linux)"
     key: build-linux
+    agents:
+      queue: linux-large
     commands: &build-commands
       - source .buildkite/setup.sh
       - cargo build --workspace --locked
@@ -39,6 +41,8 @@ steps:
 
   - label: ":test_tube: Integration (Linux)"
     key: integration-linux
+    agents:
+      queue: linux-large
     commands: &integration-commands
       - source .buildkite/setup.sh
       - bash .buildkite/test.sh integration
