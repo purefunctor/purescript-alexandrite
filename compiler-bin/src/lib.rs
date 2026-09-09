@@ -1,4 +1,3 @@
-use clap::Parser;
 use tracing::level_filters::LevelFilter;
 
 pub mod cli;
@@ -15,13 +14,16 @@ mod watch;
 mod workspace;
 
 pub fn run() {
-    let cli = cli::Cli::parse();
+    let program = cli::Program::parse();
 
-    if cli.log_file {
+    if program.log_file {
         eprintln!("Log file: {:?}", logging::temporary_log_file());
     }
 
-    let command = cli.command();
+    let command = program.into_command().unwrap_or_else(|error| {
+        eprintln!("error: failed to resolve command paths: {error}");
+        std::process::exit(2);
+    });
 
     match command {
         cli::Command::Lsp(options) => {
@@ -33,15 +35,20 @@ pub fn run() {
             });
             lsp::start(lsp::LspConfig {
                 source_command: options.source_command,
-                diagnostics_on_open: options.diagnostics_on_open,
-                diagnostics_on_save: options.diagnostics_on_save,
+                diagnostics_on_open: options.diagnostics_on_open.unwrap_or(true),
+                diagnostics_on_save: options.diagnostics_on_save.unwrap_or(true),
                 diagnostics_on_change: options.diagnostics_on_change,
             });
         }
         cli::Command::New(options) => project::start(project::new(options.name)),
         cli::Command::Build(options) => {
             start_project_logging(&options.build.logging);
-            project::start(project::build(project_build_config(options.build), options.resilience));
+            let resilience = if options.resilient {
+                compile::Resilience::Resilient
+            } else {
+                compile::Resilience::Strict
+            };
+            project::start(project::build(project_build_config(options.build), resilience));
         }
         cli::Command::Add(options) => {
             project::start(project::add(project::AddProjectConfig {

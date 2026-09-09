@@ -2530,7 +2530,6 @@ dependencies = [
  "async-lsp",
  "building",
  "checking",
- "clap",
  "console",
  "diagnostics",
  "documentation",
@@ -2571,6 +2570,7 @@ dependencies = [
  "tracing-subscriber",
  "ts-rs",
  "url",
+ "usage-rs",
  "walkdir",
 ]
 
@@ -3890,6 +3890,33 @@ dependencies = [
  "percent-encoding",
  "serde",
  "serde_derive",
+]
+
+[[package]]
+name = "usage-argv"
+version = "6.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "80dcf875185d0520e1a0675f6d413749e5050fde359eede97e45d0b9690eedbd"
+
+[[package]]
+name = "usage-derive"
+version = "6.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "778373c082248ae6050e96beb69c817cf109b8c8e925fbcbdf2155a12e517442"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 3.0.5",
+]
+
+[[package]]
+name = "usage-rs"
+version = "6.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "894bcecc06869ce740fde1135ac8ee60d82bf33e88f34e4fee434a62e98e15e8"
+dependencies = [
+ "usage-argv",
+ "usage-derive",
 ]
 
 [[package]]

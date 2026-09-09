@@ -28,7 +28,6 @@ analyzer = { version = "0.1.0", path = "../compiler-lsp/analyzer" }
 async-lsp = { version = "0.2.4", features = ["tokio"] }
 building = { version = "0.1.0", path = "../compiler-core/building" }
 checking = { version = "0.1.0", path = "../compiler-frontend/checking" }
-clap = { version = "4.6.6", features = ["derive"] }
 console = "0.16.4"
 documentation = { version = "0.1.0", path = "../compiler-lsp/documentation" }
 diagnostics = { version = "0.1.0", path = "../compiler-frontend/diagnostics" }
@@ -67,6 +66,7 @@ tracing = "0.1.44"
 tracing-subscriber = "0.3.23"
 ts-rs = { version = "12.0.1", default-features = false, features = ["serde-compat"] }
 url = "2.5.8"
+usage = { package = "usage-rs", version = "6.8.0" }
 walkdir = "2.5.0"
 
 [dev-dependencies]
