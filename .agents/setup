@@ -19,6 +19,14 @@ mise ls --current
 repository_root="$PWD"
 profile_marker="# Alexandrite mise environment: $repository_root"
 if ! grep -Fqx "$profile_marker" "$HOME/.bash_profile" 2>/dev/null; then
+  if [[ ! -e "$HOME/.bash_profile" ]]; then
+    # Creating .bash_profile must not hide the previously selected login file.
+    if [[ -r "$HOME/.bash_login" ]]; then
+      printf '%s\n' '[[ ! -r "$HOME/.bash_login" ]] || . "$HOME/.bash_login"' >> "$HOME/.bash_profile"
+    else
+      printf '%s\n' '[[ ! -r "$HOME/.profile" ]] || . "$HOME/.profile"' >> "$HOME/.bash_profile"
+    fi
+  fi
   cat >> "$HOME/.bash_profile" <<EOF
 
 $profile_marker

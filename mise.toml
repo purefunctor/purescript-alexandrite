@@ -19,6 +19,11 @@ rust = [
 ]
 
 [settings.cargo]
+# Avoid source builds when publishers do not provide binaries by trusting the
+# third-party cargo-quickinstall builds, not just publisher release artifacts.
+# QuickInstall reports crate, version, target, installer user agent, and status
+# to cargo-quickinstall-stats-server.fly.dev. Set BINSTALL_DISABLE_TELEMETRY=true
+# in the calling environment to opt out of those installation statistics.
 binstall_quickinstall = true
 
 [env]
