@@ -65,7 +65,7 @@ prepare-release version:
 
 [doc("Format imports with module granularity")]
 @format *args="":
-  cargo +nightly fmt {{args}} -- --config imports_granularity=Module
+  cargo +"${ALEXANDRITE_NIGHTLY_TOOLCHAIN:-nightly}" fmt {{args}} -- --config imports_granularity=Module
 
 [doc("Regenerate the language server configuration JSON Schema")]
 @configuration-schema:

@@ -2,6 +2,18 @@
 
 Thank you for taking interest in contributing to Alexandrite.
 
+## Development tools
+
+[`mise.toml`](mise.toml) pins Rust, Node.js, pnpm, and the development CLIs.
+With [mise](https://mise.jdx.dev/) installed, run `mise trust` and `mise install`
+from the repository root, then use `mise exec -- just <recipe>` or activate mise
+in your shell. `just format` uses the pinned nightly toolchain in this environment.
+
+Amp orbs and Buildkite share `.agents/setup`, which bootstraps mise and installs
+these tools. Native prerequisites remain platform-managed: a C/C++ toolchain,
+pkg-config, OpenSSL development libraries, curl, and xz. Buildkite installs them
+through apt on Linux or Homebrew on macOS (with Xcode command-line tools present).
+
 ## Integration tests
 
 Run `just t compiler` (alias `just t c`) for the unified compiler integration
