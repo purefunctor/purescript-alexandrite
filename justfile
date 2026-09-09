@@ -66,3 +66,7 @@ prepare-release version:
 [doc("Format imports with module granularity")]
 @format *args="":
   cargo +nightly fmt {{args}} -- --config imports_granularity=Module
+
+[doc("Regenerate the language server configuration JSON Schema")]
+@configuration-schema:
+  cargo run -q -p configuration --features schema --example export-schema
