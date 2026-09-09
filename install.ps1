@@ -1,7 +1,7 @@
 $ErrorActionPreference = "Stop"
 
 $Repository = "purefunctor/purescript-alexandrite"
-$Binary = "purescript-alexandrite.exe"
+$Binary = "alexandrite.exe"
 $InstallDirectory = if ($env:ALEXANDRITE_INSTALL_DIR) {
     $env:ALEXANDRITE_INSTALL_DIR
 } else {
@@ -22,41 +22,41 @@ if ($Version -notmatch '^v[0-9]') {
     throw "Invalid release version: $Version"
 }
 
+if ($Version -match '^v0\.0\.') {
+    throw "This installer requires v0.1.0 or later; use the installer from the requested release tag for v0.0.x"
+}
+
 $Target = "x86_64-pc-windows-msvc"
-$ArchiveName = "purescript-alexandrite-$Target.zip"
+$ArchiveName = "alexandrite-$Target.zip"
 $ArchiveUrl = "https://github.com/$Repository/releases/download/$Version/$ArchiveName"
 $TemporaryDirectory = Join-Path ([System.IO.Path]::GetTempPath()) ("alexandrite-install-" + [guid]::NewGuid())
 $Archive = Join-Path $TemporaryDirectory $ArchiveName
 
 New-Item -ItemType Directory -Path $TemporaryDirectory | Out-Null
 try {
-    Write-Host "Downloading purescript-alexandrite $Version for $Target"
+    Write-Host "Downloading alexandrite $Version for $Target"
     Invoke-WebRequest -Uri $ArchiveUrl -OutFile $Archive
 
-    if ($Version -match '^v0\.0\.([0-9]|1[0-3])$') {
-        Write-Warning "$Version predates release attestations and cannot be verified."
+    $GitHubAttestationsAvailable = if (Get-Command gh -ErrorAction SilentlyContinue) {
+        & gh attestation verify --help 2>$null | Out-Null
+        $LASTEXITCODE -eq 0
     } else {
-        $GitHubAttestationsAvailable = if (Get-Command gh -ErrorAction SilentlyContinue) {
-            & gh attestation verify --help 2>$null | Out-Null
-            $LASTEXITCODE -eq 0
-        } else {
-            $false
-        }
+        $false
+    }
 
-        if ($GitHubAttestationsAvailable) {
-            Write-Host "Verifying GitHub release attestation"
-            & gh attestation verify $Archive --repo $Repository | Out-Null
-            if ($LASTEXITCODE -ne 0) {
-                throw "GitHub release attestation verification failed"
-            }
-        } else {
-            Write-Warning "A GitHub CLI with attestation support is not installed; release provenance was not verified."
-            Write-Warning "Install or update gh from https://cli.github.com/ to verify future installations."
+    if ($GitHubAttestationsAvailable) {
+        Write-Host "Verifying GitHub release attestation"
+        & gh attestation verify $Archive --repo $Repository | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            throw "GitHub release attestation verification failed"
         }
+    } else {
+        Write-Warning "A GitHub CLI with attestation support is not installed; release provenance was not verified."
+        Write-Warning "Install or update gh from https://cli.github.com/ to verify future installations."
     }
 
     Expand-Archive -LiteralPath $Archive -DestinationPath $TemporaryDirectory
-    $ExtractedBinary = Join-Path $TemporaryDirectory "purescript-alexandrite-$Target\$Binary"
+    $ExtractedBinary = Join-Path $TemporaryDirectory "alexandrite-$Target\$Binary"
     if (-not (Test-Path -LiteralPath $ExtractedBinary -PathType Leaf)) {
         throw "Release archive does not contain $Binary"
     }
@@ -69,7 +69,7 @@ try {
 
     Write-Host "Installed $Version to $Destination"
     if ($env:PATH.Split([IO.Path]::PathSeparator) -notcontains $InstallDirectory) {
-        Write-Host "Add $InstallDirectory to PATH to run purescript-alexandrite."
+        Write-Host "Add $InstallDirectory to PATH to run alexandrite."
     }
 } finally {
     Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $TemporaryDirectory

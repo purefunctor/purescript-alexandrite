@@ -6,6 +6,6 @@ status: 2
 --- stderr
 error: the argument '--output' cannot be used multiple times
 
-Usage: purescript-alexandrite compile [FLAGS] [INPUT]…
+Usage: alexandrite compile [FLAGS] [INPUT]…
 
 For more information, try '--help'.

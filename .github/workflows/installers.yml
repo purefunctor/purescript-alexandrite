@@ -47,7 +47,9 @@ jobs:
           ALEXANDRITE_VERSION: ${{ inputs.version }}
         run: |
           sh ./install.sh
-          "$ALEXANDRITE_INSTALL_DIR/purescript-alexandrite" --version
+          "$ALEXANDRITE_INSTALL_DIR/alexandrite" --version
+          test ! -e "$ALEXANDRITE_INSTALL_DIR/purescript-analyzer"
+          test ! -e "$ALEXANDRITE_INSTALL_DIR/purescript-alexandrite"
 
       - name: Install on Windows
         if: runner.os == 'Windows'
@@ -57,4 +59,10 @@ jobs:
           ALEXANDRITE_VERSION: ${{ inputs.version }}
         run: |
           & ./install.ps1
-          & "$env:ALEXANDRITE_INSTALL_DIR\purescript-alexandrite.exe" --version
+          & "$env:ALEXANDRITE_INSTALL_DIR\alexandrite.exe" --version
+          if ($LASTEXITCODE -ne 0) { throw "alexandrite --version failed" }
+          foreach ($LegacyBinary in @("purescript-analyzer.exe", "purescript-alexandrite.exe")) {
+            if (Test-Path "$env:ALEXANDRITE_INSTALL_DIR\$LegacyBinary") {
+              throw "Installer created legacy executable $LegacyBinary"
+            }
+          }

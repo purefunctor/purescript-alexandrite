@@ -6,6 +6,6 @@ status: 2
 --- stderr
 error: the argument '--output' cannot be used multiple times
 
-Usage: purescript-alexandrite docs typescript [--output <DIR>]
+Usage: alexandrite docs typescript [--output <DIR>]
 
 For more information, try '--help'.

@@ -16,12 +16,8 @@ default = []
 no-tracing = ["tracing/max_level_off"]
 
 [[bin]]
-name = "purescript-alexandrite"
-path = "src/bin/purescript-alexandrite.rs"
-
-[[bin]]
-name = "purescript-analyzer"
-path = "src/bin/purescript-analyzer.rs"
+name = "alexandrite"
+path = "src/bin/alexandrite.rs"
 
 [dependencies]
 analyzer = { version = "0.1.0", path = "../compiler-lsp/analyzer" }

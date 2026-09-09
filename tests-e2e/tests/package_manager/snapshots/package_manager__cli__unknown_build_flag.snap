@@ -6,6 +6,6 @@ status: 2
 --- stderr
 error: unexpected argument '--unknown' found
 
-Usage: purescript-alexandrite build [FLAGS]
+Usage: alexandrite build [FLAGS]
 
 For more information, try '--help'.

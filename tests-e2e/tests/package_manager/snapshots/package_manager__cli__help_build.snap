@@ -5,7 +5,7 @@ status: 0
 --- stdout
 Build a Spago workspace or package.
 
-Usage: purescript-alexandrite build [FLAGS]
+Usage: alexandrite build [FLAGS]
 
 Flags:
       --query-log <LevelFilter>     Log level for the query engine.

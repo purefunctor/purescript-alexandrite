@@ -3,7 +3,7 @@
 set -eu
 
 repository="purefunctor/purescript-alexandrite"
-binary="purescript-alexandrite"
+binary="alexandrite"
 install_directory="${ALEXANDRITE_INSTALL_DIR:-$HOME/.local/bin}"
 version="${ALEXANDRITE_VERSION:-latest}"
 
@@ -34,6 +34,7 @@ if [ "$version" = "latest" ]; then
 fi
 
 case "$version" in
+    v0.0.*) fail "this installer requires v0.1.0 or later; use the installer from the requested release tag for v0.0.x" ;;
     v[0-9]*) ;;
     *) fail "invalid release version: $version" ;;
 esac
@@ -47,22 +48,15 @@ archive="$temporary_directory/$archive_name"
 printf 'Downloading %s %s for %s\n' "$binary" "$version" "$target"
 curl --proto '=https' --tlsv1.2 -LsSf --retry 3 --output "$archive" "$archive_url"
 
-case "$version" in
-    v0.0.[0-9] | v0.0.1[0-3])
-        printf 'warning: %s predates release attestations and cannot be verified.\n' "$version" >&2
-        ;;
-    *)
-        if command -v gh >/dev/null 2>&1 && gh attestation verify --help >/dev/null 2>&1; then
-            printf 'Verifying GitHub release attestation\n'
-            gh attestation verify "$archive" --repo "$repository" >/dev/null || \
-                fail "GitHub release attestation verification failed"
-        else
-            printf '%s\n' \
-                'warning: A GitHub CLI with attestation support is not installed; release provenance was not verified.' \
-                'warning: Install or update gh from https://cli.github.com/ to verify future installations.' >&2
-        fi
-        ;;
-esac
+if command -v gh >/dev/null 2>&1 && gh attestation verify --help >/dev/null 2>&1; then
+    printf 'Verifying GitHub release attestation\n'
+    gh attestation verify "$archive" --repo "$repository" >/dev/null || \
+        fail "GitHub release attestation verification failed"
+else
+    printf '%s\n' \
+        'warning: A GitHub CLI with attestation support is not installed; release provenance was not verified.' \
+        'warning: Install or update gh from https://cli.github.com/ to verify future installations.' >&2
+fi
 
 archive_directory="$binary-$target"
 archive_binary="$archive_directory/$binary"
