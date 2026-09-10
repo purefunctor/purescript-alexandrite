@@ -14,9 +14,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        # Linux build and integration tests run on Buildkite.
+        # Linux and macOS build and integration tests run on Buildkite.
         os:
-          - macos-latest
           - windows-latest
         toolchain:
           - stable
@@ -74,10 +73,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Linux end-to-end tests run on Buildkite.
+        # Linux and macOS end-to-end tests run on Buildkite.
         include:
-          - os: macos-latest
-            spago_cache: ~/Library/Caches/spago-nodejs
           - os: windows-latest
             spago_cache: ~/AppData/Local/spago-nodejs/Cache
 
