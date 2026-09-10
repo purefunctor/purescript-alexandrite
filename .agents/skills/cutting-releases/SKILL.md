@@ -51,12 +51,12 @@ Verify the focused package and the user-visible version:
 ```bash
 cargo check -p purescript-alexandrite --tests --locked
 cargo run -p purescript-alexandrite --locked \
-  --bin purescript-alexandrite -- --version
+  --bin alexandrite -- --version
 git diff --check
 git diff -- compiler-bin/Cargo.toml Cargo.lock
 ```
 
-The CLI must print `purescript-alexandrite $version`. Commit only the manifest and lockfile:
+The CLI must print `alexandrite $version`. Commit only the manifest and lockfile:
 
 ```bash
 git add compiler-bin/Cargo.toml Cargo.lock

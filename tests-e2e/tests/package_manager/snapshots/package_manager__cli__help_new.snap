@@ -5,7 +5,7 @@ status: 0
 --- stdout
 Create a Spago project in the current directory.
 
-Usage: purescript-alexandrite new [--name <NAME>]
+Usage: alexandrite new [--name <NAME>]
 
 Flags:
       --name <NAME>  Package name. Defaults to the current directory name.

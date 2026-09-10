@@ -7,6 +7,6 @@ status: 2
 error: the following required arguments were not provided:
   --package
 
-Usage: purescript-alexandrite docs [FLAGS] [SUBCOMMAND]
+Usage: alexandrite docs [FLAGS] [SUBCOMMAND]
 
 For more information, try '--help'.

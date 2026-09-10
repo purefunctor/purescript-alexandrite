@@ -6,6 +6,6 @@ status: 2
 --- stderr
 error: the argument '--package' cannot be used multiple times
 
-Usage: purescript-alexandrite build [FLAGS]
+Usage: alexandrite build [FLAGS]
 
 For more information, try '--help'.

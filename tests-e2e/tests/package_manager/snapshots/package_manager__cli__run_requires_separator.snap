@@ -6,6 +6,6 @@ status: 2
 --- stderr
 error: '[-- ARGUMENTS]…' can only be given after '--'
 
-Usage: purescript-alexandrite run [FLAGS] [-- ARGUMENTS]…
+Usage: alexandrite run [FLAGS] [-- ARGUMENTS]…
 
 For more information, try '--help'.

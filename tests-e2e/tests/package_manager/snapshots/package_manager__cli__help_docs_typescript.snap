@@ -5,7 +5,7 @@ status: 0
 --- stdout
 Generate TypeScript declarations for the documentation JSON schema.
 
-Usage: purescript-alexandrite docs typescript [--output <DIR>]
+Usage: alexandrite docs typescript [--output <DIR>]
 
 Flags:
       --output <DIR>  Output directory for the generated TypeScript schema.

@@ -26,7 +26,7 @@ fn absolute_path(value: PathBuf) -> io::Result<PathBuf> {
 
 #[derive(Debug, usage::Cli)]
 #[usage(
-    bin = "purescript-alexandrite",
+    bin = "alexandrite",
     about = env!("CARGO_PKG_DESCRIPTION"),
     version,
     unknown_flags = "error",

@@ -5,7 +5,7 @@ status: 0
 --- stdout
 Add dependencies to a Spago package.
 
-Usage: purescript-alexandrite add [-p --package <NAME>] [--test] <DEPENDENCY>…
+Usage: alexandrite add [-p --package <NAME>] [--test] <DEPENDENCY>…
 
 Arguments:
   <DEPENDENCY>…  Packages to add.

@@ -54,9 +54,9 @@ jobs:
         id: release
         uses: taiki-e/upload-rust-binary-action@v1
         with:
-          bin: purescript-analyzer,purescript-alexandrite
+          bin: alexandrite
           package: purescript-alexandrite
-          archive: purescript-alexandrite-$target
+          archive: alexandrite-$target
           include: README.md,LICENSE,ACKNOWLEDGEMENTS.md,THIRDPARTY.toml
           leading-dir: true
           locked: true
