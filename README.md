@@ -19,7 +19,8 @@ definition, hover information, find references, workspace symbol search, and dia
 
 ## Language server configuration
 
-Run `iris lsp --stdio` (or `iris --stdio`) to start the language server.
+Run `iris lsp --stdio` to start the language server. The `lsp` subcommand is required;
+`iris` alone no longer starts the server, and language-server options must follow `lsp`.
 Supply startup settings as inline JSON or a UTF-8 JSON file:
 
 ```sh

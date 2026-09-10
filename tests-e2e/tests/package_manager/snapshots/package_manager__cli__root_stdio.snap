@@ -7,12 +7,12 @@ status: 2
 Error! · [unknown_flag] · command line:1:6
   •
   │
-  • unexpected argument '--unknown' found
+  • unexpected argument '--stdio' found
   │
   │ Usage: iris [--log-file] <SUBCOMMAND>
   │
   │ For more information, try '--help'.
   │
-  │   iris --unknown
-  │        ╰────────
+  │   iris --stdio
+  │        ╰──────
   •

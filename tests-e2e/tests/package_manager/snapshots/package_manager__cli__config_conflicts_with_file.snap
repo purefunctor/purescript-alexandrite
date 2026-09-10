@@ -9,10 +9,10 @@ Error! · [conflicting_flags] · command line:1:1
   │
   • the argument '--config' cannot be used with '--config-file'
   │
-  │ Usage: iris [FLAGS] [SUBCOMMAND]
+  │ Usage: iris lsp [FLAGS]
   │
   │ For more information, try '--help'.
   │
-  │   iris --config {} --config-file missing.json
-  │   ╰──────────────────────────────────────────
+  │   iris lsp --config {} --config-file missing.json
+  │   ╰──────────────────────────────────────────────
   •

@@ -9,7 +9,7 @@ Error! · [unknown_flag] · command line:1:6
   │
   • unexpected argument '--λ' found
   │
-  │ Usage: iris [FLAGS] [SUBCOMMAND]
+  │ Usage: iris [--log-file] <SUBCOMMAND>
   │
   │ For more information, try '--help'.
   │

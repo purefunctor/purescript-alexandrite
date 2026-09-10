@@ -169,9 +169,9 @@ fn empty_configuration_preserves_spago_and_default_diagnostics() {
     workspace.write("config/empty.json", "{}");
 
     let cases: &[&[&str]] = &[
-        &[],
+        &["lsp"],
         &["lsp", "--config", "null"],
-        &["--config-file", "config/empty.json"],
+        &["lsp", "--config-file", "config/empty.json"],
         &[
             "lsp",
             "--config",
@@ -211,9 +211,9 @@ console.log("selected/*.purs");
     let absolute_path = workspace.path().join("settings/server config.json");
     let root = workspace.path().join("project");
     let cases: &[&[&str]] = &[
-        &["--config", &configuration],
+        &["lsp", "--config", &configuration],
         &["lsp", "--config-file", "../settings/server config.json"],
-        &["--config-file", absolute_path.to_str().unwrap()],
+        &["lsp", "--config-file", absolute_path.to_str().unwrap()],
     ];
     for arguments in cases {
         workspace.write("settings/server config.json", &configuration);
