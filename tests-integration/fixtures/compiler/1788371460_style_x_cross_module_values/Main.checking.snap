@@ -1,10 +1,10 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 297
+assertion_line: 306
 expression: checking_report
 ---
 Terms
-theme :: Alexandrite.StyleX.Style
-styles :: { root :: Alexandrite.StyleX.Style }
+theme :: Iris.StyleX.Style
+styles :: { root :: Iris.StyleX.Style }
 
 Types

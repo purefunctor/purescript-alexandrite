@@ -26,7 +26,7 @@ fn absolute_path(value: PathBuf) -> io::Result<PathBuf> {
 
 #[derive(Debug, usage::Cli)]
 #[usage(
-    bin = "alexandrite",
+    bin = "iris",
     about = env!("CARGO_PKG_DESCRIPTION"),
     version,
     unknown_flags = "error",
@@ -395,7 +395,7 @@ mod tests {
     }
 
     fn lsp(args: &[&str]) -> LspOptions {
-        let mut argv = vec!["alexandrite"];
+        let mut argv = vec!["iris"];
         argv.extend(args);
         let program = parse(argv);
         match program.into_command().unwrap() {
@@ -405,7 +405,7 @@ mod tests {
     }
 
     fn docs(args: &[&str]) -> DocsOptions {
-        let mut argv = vec!["alexandrite", "docs"];
+        let mut argv = vec!["iris", "docs"];
         argv.extend(args);
         let program = parse(argv);
         match program.into_command().unwrap() {
@@ -415,7 +415,7 @@ mod tests {
     }
 
     fn compile(args: &[&str]) -> CompileOptions {
-        let mut argv = vec!["alexandrite", "compile"];
+        let mut argv = vec!["iris", "compile"];
         argv.extend(args);
         let program = parse(argv);
         match program.into_command().unwrap() {
@@ -425,13 +425,13 @@ mod tests {
     }
 
     fn compile_error_kind(args: &[&str]) -> Code {
-        let mut argv = vec!["alexandrite", "compile"];
+        let mut argv = vec!["iris", "compile"];
         argv.extend(args);
         error_kind(argv)
     }
 
     fn build(args: &[&str]) -> ProjectBuildCommandOptions {
-        let mut argv = vec!["alexandrite", "build"];
+        let mut argv = vec!["iris", "build"];
         argv.extend(args);
         let program = parse(argv);
         match program.into_command().unwrap() {
@@ -441,7 +441,7 @@ mod tests {
     }
 
     fn watch(args: &[&str]) -> ProjectBuildOptions {
-        let mut argv = vec!["alexandrite", "watch"];
+        let mut argv = vec!["iris", "watch"];
         argv.extend(args);
         let program = parse(argv);
         match program.into_command().unwrap() {
@@ -451,7 +451,7 @@ mod tests {
     }
 
     fn docs_error_kind(args: &[&str]) -> Code {
-        let mut argv = vec!["alexandrite", "docs"];
+        let mut argv = vec!["iris", "docs"];
         argv.extend(args);
         error_kind(argv)
     }
@@ -611,7 +611,7 @@ mod tests {
 
     #[test]
     fn absolute_paths_are_not_resolved_from_the_current_directory() {
-        let output = std::env::temp_dir().join("alexandrite-docs-output");
+        let output = std::env::temp_dir().join("iris-docs-output");
         let options = docs(&["--package", "packages/effect", "--output", output.to_str().unwrap()]);
 
         assert_eq!(options.output, output);

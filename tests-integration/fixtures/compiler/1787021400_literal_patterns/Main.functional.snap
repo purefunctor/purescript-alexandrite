@@ -1,6 +1,7 @@
 ---
-source: tests-integration/tests/functional.rs
-expression: report
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
 ---
 @export integer = \$int%0 ->
   case $int%0 of
@@ -34,7 +35,7 @@ expression: report
 
 @export string = \$string%4 ->
   case $string%4 of
-    "alexandrite" ->
+    "iris" ->
       true
     _ ->
       false

@@ -233,9 +233,9 @@ where
             return Ok(None);
         };
         let intrinsic = match module_name.as_str() {
-            "Alexandrite.StyleX" => stylex_root_intrinsic(name).map(StyleXIntrinsic::Root),
-            "Alexandrite.StyleX.When" => stylex_when_intrinsic(name),
-            "Alexandrite.StyleX.Types" => stylex_type_intrinsic(name).map(StyleXIntrinsic::Types),
+            "Iris.StyleX" => stylex_root_intrinsic(name).map(StyleXIntrinsic::Root),
+            "Iris.StyleX.When" => stylex_when_intrinsic(name),
+            "Iris.StyleX.Types" => stylex_type_intrinsic(name).map(StyleXIntrinsic::Types),
             _ => None,
         };
         Ok(intrinsic)
@@ -402,7 +402,7 @@ where
     }
 
     pub(super) fn module_is_virtual(&self, file_id: FileId) -> bool {
-        ["Alexandrite.StyleX", "Alexandrite.StyleX.When", "Alexandrite.StyleX.Types"]
+        ["Iris.StyleX", "Iris.StyleX.When", "Iris.StyleX.Types"]
             .into_iter()
             .any(|module_name| self.queries.module_file(module_name) == Some(file_id))
     }

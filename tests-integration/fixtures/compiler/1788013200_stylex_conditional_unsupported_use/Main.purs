@@ -1,6 +1,6 @@
 module Main where
 
-import Alexandrite.StyleX (Style, conditional)
+import Iris.StyleX (Style, conditional)
 
 partialConditional :: Style -> Style
 partialConditional = conditional true

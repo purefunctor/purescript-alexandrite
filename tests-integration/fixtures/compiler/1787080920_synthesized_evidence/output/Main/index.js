@@ -1,6 +1,6 @@
 import * as Data_Reflectable from "../Data.Reflectable/index.js";
 import * as Data_Symbol from "../Data.Symbol/index.js";
-export const symbol = /* @__PURE__ */ Data_Symbol.reflectSymbol({ reflectSymbol: ($proxy) => "alexandrite" })("Proxy");
+export const symbol = /* @__PURE__ */ Data_Symbol.reflectSymbol({ reflectSymbol: ($proxy) => "iris" })("Proxy");
 export const reflectedString = /* @__PURE__ */ Data_Reflectable.reflectType({ reflectType: ($proxy) => "reflected" })("Proxy");
 export const reflectedInteger = /* @__PURE__ */ Data_Reflectable.reflectType({ reflectType: ($proxy) => 42 | 0 })("Proxy");
 export const reflectedTrue = /* @__PURE__ */ Data_Reflectable.reflectType({ reflectType: ($proxy) => true })("Proxy");

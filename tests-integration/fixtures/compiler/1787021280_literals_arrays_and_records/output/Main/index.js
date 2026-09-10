@@ -1,7 +1,7 @@
 export const integer = 42 | 0;
 export const number = 1.5;
 export const character = "a";
-export const string = "alexandrite";
+export const string = "iris";
 export const boolean = true;
 export const array = [
   1 | 0,

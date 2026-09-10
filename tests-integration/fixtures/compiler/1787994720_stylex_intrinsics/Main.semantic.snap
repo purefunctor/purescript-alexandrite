@@ -1,47 +1,47 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 310
+assertion_line: 308
 expression: semantic_report
 ---
-animation :: Alexandrite.StyleX.Keyframes
+animation :: Iris.StyleX.Keyframes
 animation = keyframes { from: { opacity: 0.0 }, to: { opacity: 1.0 } }
 
-styles :: { button :: Alexandrite.StyleX.Style, label :: Alexandrite.StyleX.Style }
+styles :: { button :: Iris.StyleX.Style, label :: Iris.StyleX.Style }
 styles =
   create {compileStyles {trivial} {compileStyleListConsTypeRecord {compileStyleListConsTypeRecord {compileStyleListNilTypeRow} {trivial}} {trivial}}}
     { button: { color: "red", padding: 8, marginInline: negate {ringInt}
       20, opacity: negate {ringNumber}
       0.5, animationName: animation, :hover: { color: "blue" } }, label: { fontWeight: 600 } }
 
-secondary :: { root :: Alexandrite.StyleX.Style }
+secondary :: { root :: Iris.StyleX.Style }
 secondary =
   create {compileStyles {trivial} {compileStyleListConsTypeRecord {compileStyleListNilTypeRow} {trivial}}}
     { root: { backgroundColor: "navy" } }
 
-buttonProps :: Alexandrite.StyleX.Props
+buttonProps :: Iris.StyleX.Props
 buttonProps = props {propsInputStyle} styles.button
 
-styleProps :: { button :: Alexandrite.StyleX.Props, label :: { className :: Prim.String } }
+styleProps :: { button :: Iris.StyleX.Props, label :: { className :: Prim.String } }
 styleProps =
   recordProps {compileProps {trivial} {compilePropsListConsTypeStyle {compilePropsListConsTypeStyle {compilePropsListNilTypeRow} {trivial}} {trivial}}}
     styles
 
-appliedStyleProps :: { button :: Alexandrite.StyleX.Props, label :: { className :: Prim.String } }
+appliedStyleProps :: { button :: Iris.StyleX.Props, label :: { className :: Prim.String } }
 appliedStyleProps =
   apply
     (recordProps {compileProps {trivial} {compilePropsListConsTypeStyle {compilePropsListConsTypeStyle {compilePropsListNilTypeRow} {trivial}} {trivial}}})
     styles
 
-flippedStyleProps :: { button :: Alexandrite.StyleX.Props, label :: { className :: Prim.String } }
+flippedStyleProps :: { button :: Iris.StyleX.Props, label :: { className :: Prim.String } }
 flippedStyleProps =
   applyFlipped styles
     (recordProps {compileProps {trivial} {compilePropsListConsTypeStyle {compilePropsListConsTypeStyle {compilePropsListNilTypeRow} {trivial}} {trivial}}})
 
-buttonPropsArray :: Prim.Boolean -> Alexandrite.StyleX.Props
+buttonPropsArray :: Prim.Boolean -> Iris.StyleX.Props
 buttonPropsArray = \highlighted ->
   props {propsInputArrayStyle} [styles.button, conditional highlighted secondary.root]
 
-selectedProps :: Prim.Boolean -> Prim.Boolean -> Alexandrite.StyleX.Props
+selectedProps :: Prim.Boolean -> Prim.Boolean -> Iris.StyleX.Props
 selectedProps = \included -> \alternate ->
   props {propsInputStyle} (conditional included if alternate then styles.button else styles.label)
 

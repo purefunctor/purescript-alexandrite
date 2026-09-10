@@ -10,7 +10,7 @@ character :: Char
 character = 'a'
 
 string :: String
-string = "alexandrite"
+string = "iris"
 
 boolean :: Boolean
 boolean = true

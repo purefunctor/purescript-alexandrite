@@ -6,6 +6,6 @@ status: 2
 --- stderr
 error: the argument '--diagnostics-on-open' cannot be used multiple times
 
-Usage: alexandrite [FLAGS] [SUBCOMMAND]
+Usage: iris [FLAGS] [SUBCOMMAND]
 
 For more information, try '--help'.

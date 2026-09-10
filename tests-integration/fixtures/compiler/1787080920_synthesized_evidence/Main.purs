@@ -8,7 +8,7 @@ import Prim.Ordering (EQ, GT, LT)
 import Type.Proxy (Proxy(..))
 
 symbol :: String
-symbol = reflectSymbol (Proxy :: Proxy "alexandrite")
+symbol = reflectSymbol (Proxy :: Proxy "iris")
 
 reflectedString :: String
 reflectedString = reflectType (Proxy :: Proxy "reflected")

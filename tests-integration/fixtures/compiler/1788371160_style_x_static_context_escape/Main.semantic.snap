@@ -1,7 +1,7 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 310
+assertion_line: 308
 expression: semantic_report
 ---
-escaped :: Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Color Prim.String
+escaped :: Iris.StyleX.TypedValue Iris.StyleX.Types.Color Prim.String
 escaped = color {stringValueString} "red"

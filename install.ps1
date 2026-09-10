@@ -1,16 +1,16 @@
 $ErrorActionPreference = "Stop"
 
-$Repository = "purefunctor/purescript-alexandrite"
-$Binary = "alexandrite.exe"
-$InstallDirectory = if ($env:ALEXANDRITE_INSTALL_DIR) {
-    $env:ALEXANDRITE_INSTALL_DIR
+$Repository = "purefunctor/purescript-iris"
+$Binary = "iris.exe"
+$InstallDirectory = if ($env:IRIS_INSTALL_DIR) {
+    $env:IRIS_INSTALL_DIR
 } else {
-    Join-Path $env:LOCALAPPDATA "Alexandrite\bin"
+    Join-Path $env:LOCALAPPDATA "Iris\bin"
 }
-$Version = if ($env:ALEXANDRITE_VERSION) { $env:ALEXANDRITE_VERSION } else { "latest" }
+$Version = if ($env:IRIS_VERSION) { $env:IRIS_VERSION } else { "latest" }
 
 if (-not [Environment]::Is64BitOperatingSystem) {
-    throw "Alexandrite supports only 64-bit Windows"
+    throw "Iris supports only 64-bit Windows"
 }
 
 if ($Version -eq "latest") {
@@ -27,14 +27,14 @@ if ($Version -match '^v0\.0\.') {
 }
 
 $Target = "x86_64-pc-windows-msvc"
-$ArchiveName = "alexandrite-$Target.zip"
+$ArchiveName = "iris-$Target.zip"
 $ArchiveUrl = "https://github.com/$Repository/releases/download/$Version/$ArchiveName"
-$TemporaryDirectory = Join-Path ([System.IO.Path]::GetTempPath()) ("alexandrite-install-" + [guid]::NewGuid())
+$TemporaryDirectory = Join-Path ([System.IO.Path]::GetTempPath()) ("iris-install-" + [guid]::NewGuid())
 $Archive = Join-Path $TemporaryDirectory $ArchiveName
 
 New-Item -ItemType Directory -Path $TemporaryDirectory | Out-Null
 try {
-    Write-Host "Downloading alexandrite $Version for $Target"
+    Write-Host "Downloading iris $Version for $Target"
     Invoke-WebRequest -Uri $ArchiveUrl -OutFile $Archive
 
     $GitHubAttestationsAvailable = if (Get-Command gh -ErrorAction SilentlyContinue) {
@@ -56,20 +56,20 @@ try {
     }
 
     Expand-Archive -LiteralPath $Archive -DestinationPath $TemporaryDirectory
-    $ExtractedBinary = Join-Path $TemporaryDirectory "alexandrite-$Target\$Binary"
+    $ExtractedBinary = Join-Path $TemporaryDirectory "iris-$Target\$Binary"
     if (-not (Test-Path -LiteralPath $ExtractedBinary -PathType Leaf)) {
         throw "Release archive does not contain $Binary"
     }
 
     New-Item -ItemType Directory -Force -Path $InstallDirectory | Out-Null
     $Destination = Join-Path $InstallDirectory $Binary
-    $InstallationFile = Join-Path $InstallDirectory (".alexandrite-install-" + [guid]::NewGuid() + ".exe")
+    $InstallationFile = Join-Path $InstallDirectory (".iris-install-" + [guid]::NewGuid() + ".exe")
     Copy-Item -LiteralPath $ExtractedBinary -Destination $InstallationFile
     Move-Item -Force -LiteralPath $InstallationFile -Destination $Destination
 
     Write-Host "Installed $Version to $Destination"
     if ($env:PATH.Split([IO.Path]::PathSeparator) -notcontains $InstallDirectory) {
-        Write-Host "Add $InstallDirectory to PATH to run alexandrite."
+        Write-Host "Add $InstallDirectory to PATH to run iris."
     }
 } finally {
     Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $TemporaryDirectory

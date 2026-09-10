@@ -1,6 +1,6 @@
 ---
 name: running-compatibility-checks
-description: "Runs Alexandrite package-set compatibility comparisons with release-built verifiers. Use when checking the current checkout against a base revision, investigating compatibility regressions, or reviewing compatibility reports."
+description: "Runs Iris package-set compatibility comparisons with release-built verifiers. Use when checking the current checkout against a base revision, investigating compatibility regressions, or reviewing compatibility reports."
 ---
 
 # Running Compatibility Checks

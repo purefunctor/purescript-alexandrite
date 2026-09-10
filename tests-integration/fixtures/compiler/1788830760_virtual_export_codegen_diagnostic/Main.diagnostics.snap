@@ -8,7 +8,7 @@ Error! · [FunctionalCodegen] · Main.purs:1:1
   │
   • Cannot generate JavaScript for module 'Main'.
   │
-  │ 'Alexandrite.StyleX.create' is a compile-time declaration and cannot be used at runtime.
+  │ 'Iris.StyleX.create' is a compile-time declaration and cannot be used at runtime.
   │
   │   module Main (module S) where
   │   ╰───────────────────────────

@@ -1,9 +1,9 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 297
+assertion_line: 306
 expression: checking_report
 ---
 Terms
-escaped :: Alexandrite.StyleX.ConditionalCase Prim.String
+escaped :: Iris.StyleX.ConditionalCase Prim.String
 
 Types

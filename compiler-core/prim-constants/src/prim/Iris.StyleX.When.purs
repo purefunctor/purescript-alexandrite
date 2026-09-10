@@ -1,4 +1,4 @@
-module Alexandrite.StyleX.When
+module Iris.StyleX.When
   ( ancestor
   , ancestorMarker
   , descendant
@@ -11,7 +11,7 @@ module Alexandrite.StyleX.When
   , anySiblingMarker
   ) where
 
-import Alexandrite.StyleX (ConditionalCase, Marker)
+import Iris.StyleX (ConditionalCase, Marker)
 
 foreign import ancestor :: forall value. String -> value -> ConditionalCase value
 

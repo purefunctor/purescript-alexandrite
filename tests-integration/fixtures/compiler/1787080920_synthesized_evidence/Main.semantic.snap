@@ -1,10 +1,10 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 310
+assertion_line: 308
 expression: semantic_report
 ---
 symbol :: Prim.String
-symbol = reflectSymbol {isSymbol("alexandrite")} Proxy
+symbol = reflectSymbol {isSymbol("iris")} Proxy
 
 reflectedString :: Prim.String
 reflectedString = reflectType {reflectable("reflected")} Proxy

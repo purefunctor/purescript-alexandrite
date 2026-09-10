@@ -1,50 +1,29 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 310
+assertion_line: 308
 expression: semantic_report
 ---
 constants :: { columns :: Prim.Int, compact :: Prim.String }
 constants = defineConsts { compact: "@media (max-width: 40rem)", columns: 12 }
 
-variables :: { accent ::
-    Alexandrite.StyleX.Variable
-      (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Color Prim.String)
-, angle ::
-    Alexandrite.StyleX.Variable
-      (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Angle Prim.String)
-, image ::
-    Alexandrite.StyleX.Variable
-      (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Image Prim.String)
-, integer ::
-    Alexandrite.StyleX.Variable
-      (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Integer Prim.Int)
-, length ::
-    Alexandrite.StyleX.Variable
-      (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Length Prim.String)
+variables :: { accent :: Iris.StyleX.Variable (Iris.StyleX.TypedValue Iris.StyleX.Types.Color Prim.String)
+, angle :: Iris.StyleX.Variable (Iris.StyleX.TypedValue Iris.StyleX.Types.Angle Prim.String)
+, image :: Iris.StyleX.Variable (Iris.StyleX.TypedValue Iris.StyleX.Types.Image Prim.String)
+, integer :: Iris.StyleX.Variable (Iris.StyleX.TypedValue Iris.StyleX.Types.Integer Prim.Int)
+, length :: Iris.StyleX.Variable (Iris.StyleX.TypedValue Iris.StyleX.Types.Length Prim.String)
 , lengthPercentage ::
-    Alexandrite.StyleX.Variable
-      (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.LengthPercentage Prim.String)
-, number ::
-    Alexandrite.StyleX.Variable
-      (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Number Prim.Number)
+    Iris.StyleX.Variable (Iris.StyleX.TypedValue Iris.StyleX.Types.LengthPercentage Prim.String)
+, number :: Iris.StyleX.Variable (Iris.StyleX.TypedValue Iris.StyleX.Types.Number Prim.Number)
 , percentage ::
-    Alexandrite.StyleX.Variable
-      (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Percentage Prim.String)
+    Iris.StyleX.Variable (Iris.StyleX.TypedValue Iris.StyleX.Types.Percentage Prim.String)
 , resolution ::
-    Alexandrite.StyleX.Variable
-      (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Resolution Prim.String)
-, time ::
-    Alexandrite.StyleX.Variable
-      (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Time Prim.String)
+    Iris.StyleX.Variable (Iris.StyleX.TypedValue Iris.StyleX.Types.Resolution Prim.String)
+, time :: Iris.StyleX.Variable (Iris.StyleX.TypedValue Iris.StyleX.Types.Time Prim.String)
 , transformFunction ::
-    Alexandrite.StyleX.Variable
-      (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.TransformFunction Prim.String)
+    Iris.StyleX.Variable (Iris.StyleX.TypedValue Iris.StyleX.Types.TransformFunction Prim.String)
 , transformList ::
-    Alexandrite.StyleX.Variable
-      (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.TransformList Prim.String)
-, url ::
-    Alexandrite.StyleX.Variable
-      (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Url Prim.String)
+    Iris.StyleX.Variable (Iris.StyleX.TypedValue Iris.StyleX.Types.TransformList Prim.String)
+, url :: Iris.StyleX.Variable (Iris.StyleX.TypedValue Iris.StyleX.Types.Url Prim.String)
 }
 variables =
   defineVars {compileVars {trivial} {compileVarListConsType {compileVarListConsType {compileVarListConsType {compileVarListConsType {compileVarListConsType {compileVarListConsType {compileVarListConsType {compileVarListConsType {compileVarListConsType {compileVarListConsType {compileVarListConsType {compileVarListConsType {compileVarListConsType {compileVarListNilTypeRow} {trivial}} {trivial}} {trivial}} {trivial}} {trivial}} {trivial}} {trivial}} {trivial}} {trivial}} {trivial}} {trivial}} {trivial}} {trivial}}}
@@ -61,16 +40,16 @@ variables =
       "scale(1)", transformList: transformList {stringValueString}
       "scale(1) rotate(2deg)", url: url {stringValueString} "url(image.png)" }
 
-theme :: Alexandrite.StyleX.Style
+theme :: Iris.StyleX.Style
 theme =
   createTheme {themeOverrides {trivial} {themeOverrideListConsType {trivial} {themeOverrideListConsType {trivial} {themeOverrideListNilType}}}}
     variables
     { accent: color {stringValueString} "white", length: length {stringOrNumberValueString} "12px" }
 
-rowMarker :: Alexandrite.StyleX.Marker
+rowMarker :: Iris.StyleX.Marker
 rowMarker = defineMarker
 
-styles :: { root :: Alexandrite.StyleX.Style }
+styles :: { root :: Iris.StyleX.Style }
 styles =
   create {compileStyles {trivial} {compileStyleListConsTypeRecord {compileStyleListNilTypeRow} {trivial}}}
     { root: { color: conditionalValue "blue"
@@ -81,18 +60,18 @@ styles =
         "navy", anySiblingMarker ":focus" rowMarker "teal"], position: firstThatWorks
       ["sticky", "fixed"] } }
 
-attributes :: Alexandrite.StyleX.Attrs
+attributes :: Iris.StyleX.Attrs
 attributes = attrs {propsInputStyle} styles.root
 
-recordAttributes :: { root :: Alexandrite.StyleX.Attrs }
+recordAttributes :: { root :: Iris.StyleX.Attrs }
 recordAttributes =
   recordAttrs {compileAttrs {trivial} {compileAttrsListConsTypeStyle {compileAttrsListNilTypeRow} {trivial}}}
     styles
 
-markerProps :: Alexandrite.StyleX.Props
+markerProps :: Iris.StyleX.Props
 markerProps = props {propsInputMarker} rowMarker
 
-defaultMarkerProps :: Alexandrite.StyleX.Props
+defaultMarkerProps :: Iris.StyleX.Props
 defaultMarkerProps = props {propsInputStyle} defaultMarker
 
 transitionClass :: Prim.String

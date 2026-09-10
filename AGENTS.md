@@ -1,16 +1,16 @@
 ## Humans
 
-Thank you for taking interest in contributing to Alexandrite. We welcome contributions assisted by
+Thank you for taking interest in contributing to Iris. We welcome contributions assisted by
 agentic coding tools that follow these principles:
 
 - **Justify your contribution.** As an external contributor, understand the problem your pull
-  request solves and explain from the outset why it is worth solving in Alexandrite, why your
+  request solves and explain from the outset why it is worth solving in Iris, why your
   approach is appropriate, and how you verified it. Be prepared to discuss the tradeoffs and respond
   to review. Agents may help implement the change and write its description; responsibility for
   understanding and justifying the contribution remains yours. This expectation addresses external
   contributions, not a separate approval process for work directed by the project's author or
   maintainers.
-- **Improve quality, not quantity.** Alexandrite is a fast-moving project, but its maintainers are
+- **Improve quality, not quantity.** Iris is a fast-moving project, but its maintainers are
   only human. We want to build a compiler for posterity, one that can withstand the test of time.
   Shipping features quickly can be tempting, but you should use those time savings to invest in
   improving quality.

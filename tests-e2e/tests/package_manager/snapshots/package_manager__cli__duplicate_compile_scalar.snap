@@ -6,6 +6,6 @@ status: 2
 --- stderr
 error: the argument '--output' cannot be used multiple times
 
-Usage: alexandrite compile [FLAGS] [INPUT]…
+Usage: iris compile [FLAGS] [INPUT]…
 
 For more information, try '--help'.

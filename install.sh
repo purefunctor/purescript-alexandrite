@@ -2,10 +2,10 @@
 
 set -eu
 
-repository="purefunctor/purescript-alexandrite"
-binary="alexandrite"
-install_directory="${ALEXANDRITE_INSTALL_DIR:-$HOME/.local/bin}"
-version="${ALEXANDRITE_VERSION:-latest}"
+repository="purefunctor/purescript-iris"
+binary="iris"
+install_directory="${IRIS_INSTALL_DIR:-$HOME/.local/bin}"
+version="${IRIS_VERSION:-latest}"
 
 fail() {
     printf 'error: %s\n' "$1" >&2
@@ -41,7 +41,7 @@ esac
 
 archive_name="$binary-$target.tar.gz"
 archive_url="https://github.com/$repository/releases/download/$version/$archive_name"
-temporary_directory=$(mktemp -d "${TMPDIR:-/tmp}/alexandrite-install.XXXXXXXX")
+temporary_directory=$(mktemp -d "${TMPDIR:-/tmp}/iris-install.XXXXXXXX")
 trap 'rm -rf "$temporary_directory"' EXIT HUP INT TERM
 archive="$temporary_directory/$archive_name"
 
@@ -71,7 +71,7 @@ extracted_binary="$temporary_directory/$archive_binary"
 mkdir -p "$install_directory"
 destination="$install_directory/$binary"
 [ ! -L "$destination" ] || fail "refusing to replace symbolic link: $destination"
-installation_file=$(mktemp "$install_directory/.alexandrite-install.XXXXXXXX")
+installation_file=$(mktemp "$install_directory/.iris-install.XXXXXXXX")
 trap 'rm -rf "$temporary_directory"; rm -f "$installation_file"' EXIT HUP INT TERM
 cp "$extracted_binary" "$installation_file"
 chmod 755 "$installation_file"

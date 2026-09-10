@@ -1,4 +1,4 @@
-module Alexandrite.StyleX
+module Iris.StyleX
   ( Style
   , Props
   , Attrs

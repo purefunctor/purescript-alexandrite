@@ -35,7 +35,7 @@ base_commit=$(git -C "$workspace" rev-parse --verify "${base_ref}^{commit}") || 
 
 timestamp=$(date -u +%Y%m%dT%H%M%SZ)
 report_dir=${COMPATIBILITY_REPORT_DIR:-"$workspace/target/compatibility-reports/$timestamp-$$"}
-temporary_dir=$(mktemp -d "${TMPDIR:-/tmp}/alexandrite-compatibility.XXXXXX") || \
+temporary_dir=$(mktemp -d "${TMPDIR:-/tmp}/iris-compatibility.XXXXXX") || \
   setup_failure "creating the temporary directory"
 base_workspace="$temporary_dir/base"
 

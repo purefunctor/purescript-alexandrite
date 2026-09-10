@@ -5,7 +5,7 @@ edition = "2024"
 publish = false
 
 [dependencies]
-purescript-alexandrite = { path = "../compiler-bin" }
+purescript-iris = { path = "../compiler-bin" }
 
 [dev-dependencies]
 insta = { version = "1.48.0", features = ["filters"] }
@@ -14,8 +14,8 @@ regex = "1.12.2"
 tempfile = "3.27.0"
 
 [[bin]]
-name = "alexandrite-e2e"
-path = "src/bin/alexandrite-e2e.rs"
+name = "iris-e2e"
+path = "src/bin/iris-e2e.rs"
 
 [[bin]]
 name = "spago-e2e"

@@ -1,9 +1,9 @@
 ---
 name: writing-code-commentary
-description: "Writes and reviews Alexandrite compiler comments, algorithm traces, and documentation examples. Use when documenting non-obvious compiler transformations, revising inline commentary, or applying documentation-focused review nits."
+description: "Writes and reviews Iris compiler comments, algorithm traces, and documentation examples. Use when documenting non-obvious compiler transformations, revising inline commentary, or applying documentation-focused review nits."
 ---
 
-# Writing Alexandrite Code Commentary
+# Writing Iris Code Commentary
 
 Make difficult compiler code reviewable without narrating code that already explains itself.
 
@@ -20,7 +20,7 @@ Before writing comments:
    - why an apparently redundant operation is required;
    - how types or expressions evolve through staged construction;
    - where elaboration, evidence, or another compiler subsystem completes the work.
-3. Inspect nearby comments and one analogous implementation elsewhere in the owning crate. Prefer established Alexandrite forms such as:
+3. Inspect nearby comments and one analogous implementation elsewhere in the owning crate. Prefer established Iris forms such as:
    - phase or branch rule followed by a type-state trace;
    - declaration or expression evolving beside each construction step;
    - match-arm rationale followed by concrete before/after equations;

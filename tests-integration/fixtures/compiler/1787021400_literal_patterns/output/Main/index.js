@@ -23,7 +23,7 @@ export function matchesEscapedDoubleQuote($char) {
   return false;
 }
 export function string($string) {
-  if ($string === "alexandrite") {
+  if ($string === "iris") {
     return true;
   }
   return false;

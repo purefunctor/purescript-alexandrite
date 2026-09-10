@@ -503,7 +503,7 @@ mod tests {
     fn temporary_directory() -> PathBuf {
         let nanos = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
         let index = TEMPORARY_DIRECTORY_INDEX.fetch_add(1, Ordering::Relaxed);
-        let directory = std::env::temp_dir().join(format!("alexandrite-docs-{nanos}-{index}"));
+        let directory = std::env::temp_dir().join(format!("iris-docs-{nanos}-{index}"));
         fs::create_dir_all(&directory).unwrap();
         directory
     }

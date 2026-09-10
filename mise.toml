@@ -27,6 +27,6 @@ rust = [
 binstall_quickinstall = true
 
 [env]
-ALEXANDRITE_NIGHTLY_TOOLCHAIN = "{{vars.rust_nightly}}"
+IRIS_NIGHTLY_TOOLCHAIN = "{{vars.rust_nightly}}"
 PNPM_CONFIG_STORE_DIR = "{{config_root}}/target/pnpm-store"
 PNPM_CONFIG_CACHE_DIR = "{{config_root}}/target/pnpm-cache"

@@ -8,7 +8,7 @@ const actual = {
   escapedDoubleQuote: Main.escapedDoubleQuote,
   matchesEscapedDoubleQuote: Main.matchesEscapedDoubleQuote(Main.escapedDoubleQuote),
   rejectsOtherCharacter: Main.matchesEscapedDoubleQuote("x"),
-  string: [Main.string("alexandrite"), Main.string("other")],
+  string: [Main.string("iris"), Main.string("other")],
   boolean: [Main.boolean(true), Main.boolean(false)],
 };
 const expected = {

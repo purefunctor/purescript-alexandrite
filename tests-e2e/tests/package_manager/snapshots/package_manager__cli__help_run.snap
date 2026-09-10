@@ -5,7 +5,7 @@ status: 0
 --- stdout
 Build and run a Spago package with Node.js.
 
-Usage: alexandrite run [FLAGS] [-- ARGUMENTS]…
+Usage: iris run [FLAGS] [-- ARGUMENTS]…
 
 Arguments:
   [-- ARGUMENTS]…  Arguments passed to the program.

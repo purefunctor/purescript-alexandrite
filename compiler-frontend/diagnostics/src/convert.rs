@@ -139,9 +139,9 @@ impl ToDiagnostics for FunctionalModuleError {
             FunctionalUnsupportedState::GeneratedGlobalIdentityOverflow =>
                 "The compiler's limit on generated top-level declarations was exceeded.".to_owned(),
             FunctionalUnsupportedState::InvalidStyleXUse { function, .. } =>
-                format!("'Alexandrite.StyleX.{function}' must be called directly with all of its arguments.\n\nIt cannot be passed around as a function or partially applied."),
+                format!("'Iris.StyleX.{function}' must be called directly with all of its arguments.\n\nIt cannot be passed around as a function or partially applied."),
             FunctionalUnsupportedState::InvalidStyleXContext { function, requirement, .. } =>
-                format!("'Alexandrite.StyleX.{function}' {requirement}."),
+                format!("'Iris.StyleX.{function}' {requirement}."),
             FunctionalUnsupportedState::VirtualModuleRuntimeReference { module_name, item_name } =>
                 format!("'{module_name}.{item_name}' is a compile-time declaration and cannot be used at runtime."),
         };
@@ -262,7 +262,7 @@ impl ToDiagnostics for ForeignError {
             ForeignError::Parse { message, .. } => Diagnostic::warning(
                 "UnparseableFFIModule",
                 format!(
-                    "Oxc could not parse the JavaScript FFI module. Fix the invalid or unsupported JavaScript syntax; Alexandrite treated the module as opaque and skipped export-name validation: {message}"
+                    "Oxc could not parse the JavaScript FFI module. Fix the invalid or unsupported JavaScript syntax; Iris treated the module as opaque and skipped export-name validation: {message}"
                 ),
                 span,
                 "foreign-javascript",

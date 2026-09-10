@@ -43,26 +43,26 @@ jobs:
       - name: Install on Linux or macOS
         if: runner.os != 'Windows'
         env:
-          ALEXANDRITE_INSTALL_DIR: ${{ runner.temp }}/alexandrite/bin
-          ALEXANDRITE_VERSION: ${{ inputs.version }}
+          IRIS_INSTALL_DIR: ${{ runner.temp }}/iris/bin
+          IRIS_VERSION: ${{ inputs.version }}
         run: |
           sh ./install.sh
-          "$ALEXANDRITE_INSTALL_DIR/alexandrite" --version
-          test ! -e "$ALEXANDRITE_INSTALL_DIR/purescript-analyzer"
-          test ! -e "$ALEXANDRITE_INSTALL_DIR/purescript-alexandrite"
+          "$IRIS_INSTALL_DIR/iris" --version
+          test ! -e "$IRIS_INSTALL_DIR/purescript-analyzer"
+          test ! -e "$IRIS_INSTALL_DIR/purescript-iris"
 
       - name: Install on Windows
         if: runner.os == 'Windows'
         shell: pwsh
         env:
-          ALEXANDRITE_INSTALL_DIR: ${{ runner.temp }}\alexandrite\bin
-          ALEXANDRITE_VERSION: ${{ inputs.version }}
+          IRIS_INSTALL_DIR: ${{ runner.temp }}\iris\bin
+          IRIS_VERSION: ${{ inputs.version }}
         run: |
           & ./install.ps1
-          & "$env:ALEXANDRITE_INSTALL_DIR\alexandrite.exe" --version
-          if ($LASTEXITCODE -ne 0) { throw "alexandrite --version failed" }
-          foreach ($LegacyBinary in @("purescript-analyzer.exe", "purescript-alexandrite.exe")) {
-            if (Test-Path "$env:ALEXANDRITE_INSTALL_DIR\$LegacyBinary") {
+          & "$env:IRIS_INSTALL_DIR\iris.exe" --version
+          if ($LASTEXITCODE -ne 0) { throw "iris --version failed" }
+          foreach ($LegacyBinary in @("purescript-analyzer.exe", "purescript-iris.exe")) {
+            if (Test-Path "$env:IRIS_INSTALL_DIR\$LegacyBinary") {
               throw "Installer created legacy executable $LegacyBinary"
             }
           }

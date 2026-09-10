@@ -6,6 +6,6 @@ status: 2
 --- stderr
 error: '[-- ARGUMENTS]…' can only be given after '--'
 
-Usage: alexandrite run [FLAGS] [-- ARGUMENTS]…
+Usage: iris run [FLAGS] [-- ARGUMENTS]…
 
 For more information, try '--help'.

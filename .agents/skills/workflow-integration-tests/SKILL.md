@@ -1,9 +1,9 @@
 ---
 name: workflow-integration-tests
-description: "Workflow for adding and updating Alexandrite integration-test fixtures for unified compiler, lowering, resolving, and LSP behavior. Use when creating compiler integration tests, reviewing snapshots or generated JavaScript, or using `just t <category>`."
+description: "Workflow for adding and updating Iris integration-test fixtures for unified compiler, lowering, resolving, and LSP behavior. Use when creating compiler integration tests, reviewing snapshots or generated JavaScript, or using `just t <category>`."
 ---
 
-# Workflow: Alexandrite Integration Tests
+# Workflow: Iris Integration Tests
 
 Use the command reference at `reference/compiler-scripts.md` for test runner syntax, snapshot workflows, filters, and trace debugging.
 
@@ -99,7 +99,7 @@ When an intentional compiler change affects generated JavaScript, review the rep
 just t compiler NNN --update-output
 ```
 
-Ordinary compiler runs must remain read-only. Do not set `ALEXANDRITE_UPDATE_JAVASCRIPT_OUTPUT` directly; `compiler-scripts` owns that implementation detail.
+Ordinary compiler runs must remain read-only. Do not set `IRIS_UPDATE_JAVASCRIPT_OUTPUT` directly; `compiler-scripts` owns that implementation detail.
 
 ### 4. Accept or reject snapshots
 

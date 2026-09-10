@@ -1,13 +1,13 @@
 [package]
-name = "purescript-alexandrite"
+name = "purescript-iris"
 version = "0.1.0"
 edition = "2024"
 authors = ["Justin Garcia <git@purefunctor.me>"]
 license = "BSD-3-Clause"
 description = "Language implementation for the PureScript programming language."
 readme = "../README.md"
-homepage = "https://github.com/purefunctor/purescript-alexandrite"
-repository = "https://github.com/purefunctor/purescript-alexandrite"
+homepage = "https://github.com/purefunctor/purescript-iris"
+repository = "https://github.com/purefunctor/purescript-iris"
 keywords = ["purescript", "language server"]
 categories = ["compilers"]
 
@@ -16,8 +16,8 @@ default = []
 no-tracing = ["tracing/max_level_off"]
 
 [[bin]]
-name = "alexandrite"
-path = "src/bin/alexandrite.rs"
+name = "iris"
+path = "src/bin/iris.rs"
 
 [dependencies]
 analyzer = { version = "0.1.0", path = "../compiler-lsp/analyzer" }

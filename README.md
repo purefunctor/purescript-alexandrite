@@ -1,10 +1,10 @@
-<h1 align="center">alexandrite</h1>
+<h1 align="center">iris</h1>
 <p align="center">a language implementation for PureScript</p>
 
 ---
 
-Alexandrite is a language implementation for PureScript, powered by an incremental, query-based build
-system. Instead of a sequence of compiler phases, Alexandrite models compilation and semantic information
+Iris is a language implementation for PureScript, powered by an incremental, query-based build
+system. Instead of a sequence of compiler phases, Iris models compilation and semantic information
 as incrementally computed queries. These queries are used extensively to implement code intelligence
 features in the language server.
 
@@ -19,7 +19,7 @@ definition, hover information, find references, workspace symbol search, and dia
 
 ## Editor features
 
-Alexandrite provides code intelligence for PureScript projects through its VS Code extension.
+Iris provides code intelligence for PureScript projects through its VS Code extension.
 
 <details>
 <summary><strong>Completion</strong></summary>
@@ -87,7 +87,7 @@ Alexandrite provides code intelligence for PureScript projects through its VS Co
 <details>
 <summary><strong>Typed-hole suggestions</strong></summary>
 
-![Replacing a typed hole with an Alexandrite suggestion](.github/assets/vscode-demos/typed-hole-suggestions.gif)
+![Replacing a typed hole with an Iris suggestion](.github/assets/vscode-demos/typed-hole-suggestions.gif)
 
 </details>
 
@@ -111,17 +111,17 @@ On Linux and macOS:
 
 ```sh
 curl --proto '=https' --tlsv1.2 -LsSf \
-  https://raw.githubusercontent.com/purefunctor/purescript-alexandrite/main/install.sh | sh
+  https://raw.githubusercontent.com/purefunctor/purescript-iris/main/install.sh | sh
 ```
 
 On Windows PowerShell:
 
 ```powershell
-irm https://raw.githubusercontent.com/purefunctor/purescript-alexandrite/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/purefunctor/purescript-iris/main/install.ps1 | iex
 ```
 
 The installers verify the release's GitHub build-provenance attestation when
 [GitHub CLI](https://cli.github.com/) is available. They display a warning and continue when it is not
 installed. These installers require v0.1.0 or later; to install v0.0.x, use the installer from that
-release's Git tag. Set `ALEXANDRITE_VERSION` to a release tag or
-`ALEXANDRITE_INSTALL_DIR` to an installation directory to override the defaults.
+release's Git tag. Set `IRIS_VERSION` to a release tag or
+`IRIS_INSTALL_DIR` to an installation directory to override the defaults.

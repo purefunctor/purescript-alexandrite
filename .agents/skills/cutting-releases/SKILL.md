@@ -1,11 +1,11 @@
 ---
 name: cutting-releases
-description: "Cuts Alexandrite GitHub releases through the version-bump PR, merge commit, tag-driven build workflow, attestations, installer tests, and generated release notes. Use when preparing, publishing, verifying, or backfilling notes for a purescript-alexandrite release."
+description: "Cuts Iris GitHub releases through the version-bump PR, merge commit, tag-driven build workflow, attestations, installer tests, and generated release notes. Use when preparing, publishing, verifying, or backfilling notes for a purescript-iris release."
 ---
 
-# Cutting Alexandrite Releases
+# Cutting Iris Releases
 
-Use this workflow for `purescript-alexandrite` releases. A pushed `v*` tag triggers `.github/workflows/release.yml`, which creates the GitHub release, builds and attests four archives, and tests the installers on Linux, macOS, and Windows.
+Use this workflow for `purescript-iris` releases. A pushed `v*` tag triggers `.github/workflows/release.yml`, which creates the GitHub release, builds and attests four archives, and tests the installers on Linux, macOS, and Windows.
 
 Merging and pushing the release tag are shared, high-impact actions. Obtain explicit approval before each unless the user has already authorized that stage. Never move or delete a published release tag to repair a failed workflow.
 
@@ -42,21 +42,21 @@ Both commands should report that the target does not exist. Stop if either exist
 Create a release branch from current `main`. Update both version sources:
 
 - `compiler-bin/Cargo.toml`: package `version`
-- `Cargo.lock`: the `purescript-alexandrite` package `version`
+- `Cargo.lock`: the `purescript-iris` package `version`
 
 Do not change the internal compiler crates, which remain independently versioned.
 
 Verify the focused package and the user-visible version:
 
 ```bash
-cargo check -p purescript-alexandrite --tests --locked
-cargo run -p purescript-alexandrite --locked \
-  --bin alexandrite -- --version
+cargo check -p purescript-iris --tests --locked
+cargo run -p purescript-iris --locked \
+  --bin iris -- --version
 git diff --check
 git diff -- compiler-bin/Cargo.toml Cargo.lock
 ```
 
-The CLI must print `alexandrite $version`. Commit only the manifest and lockfile:
+The CLI must print `iris $version`. Commit only the manifest and lockfile:
 
 ```bash
 git add compiler-bin/Cargo.toml Cargo.lock
@@ -130,7 +130,7 @@ After the release workflow completes, use GitHub's generated-notes API and then 
 ```bash
 notes_file=$(mktemp)
 gh api --method POST \
-  "repos/purefunctor/purescript-alexandrite/releases/generate-notes" \
+  "repos/purefunctor/purescript-iris/releases/generate-notes" \
   -f "tag_name=$tag" \
   -f "target_commitish=<merge-commit-oid>" \
   -f "previous_tag_name=$previous_tag" \

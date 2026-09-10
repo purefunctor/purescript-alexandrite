@@ -66,13 +66,13 @@ impl TestWorkspace {
     fn command_builder(&self, directory: &str, arguments: &[&str]) -> Command {
         let current_directory = self.path().join(directory);
         fs::create_dir_all(&current_directory).unwrap();
-        let mut command = Command::new(env!("CARGO_BIN_EXE_alexandrite-e2e"));
+        let mut command = Command::new(env!("CARGO_BIN_EXE_iris-e2e"));
         command
             .args(arguments)
             .current_dir(current_directory)
-            .env("ALEXANDRITE_SPAGO", env!("CARGO_BIN_EXE_spago-e2e"))
-            .env("ALEXANDRITE_E2E_SPAGO", spago_executable())
-            .env("ALEXANDRITE_E2E_SPAGO_LOG", self.path().join("spago-calls"))
+            .env("IRIS_SPAGO", env!("CARGO_BIN_EXE_spago-e2e"))
+            .env("IRIS_E2E_SPAGO", spago_executable())
+            .env("IRIS_E2E_SPAGO_LOG", self.path().join("spago-calls"))
             .env("COLUMNS", "120")
             .env("NO_COLOR", "1");
         command

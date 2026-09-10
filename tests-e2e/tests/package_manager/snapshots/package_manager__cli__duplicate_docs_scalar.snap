@@ -6,6 +6,6 @@ status: 2
 --- stderr
 error: the argument '--output' cannot be used multiple times
 
-Usage: alexandrite docs [FLAGS] [SUBCOMMAND]
+Usage: iris docs [FLAGS] [SUBCOMMAND]
 
 For more information, try '--help'.

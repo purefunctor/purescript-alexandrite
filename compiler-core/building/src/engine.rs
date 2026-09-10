@@ -1991,7 +1991,7 @@ mod tests {
 
         let main = files.insert(
             "Main.purs",
-            "module Main where\n\nimport Alexandrite.StyleX (Props, Style, props)\n\npartialProps :: Style -> Props\npartialProps = props",
+            "module Main where\n\nimport Iris.StyleX (Props, Style, props)\n\npartialProps :: Style -> Props\npartialProps = props",
         );
         engine.set_content(main, files.content(main));
         engine.set_module_file("Main", main);

@@ -1,9 +1,9 @@
 ---
-source: tests-integration/tests/functional.rs
-assertion_line: 14
-expression: report
+source: tests-integration/src/fixtures.rs
+assertion_line: 309
+expression: functional_report
 ---
-@export symbol = reflectSymbol (symbol "alexandrite") "Proxy"
+@export symbol = reflectSymbol (symbol "iris") "Proxy"
 
 @export reflectedString = reflectType (reflectable "reflected") "Proxy"
 
