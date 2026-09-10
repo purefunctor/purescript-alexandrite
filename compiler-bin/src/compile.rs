@@ -94,16 +94,14 @@ fn compile(config: CompileConfig) -> Result<(), CompileError> {
         source_paths.extend(package::source_files(&current_directory, package)?);
     }
 
-    compile_source_paths(
-        &current_directory,
-        &config.output,
-        source_paths,
-        config.quiet,
-        config.color,
-        Resilience::Strict,
-        started,
-        preparation_progress,
-    )
+    let build_config = BuildConfig {
+        output: &config.output,
+        current_directory: &current_directory,
+        color: use_color(config.color),
+        progress: !config.quiet,
+        resilience: Resilience::Strict,
+    };
+    compile_source_paths(&build_config, source_paths, started, preparation_progress)
 }
 
 pub(crate) fn compile_inputs(
@@ -118,25 +116,20 @@ pub(crate) fn compile_inputs(
     let preparation_progress = progress::bar(1, "Preparing", !quiet);
     let walked = walk::walk(root, inputs)?;
     let source_paths = walked.files.into_iter().collect::<BTreeSet<_>>();
-    compile_source_paths(
-        root,
+
+    let build_config = BuildConfig {
         output,
-        source_paths,
-        quiet,
-        color,
+        current_directory: root,
+        color: use_color(color),
+        progress: !quiet,
         resilience,
-        started,
-        preparation_progress,
-    )
+    };
+    compile_source_paths(&build_config, source_paths, started, preparation_progress)
 }
 
 fn compile_source_paths(
-    current_directory: &Path,
-    output: &Path,
+    config: &BuildConfig<'_>,
     source_paths: BTreeSet<PathBuf>,
-    quiet: bool,
-    color: ColorChoice,
-    resilience: Resilience,
     started: Instant,
     preparation_progress: indicatif::ProgressBar,
 ) -> Result<(), CompileError> {
@@ -153,18 +146,11 @@ fn compile_source_paths(
         return Err(io::Error::new(io::ErrorKind::NotFound, "no input files found").into());
     }
 
-    let build_config = BuildConfig {
-        output,
-        current_directory,
-        color: use_color(color),
-        progress: !quiet,
-        resilience,
-    };
-    if matches!(build(&compilation, &build_config)?, BuildOutcome::Diagnostics) {
+    if matches!(build(&compilation, config)?, BuildOutcome::Diagnostics) {
         return Err(CompileError::Diagnostics);
     }
 
-    if !quiet {
+    if config.progress {
         progress::report_completion(started.elapsed());
     }
 

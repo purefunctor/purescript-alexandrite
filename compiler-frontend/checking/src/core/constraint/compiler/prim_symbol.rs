@@ -28,7 +28,7 @@ where
 
     let matched = match (left_symbol, right_symbol, appended_symbol) {
         (Some(left_value), Some(right_value), _) => {
-            let result = intern_symbol_literal(context, left_value.append(&right_value));
+            let result = intern_symbol_literal(context, left_value.append(right_value));
             match_equality(state, context, appended, result)?
         }
         (_, Some(right_value), Some(appended_value)) => {
@@ -82,7 +82,7 @@ where
         return Ok(Some(matching::blocking_constraint(state, context, &[right])?));
     };
 
-    let result = match left_symbol.cmp(&right_symbol) {
+    let result = match left_symbol.cmp(right_symbol) {
         Ordering::Less => context.prim_ordering.lt,
         Ordering::Equal => context.prim_ordering.eq,
         Ordering::Greater => context.prim_ordering.gt,

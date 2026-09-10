@@ -92,12 +92,12 @@ where
         }
 
         (Type::Rigid(left, _, _), Type::Rigid(right, _, _))
-            if !pattern.contains(&left) && !pattern.contains(&right) && left == right =>
+            if !pattern.contains(left) && !pattern.contains(right) && left == right =>
         {
             Ok(MatchType::Match { bindings: vec![] })
         }
 
-        (_, Type::Rigid(right, _, _)) if pattern.contains(&right) => {
+        (_, Type::Rigid(right, _, _)) if pattern.contains(right) => {
             Ok(MatchType::Match { bindings: vec![(*right, left)] })
         }
 
@@ -105,7 +105,7 @@ where
             Ok(MatchType::Stuck { stuck: vec![*unification], skolem: false })
         }
 
-        (Type::Rigid(name, _, _), _) | (_, Type::Rigid(name, _, _)) if !pattern.contains(&name) => {
+        (Type::Rigid(name, _, _), _) | (_, Type::Rigid(name, _, _)) if !pattern.contains(name) => {
             Ok(MatchType::Stuck { stuck: vec![], skolem: true })
         }
 

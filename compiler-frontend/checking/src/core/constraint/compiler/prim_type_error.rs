@@ -35,7 +35,7 @@ where
     if let Type::String(_, value) = context.lookup_type(id) {
         let text = value
             .to_utf8()
-            .unwrap_or_else(|_| lowering::literal::encode_normal_string_content(&value));
+            .unwrap_or_else(|_| lowering::literal::encode_normal_string_content(value));
         Ok(Some(SmolStr::from(text)))
     } else {
         Ok(None)
