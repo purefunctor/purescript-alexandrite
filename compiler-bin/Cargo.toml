@@ -24,6 +24,7 @@ analyzer = { version = "0.1.0", path = "../compiler-lsp/analyzer" }
 async-lsp = { version = "0.2.4", features = ["tokio"] }
 building = { version = "0.1.0", path = "../compiler-core/building" }
 checking = { version = "0.1.0", path = "../compiler-frontend/checking" }
+configuration = { version = "0.1.0", path = "../compiler-lsp/configuration" }
 console = "0.16.4"
 documentation = { version = "0.1.0", path = "../compiler-lsp/documentation" }
 diagnostics = { version = "0.1.0", path = "../compiler-frontend/diagnostics" }

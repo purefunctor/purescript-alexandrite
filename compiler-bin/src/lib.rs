@@ -14,7 +14,7 @@ mod watch;
 mod workspace;
 
 pub fn run() {
-    let program = cli::Program::parse();
+    let program = cli::Program::parse_with_diagnostics();
 
     if program.log_file {
         eprintln!("Log file: {:?}", logging::temporary_log_file());
@@ -27,18 +27,17 @@ pub fn run() {
 
     match command {
         cli::Command::Lsp(options) => {
+            let configuration = options.configuration().unwrap_or_else(|error| {
+                eprint!("{}", error.render());
+                std::process::exit(2);
+            });
             logging::start(logging::LoggingFilters {
                 query_log: options.logging.query_log,
                 checking_log: options.logging.checking_log,
                 lsp_log: options.lsp_log,
                 docs_log: LevelFilter::OFF,
             });
-            lsp::start(lsp::LspConfig {
-                source_command: options.source_command,
-                diagnostics_on_open: options.diagnostics_on_open.unwrap_or(true),
-                diagnostics_on_save: options.diagnostics_on_save.unwrap_or(true),
-                diagnostics_on_change: options.diagnostics_on_change,
-            });
+            lsp::start(configuration);
         }
         cli::Command::New(options) => project::start(project::new(options.name)),
         cli::Command::Build(options) => {

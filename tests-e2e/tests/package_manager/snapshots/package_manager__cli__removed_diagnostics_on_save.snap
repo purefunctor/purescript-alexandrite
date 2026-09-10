@@ -1,0 +1,18 @@
+---
+source: tests-e2e/tests/package_manager/cli.rs
+---
+status: 2
+--- stdout
+--- stderr
+Error! · [unknown_flag] · command line:1:10
+  •
+  │
+  • unexpected argument '--diagnostics-on-save' found
+  │
+  │ Usage: iris lsp [FLAGS]
+  │
+  │ For more information, try '--help'.
+  │
+  │   iris lsp --diagnostics-on-save false
+  │            ╰────────────────────
+  •

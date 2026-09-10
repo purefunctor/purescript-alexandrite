@@ -1,0 +1,16 @@
+---
+source: tests-e2e/tests/package_manager/cli.rs
+---
+status: 2
+--- stdout
+--- stderr
+Error! · [missing_flag_value] · command line:1:6
+  •
+  │
+  • a value is required for '--config <JSON>' but none was supplied
+  │
+  │ For more information, try '--help'.
+  │
+  │   iris --config
+  │        ╰───────
+  •

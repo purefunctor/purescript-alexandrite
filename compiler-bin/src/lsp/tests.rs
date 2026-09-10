@@ -8,6 +8,7 @@ use building::lifecycle::{
     ContentAuthority, DiskObservation, DocumentKind, ForeignEvent, LifecycleEvent, SourceEvent,
     SourceUnitKey,
 };
+use configuration::{Configuration, Diagnostics};
 use files::ForeignSourceKind;
 use lsp_types::{
     DidCloseTextDocumentParams, Position, Range, TextDocumentContentChangeEvent,
@@ -16,17 +17,14 @@ use lsp_types::{
 use tempfile::tempdir;
 
 use super::{
-    LspConfig, State, apply_content_changes, apply_lifecycle_event, did_close, document_kind,
-    observe_disk, source_unit_from_document_uri, source_unit_from_foreign_uri,
-    source_unit_from_source_uri,
+    State, apply_content_changes, apply_lifecycle_event, did_close, document_kind, observe_disk,
+    source_unit_from_document_uri, source_unit_from_foreign_uri, source_unit_from_source_uri,
 };
 
-fn test_config() -> Arc<LspConfig> {
-    Arc::new(LspConfig {
-        source_command: None,
-        diagnostics_on_open: false,
-        diagnostics_on_save: false,
-        diagnostics_on_change: false,
+fn test_config() -> Arc<Configuration> {
+    Arc::new(Configuration {
+        diagnostics: Diagnostics { on_open: false, on_save: false, on_change: false },
+        ..Configuration::default()
     })
 }
 

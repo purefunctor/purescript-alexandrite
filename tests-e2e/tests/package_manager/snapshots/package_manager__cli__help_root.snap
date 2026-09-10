@@ -27,25 +27,19 @@ Documentation commands:
   docs     Documentation utilities.
 
 Flags:
-      --log-file                         Print log path.
-      --query-log <LevelFilter>          Log level for the query engine.
-                                         [possible values: off, error, warn, info, debug, trace]
-                                         (default: off)
-      --checking-log <LevelFilter>       Log level for the type checker.
-                                         [possible values: off, error, warn, info, debug, trace]
-                                         (default: off)
+      --log-file                    Print log path.
+      --query-log <LevelFilter>     Log level for the query engine.
+                                    [possible values: off, error, warn, info, debug, trace]
+                                    (default: off)
+      --checking-log <LevelFilter>  Log level for the type checker.
+                                    [possible values: off, error, warn, info, debug, trace]
+                                    (default: off)
       --stdio
-      --lsp-log <LevelFilter>            Log level for the language server.
-                                         [possible values: off, error, warn, info, debug, trace]
-                                         (default: info)
-      --source-command <SOURCE_COMMAND>  Command to use to get source files.
-
-                                         This argument also disables the spago.lock integration.
-      --diagnostics-on-open <bool>       Publish diagnostics on textDocument/didOpen.
-                                         (default: true)
-      --diagnostics-on-save <bool>       Publish diagnostics on textDocument/didSave.
-                                         (default: true)
-      --diagnostics-on-change            Publish diagnostics on textDocument/didChange.
-  -h, --help                             Print help
-  -V, --version                          Print version
+      --lsp-log <LevelFilter>       Log level for the language server.
+                                    [possible values: off, error, warn, info, debug, trace]
+                                    (default: info)
+      --config <JSON>               Language server configuration as a JSON object, read once at startup.
+      --config-file <PATH>          Language server configuration file, relative to the working directory.
+  -h, --help                        Print help
+  -V, --version                     Print version
 --- stderr

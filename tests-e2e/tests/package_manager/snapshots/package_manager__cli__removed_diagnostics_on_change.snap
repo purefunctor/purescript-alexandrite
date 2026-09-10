@@ -1,0 +1,18 @@
+---
+source: tests-e2e/tests/package_manager/cli.rs
+---
+status: 2
+--- stdout
+--- stderr
+Error! · [unknown_flag] · command line:1:6
+  •
+  │
+  • unexpected argument '--diagnostics-on-change' found
+  │
+  │ Usage: iris [FLAGS] [SUBCOMMAND]
+  │
+  │ For more information, try '--help'.
+  │
+  │   iris --diagnostics-on-change
+  │        ╰──────────────────────
+  •

@@ -2683,6 +2683,7 @@ dependencies = [
  "async-lsp",
  "building",
  "checking",
+ "configuration",
  "console",
  "diagnostics",
  "documentation",
@@ -3744,7 +3745,9 @@ dependencies = [
  "itertools 0.15.0",
  "purescript-iris",
  "regex",
+ "serde_json",
  "tempfile",
+ "url",
 ]
 
 [[package]]

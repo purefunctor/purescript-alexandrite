@@ -1,0 +1,14 @@
+---
+source: tests-e2e/tests/package_manager/cli.rs
+---
+status: 2
+--- stdout
+--- stderr
+Error! · [InvalidConfiguration] · --config:1:17
+  •
+  │
+  • unknown field `onOpened`, expected one of `onOpen`, `onSave`, `onChange`
+  │
+  │   {"diagnostics":{"onOpened":false}}
+  │                   ╰─────────
+  •

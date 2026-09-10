@@ -1,0 +1,14 @@
+---
+source: tests-e2e/tests/package_manager/cli.rs
+---
+status: 2
+--- stdout
+--- stderr
+Error! · [InvalidConfiguration] · config/settings.json:1:26
+  •
+  │
+  • invalid type: string "false", expected a boolean
+  │
+  │   {"diagnostics":{"onSave":"false"}}
+  │                            ╰──────
+  •

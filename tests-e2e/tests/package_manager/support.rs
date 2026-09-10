@@ -57,6 +57,7 @@ impl TestWorkspace {
 
     pub fn spawn_in(&self, directory: &str, arguments: &[&str]) -> Child {
         self.command_builder(directory, arguments)
+            .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
