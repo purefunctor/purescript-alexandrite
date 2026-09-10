@@ -1,7 +1,7 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 310
+assertion_line: 308
 expression: semantic_report
 ---
-partialConditional :: Alexandrite.StyleX.Style -> Alexandrite.StyleX.Style
+partialConditional :: Iris.StyleX.Style -> Iris.StyleX.Style
 partialConditional = conditional true

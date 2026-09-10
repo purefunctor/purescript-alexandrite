@@ -18,7 +18,7 @@ package:
         "src/Tokens.purs",
         r#"module Tokens (await, rowMarker, variables) where
 
-import Alexandrite.StyleX as StyleX
+import Iris.StyleX as StyleX
 
 await :: StyleX.Style
 await = StyleX.defaultMarker
@@ -33,8 +33,8 @@ rowMarker = StyleX.defineMarker
         "src/Main.purs",
         r#"module Main where
 
-import Alexandrite.StyleX as StyleX
-import Alexandrite.StyleX.When as When
+import Iris.StyleX as StyleX
+import Iris.StyleX.When as When
 import Tokens (await, rowMarker, variables)
 
 theme = StyleX.createTheme variables { accent: "white" }

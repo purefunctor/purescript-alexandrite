@@ -1,5 +1,5 @@
 module Main where
 
-import Alexandrite.StyleX.Types as Types
+import Iris.StyleX.Types as Types
 
 escaped = Types.color "red"

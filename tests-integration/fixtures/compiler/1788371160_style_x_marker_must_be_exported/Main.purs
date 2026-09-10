@@ -1,6 +1,6 @@
 module Main (visible) where
 
-import Alexandrite.StyleX as StyleX
+import Iris.StyleX as StyleX
 
 marker = StyleX.defineMarker
 

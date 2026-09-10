@@ -1,6 +1,6 @@
 module Tokens (rowMarker, variables) where
 
-import Alexandrite.StyleX as StyleX
+import Iris.StyleX as StyleX
 
 variables = StyleX.defineVars { accent: "blue" }
 

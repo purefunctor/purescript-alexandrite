@@ -1,7 +1,7 @@
 module Main where
 
-import Alexandrite.StyleX as StyleX
-import Alexandrite.StyleX.Types as Types
+import Iris.StyleX as StyleX
+import Iris.StyleX.Types as Types
 
 variables = StyleX.defineVars
   { accent: Types.color "blue"

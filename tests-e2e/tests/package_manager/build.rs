@@ -159,7 +159,7 @@ package:
         "src/Main.purs",
         r#"module Main where
 
-import Alexandrite.StyleX (Props, Style, props)
+import Iris.StyleX (Props, Style, props)
 
 partialProps :: Style -> Props
 partialProps = props

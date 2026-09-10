@@ -1,4 +1,4 @@
-module Alexandrite.StyleX.Types
+module Iris.StyleX.Types
   ( Angle
   , Color
   , Url
@@ -27,7 +27,7 @@ module Alexandrite.StyleX.Types
   , transformList
   ) where
 
-import Alexandrite.StyleX (TypedValue)
+import Iris.StyleX (TypedValue)
 
 data Angle
 data Color

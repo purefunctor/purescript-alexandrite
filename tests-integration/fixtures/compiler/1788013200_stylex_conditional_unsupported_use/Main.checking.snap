@@ -1,9 +1,9 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 297
+assertion_line: 306
 expression: checking_report
 ---
 Terms
-partialConditional :: Alexandrite.StyleX.Style -> Alexandrite.StyleX.Style
+partialConditional :: Iris.StyleX.Style -> Iris.StyleX.Style
 
 Types

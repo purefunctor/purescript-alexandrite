@@ -8,7 +8,7 @@ Error! · [FunctionalCodegen] · Main.purs:5:1
   │
   • Cannot generate JavaScript for module 'Main'.
   │
-  │ 'Alexandrite.StyleX.color' must be used inside defineVars or createTheme.
+  │ 'Iris.StyleX.color' must be used inside defineVars or createTheme.
   │
   │   escaped = Types.color "red"
   │   ╰──────────────────────────

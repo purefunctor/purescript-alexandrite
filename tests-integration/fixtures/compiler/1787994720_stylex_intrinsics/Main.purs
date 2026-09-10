@@ -1,6 +1,6 @@
 module Main where
 
-import Alexandrite.StyleX as StyleX
+import Iris.StyleX as StyleX
 import Data.Function as Function
 import Data.Ring as Ring
 

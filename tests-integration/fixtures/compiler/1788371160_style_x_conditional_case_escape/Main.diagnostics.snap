@@ -8,7 +8,7 @@ Error! · [FunctionalCodegen] · Main.purs:5:1
   │
   • Cannot generate JavaScript for module 'Main'.
   │
-  │ 'Alexandrite.StyleX.ancestor' must be used directly in a conditionalValue case array.
+  │ 'Iris.StyleX.ancestor' must be used directly in a conditionalValue case array.
   │
   │   escaped = When.ancestor ":hover" "red"
   │   ╰─────────────────────────────────────

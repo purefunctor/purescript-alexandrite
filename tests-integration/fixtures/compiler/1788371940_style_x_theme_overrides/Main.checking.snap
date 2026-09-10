@@ -5,30 +5,17 @@ expression: checking_report
 ---
 Terms
 variables ::
-  { accent ::
-      Alexandrite.StyleX.Variable
-        (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Color Prim.String)
-  , spacing ::
-      Alexandrite.StyleX.Variable
-        (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Length Prim.String)
+  { accent :: Iris.StyleX.Variable (Iris.StyleX.TypedValue Iris.StyleX.Types.Color Prim.String)
+  , spacing :: Iris.StyleX.Variable (Iris.StyleX.TypedValue Iris.StyleX.Types.Length Prim.String)
   }
-valid :: Alexandrite.StyleX.Style
-wrongType :: Alexandrite.StyleX.Style
-unknown :: Alexandrite.StyleX.Style
+valid :: Iris.StyleX.Style
+wrongType :: Iris.StyleX.Style
+unknown :: Iris.StyleX.Style
 invalidInteger ::
-  { value ::
-      Alexandrite.StyleX.Variable
-        (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Integer Prim.Boolean)
-  }
+  { value :: Iris.StyleX.Variable (Iris.StyleX.TypedValue Iris.StyleX.Types.Integer Prim.Boolean) }
 invalidNumber ::
-  { value ::
-      Alexandrite.StyleX.Variable
-        (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Number Prim.String)
-  }
+  { value :: Iris.StyleX.Variable (Iris.StyleX.TypedValue Iris.StyleX.Types.Number Prim.String) }
 invalidColor ::
-  { value ::
-      Alexandrite.StyleX.Variable
-        (Alexandrite.StyleX.TypedValue Alexandrite.StyleX.Types.Color Prim.Int)
-  }
+  { value :: Iris.StyleX.Variable (Iris.StyleX.TypedValue Iris.StyleX.Types.Color Prim.Int) }
 
 Types

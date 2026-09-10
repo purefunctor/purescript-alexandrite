@@ -8,7 +8,7 @@ Error! · [FunctionalCodegen] · Main.purs:5:1
   │
   • Cannot generate JavaScript for module 'Main'.
   │
-  │ 'Alexandrite.StyleX.conditional' must be called directly with all of its arguments.
+  │ 'Iris.StyleX.conditional' must be called directly with all of its arguments.
   │
   │ It cannot be passed around as a function or partially applied.
   │
