@@ -49,7 +49,7 @@ steps:
         - "~/Library/Caches/spago-nodejs"
     timeout_in_minutes: 30
 
-  - label: ":rust: Static checks (formatting, Clippy, WASM)"
+  - label: ":rust: Static checks (rustfmt, clippy, wasm)"
     key: static-checks
     commands:
       - source .buildkite/setup.sh
