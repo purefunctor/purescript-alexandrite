@@ -1,6 +1,0 @@
-packages:
-  - .
-  - src/wasm/pkg
-
-onlyBuiltDependencies:
-  - esbuild
