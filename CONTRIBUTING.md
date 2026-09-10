@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for taking interest in contributing to Alexandrite.
+Thank you for taking interest in contributing to Iris.
 
 ## Development tools
 
@@ -52,7 +52,7 @@ Each fixture runs all these reports; diagnostics do not skip later stages, which
 also exercise compiler recovery.
 
 Compiler fixtures compile their reachable dependency closure with the current
-Alexandrite. Only reachable fixture-owned generated JavaScript and adjacent FFI
+Iris. Only reachable fixture-owned generated JavaScript and adjacent FFI
 are kept in `output/`; registry output and `runtime.js` are not goldens.
 
 An optional `verify.mjs` is staged beside a fresh temporary `output/` containing

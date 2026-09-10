@@ -17,7 +17,7 @@ mise ls --current
 
 # Amp and supervised services start in fresh non-interactive login shells.
 repository_root="$PWD"
-profile_marker="# Alexandrite mise environment: $repository_root"
+profile_marker="# Iris mise environment: $repository_root"
 if ! grep -Fqx "$profile_marker" "$HOME/.bash_profile" 2>/dev/null; then
   if [[ ! -e "$HOME/.bash_profile" ]]; then
     # Creating .bash_profile must not hide the previously selected login file.
@@ -30,10 +30,10 @@ if ! grep -Fqx "$profile_marker" "$HOME/.bash_profile" 2>/dev/null; then
   cat >> "$HOME/.bash_profile" <<EOF
 
 $profile_marker
-if [[ "\${ALEXANDRITE_MISE_ACTIVATING:-}" != 1 && "\$PWD/" == "$repository_root/"* ]]; then
-  export ALEXANDRITE_MISE_ACTIVATING=1
+if [[ "\${IRIS_MISE_ACTIVATING:-}" != 1 && "\$PWD/" == "$repository_root/"* ]]; then
+  export IRIS_MISE_ACTIVATING=1
   eval "\$("$HOME/.local/bin/mise" env --shell bash)"
-  unset ALEXANDRITE_MISE_ACTIVATING
+  unset IRIS_MISE_ACTIVATING
 fi
 EOF
 fi

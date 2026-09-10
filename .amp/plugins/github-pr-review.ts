@@ -1,12 +1,12 @@
-// Repository-scoped owner for the Alexandrite GitHub review webhook.
+// Repository-scoped owner for the Iris GitHub review webhook.
 
 import type { PluginAPI, PluginThread, WebhookEvent, WebhookHandlerContext } from "@ampcode/plugin";
 import { createHmac, createSign, timingSafeEqual } from "node:crypto";
 import { chmod, readFile, writeFile } from "node:fs/promises";
 
-export const description = "Reviews Alexandrite pull requests.";
+export const description = "Reviews Iris pull requests.";
 
-const repository = "purefunctor/purescript-alexandrite";
+const repository = "purefunctor/purescript-iris";
 const reviewAuthor = "purefunctor";
 const botLogin = "purefunctor[bot]";
 const markerNamespace = "amp-pr-review-state";
@@ -162,7 +162,7 @@ function parsePayload(event: WebhookEvent): PullRequestPayload | null {
     candidate.repository?.full_name !== repository ||
     pullRequest?.user?.login !== reviewAuthor ||
     typeof pullRequest.html_url !== "string" ||
-    !/^https:\/\/github\.com\/purefunctor\/purescript-alexandrite\/pull\/\d+$/.test(
+    !/^https:\/\/github\.com\/purefunctor\/purescript-iris\/pull\/\d+$/.test(
       pullRequest.html_url
     ) ||
     !isCommitSha(pullRequest.head?.sha)
@@ -822,7 +822,7 @@ function formatCheckSummary(report: ReviewReport): string {
 }
 
 function reviewCheckExternalId(number: number, head: string): string {
-  return `alexandrite-review:${number}:${head}`;
+  return `iris-review:${number}:${head}`;
 }
 
 async function findReviewCheckRuns(
@@ -1057,7 +1057,7 @@ async function createInstallationToken(
     {
       method: "POST",
       body: JSON.stringify({
-        repositories: ["purescript-alexandrite"],
+        repositories: ["purescript-iris"],
         permissions: {
           checks: "write",
           contents: "read",
