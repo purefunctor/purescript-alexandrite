@@ -141,7 +141,7 @@ mod tests {
     use super::NameAllocator;
 
     fn reserved(names: &[&str]) -> Arc<FxHashSet<SmolStr>> {
-        Arc::new(names.iter().map(|name| SmolStr::new(name)).collect())
+        Arc::new(names.iter().map(SmolStr::new).collect())
     }
 
     #[test]

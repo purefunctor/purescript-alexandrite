@@ -725,7 +725,7 @@ where
             }
 
             Type::Rigid(name, rigid_depth, kind) => {
-                if promote.names.contains(&name) {
+                if promote.names.contains(name) {
                     check(promote, state, context, *kind)
                 } else if *rigid_depth > promote.depth {
                     Ok(PromoteResult::SkolemEscape)
@@ -794,7 +794,7 @@ where
     let t1_row = context.lookup_row_type(t1);
     let t2_row = context.lookup_row_type(t2);
 
-    let (left_only, right_only, ok) = partition_row_fields(state, context, &t1_row, &t2_row)?;
+    let (left_only, right_only, ok) = partition_row_fields(state, context, t1_row, t2_row)?;
 
     if !ok {
         return Ok(false);
@@ -846,8 +846,8 @@ where
     let (left_only, right_only, ok) = partition_row_fields_with(
         state,
         context,
-        &t1_row,
-        &t2_row,
+        t1_row,
+        t2_row,
         |state, context, left, right| subtype_with::<P, Q>(state, context, left, right),
     )?;
 

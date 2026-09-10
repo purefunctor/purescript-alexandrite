@@ -37,7 +37,7 @@ where
     let id = normalise::normalise(state, context, id);
     let t = context.lookup_type(id);
 
-    if let WalkAction::Stop = walker.visit(state, context, id, &t)? {
+    if let WalkAction::Stop = walker.visit(state, context, id, t)? {
         return Ok(());
     }
 
