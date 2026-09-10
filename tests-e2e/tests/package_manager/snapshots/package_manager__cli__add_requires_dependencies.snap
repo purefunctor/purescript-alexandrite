@@ -4,9 +4,16 @@ source: tests-e2e/tests/package_manager/cli.rs
 status: 2
 --- stdout
 --- stderr
-error: the following required arguments were not provided:
-  <DEPENDENCY>…
-
-Usage: iris add [-p --package <NAME>] [--test] <DEPENDENCY>…
-
-For more information, try '--help'.
+Error! · [missing_required] · command line:1:1
+  •
+  │
+  • the following required arguments were not provided:
+  │   <DEPENDENCY>…
+  │
+  │ Usage: iris add [-p --package <NAME>] [--test] <DEPENDENCY>…
+  │
+  │ For more information, try '--help'.
+  │
+  │   iris add
+  │   ╰───────
+  •

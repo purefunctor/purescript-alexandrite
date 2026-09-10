@@ -4,4 +4,11 @@ source: tests-e2e/tests/package_manager/cli.rs
 status: 2
 --- stdout
 --- stderr
-error: invalid configuration in --config: invalid type: string "false", expected a boolean at line 1 column 32
+Error! · [InvalidConfiguration] · --config:1:26
+  •
+  │
+  • invalid type: string "false", expected a boolean
+  │
+  │   {"diagnostics":{"onSave":"false"}}
+  │                            ╰──────
+  •

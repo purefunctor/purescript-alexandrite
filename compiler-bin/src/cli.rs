@@ -8,6 +8,8 @@ use thiserror::Error;
 use tracing::level_filters::LevelFilter;
 use usage::{Args, Subcommands, ValueEnum};
 
+mod diagnostic;
+
 /// Supply the terminal width to help rendering unless explicitly overridden.
 ///
 /// # Safety
@@ -149,7 +151,7 @@ pub struct LspOptions {
     #[usage(long, value_name = "JSON", conflicts = "--config-file")]
     pub config: Option<String>,
 
-    /// Read language server JSON configuration once at startup from PATH, relative to the working directory.
+    /// Language server configuration file, relative to the working directory.
     #[usage(long, value_name = "PATH", conflicts = "--config")]
     pub config_file: Option<PathBuf>,
 }
@@ -159,7 +161,7 @@ pub enum ConfigurationError {
     #[error("failed to read configuration file {}: {error}", path.display())]
     ReadFile { path: PathBuf, error: io::Error },
     #[error("invalid configuration in {input}: {error}")]
-    InvalidJson { input: String, error: serde_json::Error },
+    InvalidJson { input: String, content: String, error: serde_json::Error },
 }
 
 impl LspOptions {
@@ -167,14 +169,18 @@ impl LspOptions {
         let (input, content) = if let Some(path) = &self.config_file {
             let content = fs::read_to_string(path)
                 .map_err(|error| ConfigurationError::ReadFile { path: path.clone(), error })?;
-            (format!("configuration file {}", path.display()), Cow::Owned(content))
+            (path.display().to_string(), Cow::Owned(content))
         } else if let Some(content) = &self.config {
             ("--config".to_string(), Cow::Borrowed(content.as_str()))
         } else {
             return Ok(Configuration::default());
         };
         let settings = serde_json::from_str::<Option<ConfigurationSettings>>(&content)
-            .map_err(|error| ConfigurationError::InvalidJson { input, error })?
+            .map_err(|error| ConfigurationError::InvalidJson {
+                input,
+                content: content.into_owned(),
+                error,
+            })?
             .unwrap_or_default();
         Ok(settings.apply_to(&Configuration::default()))
     }

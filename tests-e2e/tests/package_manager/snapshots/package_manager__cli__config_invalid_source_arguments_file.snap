@@ -4,4 +4,11 @@ source: tests-e2e/tests/package_manager/cli.rs
 status: 2
 --- stdout
 --- stderr
-error: invalid configuration in configuration file config/settings.json: invalid type: integer `1`, expected a string at line 1 column 65
+Error! · [InvalidConfiguration] · config/settings.json:1:62
+  •
+  │
+  • invalid type: integer `1`, expected a string
+  │
+  │   {"sources":{"kind":"command","program":"custom","arguments":[1]}}
+  │                                                                ╰
+  •

@@ -4,4 +4,11 @@ source: tests-e2e/tests/package_manager/cli.rs
 status: 2
 --- stdout
 --- stderr
-error: invalid configuration in configuration file config/settings.json: source command program must not be empty or whitespace-only at line 1 column 54
+Error! · [InvalidConfiguration] · config/settings.json:1:40
+  •
+  │
+  • source command program must not be empty or whitespace-only
+  │
+  │   {"sources":{"kind":"command","program":" \t\n\u3000"}}
+  │                                          ╰────────────
+  •

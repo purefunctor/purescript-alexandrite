@@ -14,7 +14,7 @@ mod watch;
 mod workspace;
 
 pub fn run() {
-    let program = cli::Program::parse();
+    let program = cli::Program::parse_with_diagnostics();
 
     if program.log_file {
         eprintln!("Log file: {:?}", logging::temporary_log_file());
@@ -28,7 +28,7 @@ pub fn run() {
     match command {
         cli::Command::Lsp(options) => {
             let configuration = options.configuration().unwrap_or_else(|error| {
-                eprintln!("error: {error}");
+                eprint!("{}", error.render());
                 std::process::exit(2);
             });
             logging::start(logging::LoggingFilters {

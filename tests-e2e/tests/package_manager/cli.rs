@@ -24,6 +24,7 @@ fn prints_help_for_every_command_path() {
         ("help_build", &["build", "--help"]),
         ("help_watch", &["watch", "--help"]),
         ("help_lsp", &["lsp", "--help"]),
+        ("help_lsp_short", &["lsp", "-h"]),
         ("help_run", &["run", "--help"]),
         ("help_test", &["test", "--help"]),
         ("help_compile", &["compile", "--help"]),
@@ -65,6 +66,22 @@ fn prints_version_to_stdout() {
     assert!(!output.stdout.is_empty());
     assert!(output.stderr.is_empty());
     snapshot_output("version", &output);
+}
+
+#[test]
+fn invalid_option_values_point_to_the_supplied_argument() {
+    let workspace = TestWorkspace::empty();
+    for (name, arguments) in [
+        ("invalid_choice", vec!["build", "--color", "alway"]),
+        ("invalid_choice_equals", vec!["lsp", "--lsp-log=verböse"]),
+        ("invalid_choice_escaped", vec!["lsp", "--lsp-log", "warn\n\"λ\""]),
+        ("unicode_unknown_flag", vec!["--λ"]),
+    ] {
+        let output = workspace.command(&arguments);
+        assert_eq!(output.status.code(), Some(2), "{name}");
+        assert!(output.stdout.is_empty(), "{name} wrote stdout");
+        snapshot_output(name, &output);
+    }
 }
 
 #[test]
@@ -163,7 +180,9 @@ fn lsp_configuration_options_reject_invalid_arguments() {
 fn lsp_rejects_invalid_json_configuration_before_starting() {
     let workspace = TestWorkspace::empty();
     let cases = [
+        ("empty_json", ""),
         ("malformed_json", "{"),
+        ("multiline_eof", "{\n  \"diagnostics\": {\n    \"onSave\":\n"),
         ("trailing_json", "{} false"),
         ("wrong_top_level", "false"),
         ("unknown_setting", r#"{"unknown":true}"#),
@@ -176,6 +195,34 @@ fn lsp_rejects_invalid_json_configuration_before_starting() {
         (
             "invalid_source_arguments",
             r#"{"sources":{"kind":"command","program":"custom","arguments":[1]}}"#,
+        ),
+        (
+            "multiline_program_before_arguments",
+            "{\n  \"sources\": {\n    \"kind\": \"command\",\n    \"program\": \" \",\n    \"arguments\": [\"sources\"]\n  }\n}",
+        ),
+        (
+            "multiline_program_before_kind",
+            "{\n  \"sources\": {\n    \"program\": \" \",\n    \"kind\": \"command\"\n  }\n}",
+        ),
+        (
+            "multiline_invalid_arguments",
+            "{\n  \"sources\": {\n    \"arguments\": [\"λ\", 12, \"sources\"],\n    \"program\": \"custom\",\n    \"kind\": \"command\"\n  }\n}",
+        ),
+        (
+            "multiline_unicode_unknown_key",
+            "{\r\n\t\"sources\": {\"kind\": \"command\", \"program\": \"λ\"},\r\n\t\"diagnostics\": {\"λ\": true}\r\n}",
+        ),
+        ("unicode_syntax_error", "{\n\t\"diagnostics\": {\"onSave\": λ}\n}"),
+        ("wrong_diagnostic_object", r#"{"diagnostics":{"onSave":{}}}"#),
+        ("escaped_diagnostic_key", r#"{"diagnostics":{"on\u004fpened":true}}"#),
+        ("duplicate_diagnostic", r#"{"diagnostics":{"onSave":null,"onSave":true}}"#),
+        (
+            "duplicate_program",
+            r#"{"sources":{"kind":"command","program":"first","program":"second"}}"#,
+        ),
+        (
+            "null_source_arguments",
+            r#"{"sources":{"kind":"command","program":"custom","arguments":null}}"#,
         ),
     ];
 

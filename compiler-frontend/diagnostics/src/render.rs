@@ -177,7 +177,11 @@ fn render_rich_source(
     let marker = visual_highlight_marker(start_column, end_column, display_width(&source_line));
     let marker = painted(marker, severity_color(severity), color);
     let stem = painted(RICH_STEM, ANSI_DIM, color);
-    output.push_str(&format!("{stem}   {source_line}\n"));
+    if source_line.is_empty() {
+        output.push_str(&format!("{stem}\n"));
+    } else {
+        output.push_str(&format!("{stem}   {source_line}\n"));
+    }
     output.push_str(&format!("{stem}   {marker}\n"));
 }
 

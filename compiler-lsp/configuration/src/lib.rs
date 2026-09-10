@@ -86,7 +86,7 @@ impl ConfigurationSettings {
 }
 
 /// How to discover project sources. Commands name an executable and arguments, not shell text.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(tag = "kind", rename_all = "camelCase", deny_unknown_fields)]
 pub enum SourceDiscovery {
@@ -95,7 +95,6 @@ pub enum SourceDiscovery {
     /// Select a source discovery command. Only supply commands from trusted configuration.
     Command {
         /// Executable name or path containing a non-whitespace character, passed unchanged without shell parsing.
-        #[serde(deserialize_with = "deserialize_program")]
         // Match Rust's Unicode White_Space set; JSON Schema's ECMAScript \s differs.
         #[cfg_attr(
             feature = "schema",
@@ -119,17 +118,86 @@ impl Default for SourceDiscovery {
     }
 }
 
-fn deserialize_program<'de, D>(deserializer: D) -> Result<String, D::Error>
+impl<'de> Deserialize<'de> for SourceDiscovery {
+    fn deserialize<D>(deserializer: D) -> Result<SourceDiscovery, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        // Deserialize fields directly: Serde's internally tagged enum buffering loses the
+        // input position of errors in command fields, pointing at the enclosing object instead.
+        #[derive(Deserialize)]
+        #[serde(variant_identifier, rename_all = "camelCase")]
+        enum Kind {
+            Spago,
+            Command,
+        }
+
+        #[derive(Deserialize)]
+        #[serde(rename = "SourceDiscovery", deny_unknown_fields)]
+        struct Fields {
+            kind: Kind,
+            #[serde(default, deserialize_with = "deserialize_program")]
+            program: Option<String>,
+            #[serde(default, deserialize_with = "deserialize_arguments")]
+            arguments: Option<Vec<String>>,
+        }
+
+        let fields = Fields::deserialize(deserializer)?;
+        match fields.kind {
+            Kind::Spago => {
+                if fields.program.is_some() {
+                    return Err(de::Error::unknown_field("program", &["kind"]));
+                }
+                if fields.arguments.is_some() {
+                    return Err(de::Error::unknown_field("arguments", &["kind"]));
+                }
+                Ok(SourceDiscovery::Spago {})
+            }
+            Kind::Command => {
+                let program = fields.program.ok_or_else(|| de::Error::missing_field("program"))?;
+                let arguments = fields.arguments.unwrap_or_default();
+                Ok(SourceDiscovery::Command { program, arguments })
+            }
+        }
+    }
+}
+
+fn deserialize_program<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
 where
     D: Deserializer<'de>,
 {
-    let program = String::deserialize(deserializer)?;
-    if program.trim().is_empty() {
-        return Err(de::Error::custom(
-            "source command program must not be empty or whitespace-only",
-        ));
+    struct ProgramVisitor;
+
+    impl de::Visitor<'_> for ProgramVisitor {
+        type Value = String;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            formatter.write_str("a string")
+        }
+
+        fn visit_str<E: de::Error>(self, program: &str) -> Result<String, E> {
+            self.visit_string(program.to_string())
+        }
+
+        fn visit_string<E: de::Error>(self, program: String) -> Result<String, E> {
+            if program.trim().is_empty() {
+                return Err(de::Error::custom(
+                    "source command program must not be empty or whitespace-only",
+                ));
+            }
+            Ok(program)
+        }
     }
-    Ok(program)
+
+    // Fail inside the string visitor, before an enclosing map consumes its closing brace.
+    deserializer.deserialize_string(ProgramVisitor).map(Some)
+}
+
+fn deserialize_arguments<'de, D>(deserializer: D) -> Result<Option<Vec<String>>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    Vec::<String>::deserialize(deserializer).map(Some)
 }
 
 /// Diagnostic triggers, not a global diagnostics enable/disable policy.

@@ -39,8 +39,7 @@ Flags:
                                     [possible values: off, error, warn, info, debug, trace]
                                     (default: info)
       --config <JSON>               Language server configuration as a JSON object, read once at startup.
-      --config-file <PATH>          Read language server JSON configuration once at startup from PATH, relative to the
-                                    working directory.
+      --config-file <PATH>          Language server configuration file, relative to the working directory.
   -h, --help                        Print help
   -V, --version                     Print version
 --- stderr

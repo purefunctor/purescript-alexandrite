@@ -4,4 +4,11 @@ source: tests-e2e/tests/package_manager/cli.rs
 status: 2
 --- stdout
 --- stderr
-error: failed to read configuration file invalid-utf8.json: stream did not contain valid UTF-8
+Error! · [ConfigurationFileRead] · --config-file:1:1
+  •
+  │
+  • Cannot read the configuration file: stream did not contain valid UTF-8
+  │
+  │   invalid-utf8.json
+  │   ╰────────────────
+  •

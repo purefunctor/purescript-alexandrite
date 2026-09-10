@@ -4,4 +4,11 @@ source: tests-e2e/tests/package_manager/cli.rs
 status: 2
 --- stdout
 --- stderr
-error: invalid configuration in --config: EOF while parsing an object at line 1 column 1
+Error! · [InvalidConfiguration] · --config:1:2
+  •
+  │
+  • EOF while parsing an object
+  │
+  │   {
+  │    ╰
+  •
