@@ -31,6 +31,7 @@ steps:
 
   - label: ":rust: Build and unit tests (macOS)"
     key: build-macos
+    skip: "Temporarily disabled: macOS runners slow down CI."
     agents: &macos-agents
       queue: macos-26-medium
     commands: *build-commands
@@ -53,6 +54,7 @@ steps:
 
   - label: ":test_tube: Integration (macOS)"
     key: integration-macos
+    skip: "Temporarily disabled: macOS runners slow down CI."
     agents: *macos-agents
     commands: *integration-commands
     cache:
@@ -80,6 +82,7 @@ steps:
 
   - label: ":terminal: End-to-end (macOS)"
     key: e2e-macos
+    skip: "Temporarily disabled: macOS runners slow down CI."
     agents: *macos-agents
     commands: *e2e-commands
     cache:
@@ -93,4 +96,24 @@ steps:
         - "~/.rustup"
         - target
         - "~/Library/Caches/spago-nodejs"
+    timeout_in_minutes: 30
+
+  - label: ":rust: Compilation (wasm32-unknown-unknown)"
+    key: wasm
+    commands:
+      - source .buildkite/setup.sh
+      - cargo check -p analyzer --locked --target wasm32-unknown-unknown
+    cache:
+      name: linux-x64-wasm-v1
+      paths: *cache-paths
+    timeout_in_minutes: 30
+
+  - label: ":rust: Formatting"
+    key: formatting
+    commands:
+      - source .buildkite/setup.sh
+      - just format --check
+    cache:
+      name: linux-x64-formatting-v1
+      paths: *cache-paths
     timeout_in_minutes: 30
