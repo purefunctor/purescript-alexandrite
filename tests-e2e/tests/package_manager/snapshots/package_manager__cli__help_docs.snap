@@ -5,7 +5,7 @@ status: 0
 --- stdout
 Documentation utilities.
 
-Usage: alexandrite docs [FLAGS] [SUBCOMMAND]
+Usage: iris docs [FLAGS] [SUBCOMMAND]
 
 Commands:
   typescript  Generate TypeScript declarations for the documentation JSON schema.

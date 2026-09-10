@@ -5,7 +5,7 @@ status: 0
 --- stdout
 Compile PureScript modules to JavaScript (experimental).
 
-Usage: alexandrite compile [FLAGS] [INPUT]…
+Usage: iris compile [FLAGS] [INPUT]…
 
 Arguments:
   [INPUT]…  PureScript source paths or glob patterns.

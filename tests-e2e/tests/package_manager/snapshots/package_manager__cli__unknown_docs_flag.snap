@@ -6,6 +6,6 @@ status: 2
 --- stderr
 error: unexpected argument '--unknown' found
 
-Usage: alexandrite docs [FLAGS] [SUBCOMMAND]
+Usage: iris docs [FLAGS] [SUBCOMMAND]
 
 For more information, try '--help'.

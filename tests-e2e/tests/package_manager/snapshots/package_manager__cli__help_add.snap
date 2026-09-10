@@ -5,7 +5,7 @@ status: 0
 --- stdout
 Add dependencies to a Spago package.
 
-Usage: alexandrite add [-p --package <NAME>] [--test] <DEPENDENCY>…
+Usage: iris add [-p --package <NAME>] [--test] <DEPENDENCY>…
 
 Arguments:
   <DEPENDENCY>…  Packages to add.

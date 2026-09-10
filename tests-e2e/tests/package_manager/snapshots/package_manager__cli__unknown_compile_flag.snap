@@ -6,6 +6,6 @@ status: 2
 --- stderr
 error: unexpected argument '--unknown' found
 
-Usage: alexandrite compile [FLAGS] [INPUT]…
+Usage: iris compile [FLAGS] [INPUT]…
 
 For more information, try '--help'.

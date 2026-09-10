@@ -48,7 +48,7 @@ fn missing_module(path: &Path, module: &str) -> io::Error {
     ))
 }
 
-const UPDATE_JAVASCRIPT_OUTPUT: &str = "ALEXANDRITE_UPDATE_JAVASCRIPT_OUTPUT";
+const UPDATE_JAVASCRIPT_OUTPUT: &str = "IRIS_UPDATE_JAVASCRIPT_OUTPUT";
 const JAVASCRIPT_VERIFICATION_TIMEOUT: Duration = Duration::from_secs(30);
 
 struct JavaScriptModules {

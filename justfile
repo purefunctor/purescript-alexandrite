@@ -60,12 +60,12 @@ licenses:
 
 [doc("Update the release version and third-party licenses")]
 prepare-release version:
-  cargo set-version --package purescript-alexandrite "{{version}}"
+  cargo set-version --package purescript-iris "{{version}}"
   just licenses
 
 [doc("Format imports with module granularity")]
 @format *args="":
-  cargo +"${ALEXANDRITE_NIGHTLY_TOOLCHAIN:-nightly}" fmt {{args}} -- --config imports_granularity=Module
+  cargo +"${IRIS_NIGHTLY_TOOLCHAIN:-nightly}" fmt {{args}} -- --config imports_granularity=Module
 
 [doc("Regenerate the language server configuration JSON Schema")]
 @configuration-schema:

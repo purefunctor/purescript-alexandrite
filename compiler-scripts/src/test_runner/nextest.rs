@@ -7,7 +7,7 @@ use console::style;
 use crate::test_runner::category::TestCategory;
 use crate::test_runner::cli::RunArgs;
 
-const UPDATE_JAVASCRIPT_OUTPUT: &str = "ALEXANDRITE_UPDATE_JAVASCRIPT_OUTPUT";
+const UPDATE_JAVASCRIPT_OUTPUT: &str = "IRIS_UPDATE_JAVASCRIPT_OUTPUT";
 
 pub fn build_nextest_command(category: TestCategory, args: &RunArgs) -> Command {
     let mut cmd = Command::new("cargo");

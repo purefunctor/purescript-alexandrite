@@ -262,7 +262,7 @@ impl ToDiagnostics for ForeignError {
             ForeignError::Parse { message, .. } => Diagnostic::warning(
                 "UnparseableFFIModule",
                 format!(
-                    "Oxc could not parse the JavaScript FFI module. Fix the invalid or unsupported JavaScript syntax; Alexandrite treated the module as opaque and skipped export-name validation: {message}"
+                    "Oxc could not parse the JavaScript FFI module. Fix the invalid or unsupported JavaScript syntax; Iris treated the module as opaque and skipped export-name validation: {message}"
                 ),
                 span,
                 "foreign-javascript",

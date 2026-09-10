@@ -96,7 +96,7 @@ mod tests {
 
     fn temporary_directory() -> PathBuf {
         let nanos = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
-        let directory = std::env::temp_dir().join(format!("alexandrite-package-{nanos}"));
+        let directory = std::env::temp_dir().join(format!("iris-package-{nanos}"));
         fs::create_dir_all(&directory).unwrap();
         directory
     }

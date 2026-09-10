@@ -112,7 +112,7 @@ mod tests {
 
     fn temporary_directory() -> PathBuf {
         let nanos = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
-        let directory = std::env::temp_dir().join(format!("alexandrite-walk-{nanos}"));
+        let directory = std::env::temp_dir().join(format!("iris-walk-{nanos}"));
         fs::create_dir_all(&directory).unwrap();
         directory
     }

@@ -32,7 +32,7 @@ impl SpagoCommand {
         let shim = tempfile::tempdir().map_err(SpagoError::Shim)?;
         write_purs_shim(shim.path()).map_err(SpagoError::Shim)?;
         let path = prepend_path(shim.path()).map_err(SpagoError::Shim)?;
-        let executable = env::var_os("ALEXANDRITE_SPAGO").unwrap_or_else(|| "spago".into());
+        let executable = env::var_os("IRIS_SPAGO").unwrap_or_else(|| "spago".into());
         Ok(SpagoCommand {
             current_directory: current_directory.to_path_buf(),
             executable,
