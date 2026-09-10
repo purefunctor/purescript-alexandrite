@@ -172,6 +172,7 @@ fn lsp_rejects_invalid_json_configuration_before_starting() {
         ("unknown_source_kind", r#"{"sources":{"kind":"unknown"}}"#),
         ("missing_source_program", r#"{"sources":{"kind":"command"}}"#),
         ("empty_source_program", r#"{"sources":{"kind":"command","program":""}}"#),
+        ("blank_source_program", r#"{"sources":{"kind":"command","program":" \t\n\u3000"}}"#),
         (
             "invalid_source_arguments",
             r#"{"sources":{"kind":"command","program":"custom","arguments":[1]}}"#,

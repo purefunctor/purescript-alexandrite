@@ -1,0 +1,7 @@
+---
+source: tests-e2e/tests/package_manager/cli.rs
+---
+status: 2
+--- stdout
+--- stderr
+error: invalid configuration in --config: source command program must not be empty or whitespace-only at line 1 column 54

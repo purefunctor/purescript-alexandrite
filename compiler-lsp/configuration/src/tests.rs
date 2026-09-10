@@ -116,7 +116,6 @@ fn malformed_settings_are_rejected() {
         json!({"sources": {"kind": "unknown"}}),
         json!({"sources": {"kind": "spago", "program": "unexpected"}}),
         json!({"sources": {"kind": "command"}}),
-        json!({"sources": {"kind": "command", "program": ""}}),
         json!({"sources": {"kind": "command", "program": null}}),
         json!({"sources": {"kind": "command", "program": "custom", "arguments": null}}),
         json!({"sources": {"kind": "command", "program": "custom", "arguments": [1]}}),
@@ -125,6 +124,32 @@ fn malformed_settings_are_rejected() {
         assert!(serde_json::from_value::<ConfigurationSettings>(value.clone()).is_err(), "{value}");
         #[cfg(feature = "schema")]
         assert!(!validator.is_valid(&value), "schema accepted {value}");
+    }
+}
+
+#[test]
+fn source_programs_require_non_whitespace_without_trimming() {
+    #[cfg(feature = "schema")]
+    let validator =
+        jsonschema::validator_for(&serde_json::to_value(super::schema()).unwrap()).unwrap();
+
+    for program in ["   ", "", "\t\n\u{000b}\u{000c}\r", "\u{0085}", "\u{00a0}", "\u{3000}"] {
+        let value = json!({"sources": {"kind": "command", "program": program}});
+        let error = serde_json::from_value::<ConfigurationSettings>(value.clone()).unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            "source command program must not be empty or whitespace-only"
+        );
+        #[cfg(feature = "schema")]
+        assert!(!validator.is_valid(&value), "schema accepted {value}");
+    }
+
+    for program in ["spago", " \t/path with spaces/executable\u{3000}", "\u{feff}"] {
+        let value = json!({"sources": {"kind": "command", "program": program}});
+        assert_eq!(
+            settings(value).sources,
+            Some(SourceDiscovery::Command { program: program.to_string(), arguments: vec![] })
+        );
     }
 }
 

@@ -64,10 +64,11 @@ To replace `spago.lock` source discovery with a command:
 }
 ```
 
-`program` is a nonempty executable name or path, and `arguments` is an optional array of individual
-strings (default `[]`). No shell parsing or expansion occurs. The command runs in the server's
-process working directory and must print one source path or glob per line; relative output paths
-are resolved from the first LSP workspace folder, falling back to the process working directory.
+`program` is an executable name or path containing a non-whitespace character; it is passed unchanged.
+`arguments` is an optional array of individual strings (default `[]`). No shell parsing or expansion
+occurs. The command runs in the server's process working directory and must print one source path or
+glob per line; relative output paths are resolved from the first LSP workspace folder, falling back
+to the process working directory.
 Only use trusted configurations: source commands execute with the server's permissions.
 Diagnostic settings control the corresponding document-event triggers, not all diagnostic publishing.
 

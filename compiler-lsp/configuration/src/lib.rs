@@ -94,9 +94,18 @@ pub enum SourceDiscovery {
     Spago {},
     /// Select a source discovery command. Only supply commands from trusted configuration.
     Command {
-        /// Nonempty executable name or path, passed without shell parsing.
+        /// Executable name or path containing a non-whitespace character, passed unchanged without shell parsing.
         #[serde(deserialize_with = "deserialize_program")]
-        #[cfg_attr(feature = "schema", schemars(length(min = 1)))]
+        // Match Rust's Unicode White_Space set; JSON Schema's ECMAScript \s differs.
+        #[cfg_attr(
+            feature = "schema",
+            schemars(
+                length(min = 1),
+                regex(
+                    pattern = r"[^\u0009-\u000D\u0020\u0085\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]"
+                )
+            )
+        )]
         program: String,
         /// Individual command arguments. Omission means no arguments, not inherited arguments.
         #[serde(default)]
@@ -115,8 +124,10 @@ where
     D: Deserializer<'de>,
 {
     let program = String::deserialize(deserializer)?;
-    if program.is_empty() {
-        return Err(de::Error::custom("source command program must not be empty"));
+    if program.trim().is_empty() {
+        return Err(de::Error::custom(
+            "source command program must not be empty or whitespace-only",
+        ));
     }
     Ok(program)
 }
