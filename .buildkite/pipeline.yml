@@ -1,5 +1,5 @@
 agents:
-  queue: linux-medium
+  queue: linux-large
 
 env:
   CI: "true"
@@ -7,18 +7,18 @@ env:
   INSTA_UPDATE: "no"
 
 steps:
-  - label: ":rust: Build and unit tests (Linux)"
+  - label: ":test_tube: Build and tests (Linux)"
     key: build-linux
-    agents:
-      queue: linux-large
     commands: &build-commands
       - source .buildkite/setup.sh
       - cargo build --workspace --locked
       - cargo nextest run --locked --no-fail-fast
       - cargo nextest run -p tests-support --locked --no-fail-fast
+      - bash .buildkite/test.sh integration
+      - bash .buildkite/test.sh e2e
     cache:
       name: linux-x64-build-v1
-      paths: &cache-paths
+      paths:
         - "~/.local/share/mise"
         - "~/.cache/mise"
         # Do not persist Cargo credentials or configuration alongside dependency caches.
@@ -27,66 +27,17 @@ steps:
         - "~/.cargo/git"
         - "~/.rustup"
         - target
+        - "~/.cache/spago-nodejs"
     timeout_in_minutes: 30
 
-  - label: ":rust: Build and unit tests (macOS)"
+  - label: ":test_tube: Build and tests (macOS)"
     key: build-macos
     skip: "Temporarily disabled: macOS runners slow down CI."
-    agents: &macos-agents
+    agents:
       queue: macos-26-medium
     commands: *build-commands
     cache:
       name: macos26-arm64-build-v1
-      paths: *cache-paths
-    timeout_in_minutes: 30
-
-  - label: ":test_tube: Integration (Linux)"
-    key: integration-linux
-    agents:
-      queue: linux-large
-    commands: &integration-commands
-      - source .buildkite/setup.sh
-      - bash .buildkite/test.sh integration
-    cache:
-      name: linux-x64-integration-v1
-      paths: *cache-paths
-    timeout_in_minutes: 30
-
-  - label: ":test_tube: Integration (macOS)"
-    key: integration-macos
-    skip: "Temporarily disabled: macOS runners slow down CI."
-    agents: *macos-agents
-    commands: *integration-commands
-    cache:
-      name: macos26-arm64-integration-v1
-      paths: *cache-paths
-    timeout_in_minutes: 30
-
-  - label: ":terminal: End-to-end (Linux)"
-    key: e2e-linux
-    commands: &e2e-commands
-      - source .buildkite/setup.sh
-      - bash .buildkite/test.sh e2e
-    cache:
-      name: linux-x64-e2e-v1
-      paths:
-        - "~/.local/share/mise"
-        - "~/.cache/mise"
-        - "~/.cargo/bin"
-        - "~/.cargo/registry"
-        - "~/.cargo/git"
-        - "~/.rustup"
-        - target
-        - "~/.cache/spago-nodejs"
-    timeout_in_minutes: 30
-
-  - label: ":terminal: End-to-end (macOS)"
-    key: e2e-macos
-    skip: "Temporarily disabled: macOS runners slow down CI."
-    agents: *macos-agents
-    commands: *e2e-commands
-    cache:
-      name: macos26-arm64-e2e-v1
       paths:
         - "~/.local/share/mise"
         - "~/.cache/mise"
@@ -98,23 +49,21 @@ steps:
         - "~/Library/Caches/spago-nodejs"
     timeout_in_minutes: 30
 
-  - label: ":rust: Compilation (wasm32-unknown-unknown)"
-    key: wasm
-    commands:
-      - source .buildkite/setup.sh
-      - cargo check -p analyzer --locked --target wasm32-unknown-unknown
-    cache:
-      name: linux-x64-wasm-v1
-      paths: *cache-paths
-    timeout_in_minutes: 30
-
-  - label: ":rust: Formatting and Clippy"
-    key: formatting
+  - label: ":rust: Static checks (formatting, Clippy, WASM)"
+    key: static-checks
     commands:
       - source .buildkite/setup.sh
       - just format --check
       - cargo clippy --workspace --locked
+      - cargo check -p analyzer --locked --target wasm32-unknown-unknown
     cache:
       name: linux-x64-formatting-v1
-      paths: *cache-paths
+      paths:
+        - "~/.local/share/mise"
+        - "~/.cache/mise"
+        - "~/.cargo/bin"
+        - "~/.cargo/registry"
+        - "~/.cargo/git"
+        - "~/.rustup"
+        - target
     timeout_in_minutes: 30
