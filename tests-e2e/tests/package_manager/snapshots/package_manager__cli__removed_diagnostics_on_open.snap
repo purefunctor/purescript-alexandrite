@@ -4,7 +4,7 @@ source: tests-e2e/tests/package_manager/cli.rs
 status: 2
 --- stdout
 --- stderr
-error: the argument '--config' cannot be used multiple times
+error: unexpected argument '--diagnostics-on-open' found
 
 Usage: iris [FLAGS] [SUBCOMMAND]
 

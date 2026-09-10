@@ -1,8 +1,10 @@
 use std::borrow::Cow;
-use std::io;
 use std::path::PathBuf;
+use std::{fs, io};
 
+use configuration::{Configuration, ConfigurationSettings};
 use path_absolutize::Absolutize;
+use thiserror::Error;
 use tracing::level_filters::LevelFilter;
 use usage::{Args, Subcommands, ValueEnum};
 
@@ -143,23 +145,39 @@ pub struct LspOptions {
     )]
     pub lsp_log: LevelFilter,
 
-    /// Command to use to get source files.
-    ///
-    /// This argument also disables the spago.lock integration.
-    #[usage(long)]
-    pub source_command: Option<String>,
+    /// Language server configuration as a JSON object, read once at startup.
+    #[usage(long, value_name = "JSON", conflicts = "--config-file")]
+    pub config: Option<String>,
 
-    /// Publish diagnostics on textDocument/didOpen.
-    #[usage(long, value_name = "bool", default = "true")]
-    pub diagnostics_on_open: Option<bool>,
+    /// Read language server JSON configuration once at startup from PATH, relative to the working directory.
+    #[usage(long, value_name = "PATH", conflicts = "--config")]
+    pub config_file: Option<PathBuf>,
+}
 
-    /// Publish diagnostics on textDocument/didSave.
-    #[usage(long, value_name = "bool", default = "true")]
-    pub diagnostics_on_save: Option<bool>,
+#[derive(Debug, Error)]
+pub enum ConfigurationError {
+    #[error("failed to read configuration file {}: {error}", path.display())]
+    ReadFile { path: PathBuf, error: io::Error },
+    #[error("invalid configuration in {input}: {error}")]
+    InvalidJson { input: String, error: serde_json::Error },
+}
 
-    /// Publish diagnostics on textDocument/didChange.
-    #[usage(long)]
-    pub diagnostics_on_change: bool,
+impl LspOptions {
+    pub fn configuration(&self) -> Result<Configuration, ConfigurationError> {
+        let (input, content) = if let Some(path) = &self.config_file {
+            let content = fs::read_to_string(path)
+                .map_err(|error| ConfigurationError::ReadFile { path: path.clone(), error })?;
+            (format!("configuration file {}", path.display()), Cow::Owned(content))
+        } else if let Some(content) = &self.config {
+            ("--config".to_string(), Cow::Borrowed(content.as_str()))
+        } else {
+            return Ok(Configuration::default());
+        };
+        let settings = serde_json::from_str::<Option<ConfigurationSettings>>(&content)
+            .map_err(|error| ConfigurationError::InvalidJson { input, error })?
+            .unwrap_or_default();
+        Ok(settings.apply_to(&Configuration::default()))
+    }
 }
 
 #[derive(Debug, Args)]
@@ -368,10 +386,8 @@ impl Default for LspOptions {
             logging: LoggingOptions::default(),
             stdio: false,
             lsp_log: LevelFilter::INFO,
-            source_command: None,
-            diagnostics_on_open: Some(true),
-            diagnostics_on_save: Some(true),
-            diagnostics_on_change: false,
+            config: None,
+            config_file: None,
         }
     }
 }
@@ -473,20 +489,11 @@ mod tests {
 
     #[test]
     fn lsp_is_the_default_command() {
-        let options = lsp(&["--stdio", "--diagnostics-on-change"]);
+        let options = lsp(&["--stdio"]);
 
         assert!(options.stdio);
-        assert!(options.diagnostics_on_change);
-        assert_eq!(options.diagnostics_on_open, Some(true));
-        assert_eq!(options.diagnostics_on_save, Some(true));
-
-        let options = lsp(&["--diagnostics-on-open", "false", "--diagnostics-on-save", "true"]);
-        assert_eq!(options.diagnostics_on_open, Some(false));
-        assert_eq!(options.diagnostics_on_save, Some(true));
-
-        let options = lsp(&["lsp", "--diagnostics-on-open=true", "--diagnostics-on-save=false"]);
-        assert_eq!(options.diagnostics_on_open, Some(true));
-        assert_eq!(options.diagnostics_on_save, Some(false));
+        assert!(options.config.is_none());
+        assert!(options.config_file.is_none());
     }
 
     #[test]

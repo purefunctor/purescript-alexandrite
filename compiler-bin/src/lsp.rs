@@ -27,6 +27,7 @@ use building::lifecycle::{
     AnalysisInvalidation, DiskObservation, DocumentKey, DocumentKind, FileLifecycle, ForeignEvent,
     LifecycleChange, LifecycleEvent, ReloadFailure, SourceEvent, SourceUnitKey,
 };
+use configuration::{Configuration, SourceDiscovery};
 use files::{FileId, ForeignSourceKind};
 use itertools::Itertools;
 use lsp_types::notification::Notification;
@@ -71,16 +72,8 @@ fn configure_materialized_prim(engine: &QueryEngine, files: &mut FileLifecycle<i
     }
 }
 
-#[derive(Debug)]
-pub struct LspConfig {
-    pub source_command: Option<String>,
-    pub diagnostics_on_open: bool,
-    pub diagnostics_on_save: bool,
-    pub diagnostics_on_change: bool,
-}
-
 pub struct State {
-    pub config: Arc<LspConfig>,
+    pub config: Arc<Configuration>,
     pub client: ClientSocket,
 
     pub engine: QueryEngine,
@@ -97,7 +90,7 @@ pub struct State {
 }
 
 impl State {
-    fn new(config: Arc<LspConfig>, client: ClientSocket) -> State {
+    fn new(config: Arc<Configuration>, client: ClientSocket) -> State {
         let engine = QueryEngine::default();
         let mut files = FileLifecycle::default();
         configure_materialized_prim(&engine, &mut files);
@@ -317,10 +310,11 @@ fn initialized(state: &mut State, _: InitializedParams) -> Result<(), LspError> 
     register_file_watcher(state);
 
     let config = Arc::clone(&state.config);
-    if let Some(command) = config.source_command.as_deref() {
-        initialized_manual(state, command)
-    } else {
-        initialized_spago(state)
+    match &config.sources {
+        SourceDiscovery::Spago {} => initialized_spago(state),
+        SourceDiscovery::Command { program, arguments } => {
+            initialized_manual(state, program, arguments)
+        }
     }
 }
 
@@ -369,16 +363,17 @@ fn exit(_state: &mut State, (): ()) -> Result<(), LspError> {
     Ok(())
 }
 
-fn initialized_manual(state: &mut State, command: &str) -> Result<(), LspError> {
+fn initialized_manual(
+    state: &mut State,
+    program: &str,
+    arguments: &[String],
+) -> Result<(), LspError> {
     let root = Option::clone(&state.root).ok_or(LspError::MissingRoot)?;
 
-    tracing::info!("Using '{}'", command);
-
-    let mut parts = command.split(" ");
-    let program = parts.next().ok_or(LspError::InvalidSourceCommand)?;
+    tracing::info!("Using '{}'", program);
 
     let mut command = process::Command::new(program);
-    command.args(parts);
+    command.args(arguments);
 
     let output = command.output()?;
     let output = str::from_utf8(&output.stdout)?;
@@ -694,7 +689,7 @@ fn did_change(state: &mut State, p: DidChangeTextDocumentParams) -> Result<(), L
     let change = apply_lifecycle_event(state, event);
     finish_lifecycle_change(state, &change)?;
 
-    if state.config.diagnostics_on_change {
+    if state.config.diagnostics.on_change {
         emit_associated_diagnostics(state, Url::clone(&p.text_document.uri))?;
     }
 
@@ -734,7 +729,7 @@ fn did_open(state: &mut State, p: DidOpenTextDocumentParams) -> Result<(), LspEr
     };
     finish_lifecycle_change(state, &change)?;
 
-    if state.config.diagnostics_on_open {
+    if state.config.diagnostics.on_open {
         emit_associated_diagnostics(state, p.text_document.uri)?;
     }
 
@@ -773,7 +768,7 @@ fn did_close(state: &mut State, p: DidCloseTextDocumentParams) -> Result<(), Lsp
 fn did_save(state: &mut State, p: DidSaveTextDocumentParams) -> Result<(), LspError> {
     state.invalidate_suggestions_cache();
 
-    if state.config.diagnostics_on_save {
+    if state.config.diagnostics.on_save {
         emit_associated_diagnostics(state, p.text_document.uri)?;
     }
     Ok(())
@@ -1047,7 +1042,7 @@ trait RequestExtension: BorrowMut<Router<State>> {
 
 impl RequestExtension for Router<State> {}
 
-pub async fn async_start(config: Arc<LspConfig>) {
+pub async fn async_start(config: Arc<Configuration>) {
     let (server, _) = async_lsp::MainLoop::new_server(move |client| {
         let client_socket = ClientSocket::clone(&client);
         let mut router: Router<State, ResponseError> =
@@ -1106,7 +1101,7 @@ pub async fn async_start(config: Arc<LspConfig>) {
 }
 
 #[tokio::main(flavor = "current_thread")]
-pub async fn start(config: LspConfig) {
+pub async fn start(config: Configuration) {
     let config = Arc::new(config);
     async_start(Arc::clone(&config)).await
 }

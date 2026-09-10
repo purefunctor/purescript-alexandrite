@@ -4,6 +4,8 @@ mod add;
 mod build;
 #[path = "package_manager/cli.rs"]
 mod cli;
+#[path = "package_manager/lsp.rs"]
+mod lsp;
 #[path = "package_manager/new.rs"]
 mod new;
 #[path = "package_manager/run.rs"]

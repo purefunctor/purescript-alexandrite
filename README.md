@@ -17,6 +17,60 @@ to enable minimal recomputation across trivial formatting changes.
 The language server component implements core code intelligence features such as completion, jump to
 definition, hover information, find references, workspace symbol search, and diagnostics.
 
+## Language server configuration
+
+Run `iris lsp --stdio` (or `iris --stdio`) to start the language server.
+Supply startup settings as inline JSON or a UTF-8 JSON file:
+
+```sh
+iris lsp --stdio --config '{"diagnostics":{"onChange":true}}'
+iris lsp --stdio --config-file ./iris.json
+```
+
+`--config` and `--config-file` are mutually exclusive and replace `--source-command` and
+`--diagnostics-on-open`, `--diagnostics-on-save`, and `--diagnostics-on-change`. File paths are
+relative to the process working directory, not the editor's workspace or the configuration file's
+directory. Settings are read once before the server starts; changing them requires a restart.
+Configuration files are not watched, and LSP configuration notifications do not reload settings.
+
+The defaults are:
+
+```json
+{
+  "sources": { "kind": "spago" },
+  "diagnostics": {
+    "onOpen": true,
+    "onSave": true,
+    "onChange": false
+  }
+}
+```
+
+All settings are optional. Missing or `null` fields retain their defaults; `{}` and top-level
+`null` also select the defaults. Unknown fields and invalid values are errors, reported on stderr
+with exit status 2 before the LSP starts. Use the
+[configuration JSON Schema](compiler-lsp/configuration/configuration.schema.json) for editor
+validation; associate it through editor settings rather than adding a `$schema` property.
+
+To replace `spago.lock` source discovery with a command:
+
+```json
+{
+  "sources": {
+    "kind": "command",
+    "program": "spago",
+    "arguments": ["sources"]
+  }
+}
+```
+
+`program` is a nonempty executable name or path, and `arguments` is an optional array of individual
+strings (default `[]`). No shell parsing or expansion occurs. The command runs in the server's
+process working directory and must print one source path or glob per line; relative output paths
+are resolved from the first LSP workspace folder, falling back to the process working directory.
+Only use trusted configurations: source commands execute with the server's permissions.
+Diagnostic settings control the corresponding document-event triggers, not all diagnostic publishing.
+
 ## Editor features
 
 Iris provides code intelligence for PureScript projects through its VS Code extension.

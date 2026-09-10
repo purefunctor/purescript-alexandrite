@@ -72,10 +72,7 @@ fn rejects_unknown_flags_and_duplicate_scalar_options() {
     let workspace = TestWorkspace::empty();
     let cases: &[(&str, &[&str])] = &[
         ("unknown_root_flag", &["--unknown"]),
-        (
-            "duplicate_root_scalar",
-            &["--diagnostics-on-open", "true", "--diagnostics-on-open", "false"],
-        ),
+        ("duplicate_root_scalar", &["--config", "{}", "--config", "null"]),
         ("unknown_build_flag", &["build", "--unknown"]),
         ("duplicate_build_scalar", &["build", "--package", "one", "--package", "two"]),
         ("unknown_compile_flag", &["compile", "--unknown", "Main.purs"]),
@@ -137,19 +134,78 @@ fn run_and_test_require_separator_before_trailing_arguments() {
 }
 
 #[test]
-fn lsp_boolean_options_require_boolean_values() {
+fn lsp_configuration_options_reject_invalid_arguments() {
     let workspace = TestWorkspace::empty();
     let cases: &[(&str, &[&str])] = &[
-        ("lsp_open_requires_value", &["lsp", "--diagnostics-on-open"]),
-        ("lsp_open_rejects_invalid_value", &["lsp", "--diagnostics-on-open", "yes"]),
-        ("lsp_save_requires_value", &["lsp", "--diagnostics-on-save"]),
-        ("lsp_save_rejects_invalid_value", &["lsp", "--diagnostics-on-save", "yes"]),
+        ("config_requires_value", &["--config"]),
+        ("config_file_requires_value", &["lsp", "--config-file"]),
+        ("config_conflicts_with_file", &["--config", "{}", "--config-file", "missing.json"]),
+        (
+            "config_file_conflicts_with_literal",
+            &["lsp", "--config-file", "missing.json", "--config", "{}"],
+        ),
+        ("duplicate_config_file", &["lsp", "--config-file", "one", "--config-file", "two"]),
+        ("removed_source_command", &["lsp", "--source-command", "custom"]),
+        ("removed_diagnostics_on_open", &["--diagnostics-on-open", "false"]),
+        ("removed_diagnostics_on_save", &["lsp", "--diagnostics-on-save", "false"]),
+        ("removed_diagnostics_on_change", &["--diagnostics-on-change"]),
     ];
 
     for (name, arguments) in cases {
         let output = workspace.command(arguments);
-        assert!(!output.status.success(), "{name} unexpectedly succeeded");
+        assert_eq!(output.status.code(), Some(2), "{name}");
+        assert!(output.stdout.is_empty(), "{name} wrote stdout");
         snapshot_output(name, &output);
+    }
+}
+
+#[test]
+fn lsp_rejects_invalid_json_configuration_before_starting() {
+    let workspace = TestWorkspace::empty();
+    let cases = [
+        ("malformed_json", "{"),
+        ("trailing_json", "{} false"),
+        ("wrong_top_level", "false"),
+        ("unknown_setting", r#"{"unknown":true}"#),
+        ("unknown_diagnostic", r#"{"diagnostics":{"onOpened":false}}"#),
+        ("wrong_diagnostic_type", r#"{"diagnostics":{"onSave":"false"}}"#),
+        ("unknown_source_kind", r#"{"sources":{"kind":"unknown"}}"#),
+        ("missing_source_program", r#"{"sources":{"kind":"command"}}"#),
+        ("empty_source_program", r#"{"sources":{"kind":"command","program":""}}"#),
+        (
+            "invalid_source_arguments",
+            r#"{"sources":{"kind":"command","program":"custom","arguments":[1]}}"#,
+        ),
+    ];
+
+    for (name, content) in cases {
+        workspace.write("config/settings.json", content);
+        for (transport, arguments) in [
+            ("inline", vec!["--config", content]),
+            ("file", vec!["lsp", "--config-file", "config/settings.json"]),
+        ] {
+            let output = workspace.command(&arguments);
+            assert_eq!(output.status.code(), Some(2), "{name}: {transport}");
+            assert!(output.stdout.is_empty(), "{name}: {transport} wrote stdout");
+            snapshot_output(&format!("config_{name}_{transport}"), &output);
+        }
+    }
+}
+
+#[test]
+fn lsp_reports_configuration_file_read_errors() {
+    let workspace = TestWorkspace::empty();
+    std::fs::write(workspace.path().join("invalid-utf8.json"), [0xff]).unwrap();
+    let cases = [("missing.json", "missing"), ("invalid-utf8.json", "invalid_utf8")];
+    for (path, name) in cases {
+        let output = workspace.command(&["lsp", "--config-file", path]);
+        assert_eq!(output.status.code(), Some(2));
+        assert!(output.stdout.is_empty());
+        insta::with_settings!({filters => vec![
+            (r"No such file or directory \(os error 2\)|The system cannot find the file specified\. \(os error 2\)", "[FILE NOT FOUND]"),
+        ]}, {
+            snapshot_output(&format!("config_file_{name}"), &output);
+        });
     }
 }
 

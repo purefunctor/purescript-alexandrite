@@ -4,6 +4,8 @@ source: tests-e2e/tests/package_manager/cli.rs
 status: 2
 --- stdout
 --- stderr
-error: invalid value 'yes' for '--diagnostics-on-save': provided string was not `true` or `false`
+error: unexpected argument '--diagnostics-on-save' found
+
+Usage: iris lsp [FLAGS]
 
 For more information, try '--help'.

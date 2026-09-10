@@ -1,0 +1,7 @@
+---
+source: tests-e2e/tests/package_manager/cli.rs
+---
+status: 2
+--- stdout
+--- stderr
+error: invalid configuration in --config: unknown variant `unknown`, expected `spago` or `command` at line 1 column 28

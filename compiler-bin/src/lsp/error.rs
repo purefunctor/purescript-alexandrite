@@ -29,8 +29,6 @@ pub enum LspError {
     UrlParseError(#[from] url::ParseError),
     #[error("Invalid or missing workspace root")]
     MissingRoot,
-    #[error("Invalid or missing --source-command")]
-    InvalidSourceCommand,
     #[error("SpagoError: {0}")]
     SpagoLock(#[from] LockfileGlobSetError),
     #[error("IoError: {0}")]

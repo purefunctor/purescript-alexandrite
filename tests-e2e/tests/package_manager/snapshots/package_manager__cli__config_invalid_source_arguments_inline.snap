@@ -1,0 +1,7 @@
+---
+source: tests-e2e/tests/package_manager/cli.rs
+---
+status: 2
+--- stdout
+--- stderr
+error: invalid configuration in --config: invalid type: integer `1`, expected a string at line 1 column 65

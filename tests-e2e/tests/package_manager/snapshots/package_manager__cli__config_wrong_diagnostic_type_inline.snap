@@ -1,0 +1,7 @@
+---
+source: tests-e2e/tests/package_manager/cli.rs
+---
+status: 2
+--- stdout
+--- stderr
+error: invalid configuration in --config: invalid type: string "false", expected a boolean at line 1 column 32
