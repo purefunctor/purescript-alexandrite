@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 310
+assertion_line: 308
 expression: semantic_report
 ---
 data Choice :: Prim.Type
@@ -31,7 +31,7 @@ number :: Prim.Number
 number = 1.5
 
 string :: Prim.String
-string = "alexandrite"
+string = "iris"
 
 array :: Prim.Array Prim.Int
 array = [1, 2, 3]

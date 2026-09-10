@@ -160,7 +160,7 @@ export const effectValue = $foreign["effectValue"];
 const $await = $foreign["await"];
 export const integer = 42 | 0;
 export const number = 1.5;
-export const string = "alexandrite";
+export const string = "iris";
 export const array = [
   1 | 0,
   2 | 0,

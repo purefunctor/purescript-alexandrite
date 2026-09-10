@@ -17,7 +17,7 @@ number :: Number
 number = 1.5
 
 string :: String
-string = "alexandrite"
+string = "iris"
 
 array :: Array Int
 array = [1, 2, 3]

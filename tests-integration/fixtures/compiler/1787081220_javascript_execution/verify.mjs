@@ -47,7 +47,7 @@ const actual = {
 const expected = {
   integer: 42,
   number: 1.5,
-  string: "alexandrite",
+  string: "iris",
   array: [1, 2, 3],
   recordCount: 0,
   updatedCount: 1,

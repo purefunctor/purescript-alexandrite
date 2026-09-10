@@ -1,6 +1,6 @@
 ---
 source: tests-integration/src/fixtures.rs
-assertion_line: 310
+assertion_line: 308
 expression: semantic_report
 ---
 integer :: Prim.Int -> Prim.Boolean
@@ -23,7 +23,7 @@ matchesEscapedDoubleQuote = \'"' -> true
 matchesEscapedDoubleQuote = \_ -> false
 
 string :: Prim.String -> Prim.Boolean
-string = \"alexandrite" -> true
+string = \"iris" -> true
 string = \_ -> false
 
 boolean :: Prim.Boolean -> Prim.Boolean

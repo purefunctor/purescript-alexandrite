@@ -20,7 +20,7 @@ matchesEscapedDoubleQuote '\"' = true
 matchesEscapedDoubleQuote _ = false
 
 string :: String -> Boolean
-string "alexandrite" = true
+string "iris" = true
 string _ = false
 
 boolean :: Boolean -> Boolean
