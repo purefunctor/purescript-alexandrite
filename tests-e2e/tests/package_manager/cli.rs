@@ -89,7 +89,7 @@ fn rejects_unknown_flags_and_duplicate_scalar_options() {
     let workspace = TestWorkspace::empty();
     let cases: &[(&str, &[&str])] = &[
         ("unknown_root_flag", &["--unknown"]),
-        ("duplicate_root_scalar", &["--config", "{}", "--config", "null"]),
+        ("duplicate_lsp_scalar", &["lsp", "--config", "{}", "--config", "null"]),
         ("unknown_build_flag", &["build", "--unknown"]),
         ("duplicate_build_scalar", &["build", "--package", "one", "--package", "two"]),
         ("unknown_compile_flag", &["compile", "--unknown", "Main.purs"]),
@@ -122,6 +122,8 @@ fn rejects_unknown_flags_and_duplicate_scalar_options() {
 fn rejects_missing_required_arguments() {
     let workspace = TestWorkspace::empty();
     let cases: &[(&str, &[&str])] = &[
+        ("root_requires_subcommand", &[]),
+        ("log_file_requires_subcommand", &["--log-file"]),
         ("add_requires_dependencies", &["add"]),
         ("compile_requires_input_or_package", &["compile"]),
         ("compile_package_requires_value", &["compile", "--package"]),
@@ -133,6 +135,27 @@ fn rejects_missing_required_arguments() {
     for (name, arguments) in cases {
         let output = workspace.command(arguments);
         assert!(!output.status.success(), "{name} unexpectedly succeeded");
+        snapshot_output(name, &output);
+    }
+}
+
+#[test]
+fn lsp_options_require_the_explicit_subcommand() {
+    let workspace = TestWorkspace::empty();
+    let cases: &[(&str, &[&str])] = &[
+        ("root_stdio", &["--stdio"]),
+        ("root_stdio_before_lsp", &["--stdio", "lsp"]),
+        ("root_lsp_log", &["--lsp-log", "off", "lsp"]),
+        ("root_query_log", &["--query-log", "off", "lsp"]),
+        ("root_checking_log", &["--checking-log", "off", "lsp"]),
+        ("root_config", &["--config", "{}", "lsp"]),
+        ("root_config_file", &["--config-file", "missing.json", "lsp"]),
+    ];
+
+    for (name, arguments) in cases {
+        let output = workspace.command(arguments);
+        assert_eq!(output.status.code(), Some(2), "{name}");
+        assert!(output.stdout.is_empty(), "{name} wrote stdout");
         snapshot_output(name, &output);
     }
 }
@@ -154,18 +177,18 @@ fn run_and_test_require_separator_before_trailing_arguments() {
 fn lsp_configuration_options_reject_invalid_arguments() {
     let workspace = TestWorkspace::empty();
     let cases: &[(&str, &[&str])] = &[
-        ("config_requires_value", &["--config"]),
+        ("config_requires_value", &["lsp", "--config"]),
         ("config_file_requires_value", &["lsp", "--config-file"]),
-        ("config_conflicts_with_file", &["--config", "{}", "--config-file", "missing.json"]),
+        ("config_conflicts_with_file", &["lsp", "--config", "{}", "--config-file", "missing.json"]),
         (
             "config_file_conflicts_with_literal",
             &["lsp", "--config-file", "missing.json", "--config", "{}"],
         ),
         ("duplicate_config_file", &["lsp", "--config-file", "one", "--config-file", "two"]),
         ("removed_source_command", &["lsp", "--source-command", "custom"]),
-        ("removed_diagnostics_on_open", &["--diagnostics-on-open", "false"]),
+        ("removed_diagnostics_on_open", &["lsp", "--diagnostics-on-open", "false"]),
         ("removed_diagnostics_on_save", &["lsp", "--diagnostics-on-save", "false"]),
-        ("removed_diagnostics_on_change", &["--diagnostics-on-change"]),
+        ("removed_diagnostics_on_change", &["lsp", "--diagnostics-on-change"]),
     ];
 
     for (name, arguments) in cases {
@@ -229,7 +252,7 @@ fn lsp_rejects_invalid_json_configuration_before_starting() {
     for (name, content) in cases {
         workspace.write("config/settings.json", content);
         for (transport, arguments) in [
-            ("inline", vec!["--config", content]),
+            ("inline", vec!["lsp", "--config", content]),
             ("file", vec!["lsp", "--config-file", "config/settings.json"]),
         ] {
             let output = workspace.command(&arguments);

@@ -6,7 +6,7 @@ status: 0
 iris 0.1.0
 Language implementation for the PureScript programming language.
 
-Usage: iris [FLAGS] [SUBCOMMAND]
+Usage: iris [--log-file] <SUBCOMMAND>
 
 Commands:
   help     Print this message or the help of the given subcommand(s)
@@ -27,19 +27,7 @@ Documentation commands:
   docs     Documentation utilities.
 
 Flags:
-      --log-file                    Print log path.
-      --query-log <LevelFilter>     Log level for the query engine.
-                                    [possible values: off, error, warn, info, debug, trace]
-                                    (default: off)
-      --checking-log <LevelFilter>  Log level for the type checker.
-                                    [possible values: off, error, warn, info, debug, trace]
-                                    (default: off)
-      --stdio
-      --lsp-log <LevelFilter>       Log level for the language server.
-                                    [possible values: off, error, warn, info, debug, trace]
-                                    (default: info)
-      --config <JSON>               Language server configuration as a JSON object, read once at startup.
-      --config-file <PATH>          Language server configuration file, relative to the working directory.
-  -h, --help                        Print help
-  -V, --version                     Print version
+      --log-file  Print log path.
+  -h, --help      Print help
+  -V, --version   Print version
 --- stderr

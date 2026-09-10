@@ -40,15 +40,13 @@ pub struct Program {
     /// Print log path.
     #[usage(long)]
     pub log_file: bool,
-    #[usage(flatten)]
-    pub lsp: LspOptions,
     #[usage(subcommand)]
-    pub command: Option<Command>,
+    pub command: Command,
 }
 
 impl Program {
     pub fn into_command(self) -> io::Result<Command> {
-        let mut command = self.command.unwrap_or(Command::Lsp(self.lsp));
+        let mut command = self.command;
         match &mut command {
             Command::Build(options) => options.build.normalize_paths()?,
             Command::Watch(options) => options.normalize_paths()?,
@@ -416,16 +414,6 @@ mod tests {
         usage::diagnostic::report(Program::spec(), &argv[1..], &error).code
     }
 
-    fn lsp(args: &[&str]) -> LspOptions {
-        let mut argv = vec!["iris"];
-        argv.extend(args);
-        let program = parse(argv);
-        match program.into_command().unwrap() {
-            Command::Lsp(options) => options,
-            _ => unreachable!("parsed command was not `lsp`"),
-        }
-    }
-
     fn docs(args: &[&str]) -> DocsOptions {
         let mut argv = vec!["iris", "docs"];
         argv.extend(args);
@@ -491,15 +479,6 @@ mod tests {
 
     fn current_directory_path(path: impl AsRef<Path>) -> PathBuf {
         current_directory().join(path)
-    }
-
-    #[test]
-    fn lsp_is_the_default_command() {
-        let options = lsp(&["--stdio"]);
-
-        assert!(options.stdio);
-        assert!(options.config.is_none());
-        assert!(options.config_file.is_none());
     }
 
     #[test]

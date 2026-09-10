@@ -4,15 +4,15 @@ source: tests-e2e/tests/package_manager/cli.rs
 status: 2
 --- stdout
 --- stderr
-Error! · [unknown_flag] · command line:1:6
+Error! · [unknown_flag] · command line:1:10
   •
   │
   • unexpected argument '--diagnostics-on-open' found
   │
-  │ Usage: iris [FLAGS] [SUBCOMMAND]
+  │ Usage: iris lsp [FLAGS]
   │
   │ For more information, try '--help'.
   │
-  │   iris --diagnostics-on-open false
-  │        ╰────────────────────
+  │   iris lsp --diagnostics-on-open false
+  │            ╰────────────────────
   •
