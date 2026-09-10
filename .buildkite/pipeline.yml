@@ -32,7 +32,6 @@ steps:
 
   - label: ":test_tube: Build and tests (macOS)"
     key: build-macos
-    skip: "Temporarily disabled: macOS runners slow down CI."
     agents:
       queue: macos-26-medium
     commands: *build-commands
