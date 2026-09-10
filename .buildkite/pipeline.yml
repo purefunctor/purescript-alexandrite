@@ -108,11 +108,12 @@ steps:
       paths: *cache-paths
     timeout_in_minutes: 30
 
-  - label: ":rust: Formatting"
+  - label: ":rust: Formatting and Clippy"
     key: formatting
     commands:
       - source .buildkite/setup.sh
       - just format --check
+      - cargo clippy --workspace --locked
     cache:
       name: linux-x64-formatting-v1
       paths: *cache-paths
