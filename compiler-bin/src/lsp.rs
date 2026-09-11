@@ -7,6 +7,7 @@ pub mod extension;
 mod tests;
 
 use std::borrow::BorrowMut;
+use std::collections::BTreeMap;
 use std::ops::ControlFlow;
 use std::path::PathBuf;
 use std::sync::{Arc, LazyLock};
@@ -27,7 +28,7 @@ use building::lifecycle::{
     AnalysisInvalidation, DiskObservation, DocumentKey, DocumentKind, FileLifecycle, ForeignEvent,
     LifecycleChange, LifecycleEvent, ReloadFailure, SourceEvent, SourceUnitKey,
 };
-use configuration::{Configuration, SourceDiscovery};
+use configuration::{Configuration, ConfigurationSettings, SourceDiscovery};
 use files::{FileId, ForeignSourceKind};
 use itertools::Itertools;
 use lsp_types::notification::Notification;
@@ -40,7 +41,10 @@ use tempfile::TempDir;
 use tokio::task;
 use tower::ServiceBuilder;
 
-use crate::lsp::capabilities::{negotiate_analyzer_capabilities, negotiate_position_encoding};
+use crate::lsp::capabilities::{
+    ConfigurationCapabilities, negotiate_analyzer_capabilities,
+    negotiate_configuration_capabilities, negotiate_position_encoding,
+};
 use crate::lsp::error::{AnalyzerResultExt, LspError};
 use crate::walk;
 
@@ -73,6 +77,7 @@ fn configure_materialized_prim(engine: &QueryEngine, files: &mut FileLifecycle<i
 }
 
 pub struct State {
+    pub startup_config: Arc<Configuration>,
     pub config: Arc<Configuration>,
     pub client: ClientSocket,
 
@@ -84,6 +89,12 @@ pub struct State {
     pub suggestions_cache: Arc<RwLock<SuggestionsCache>>,
 
     pub root: Option<PathBuf>,
+    pub configuration_scope: Option<Url>,
+    pub configuration_capabilities: ConfigurationCapabilities,
+    pub configuration_generation: u64,
+    pub workspace_loaded: bool,
+    pub selected_sources: FxHashSet<Arc<str>>,
+    pub excluded_sources: FxHashSet<Arc<str>>,
     pub position_encoding: PositionEncoding,
     pub analyzer_capabilities: AnalyzerCapabilities,
     pub watched_files_dynamic_registration: bool,
@@ -105,11 +116,18 @@ impl State {
         let suggestions_cache = Arc::new(RwLock::new(suggestions_cache));
 
         let root = None;
+        let configuration_scope = None;
+        let configuration_capabilities = ConfigurationCapabilities::default();
+        let configuration_generation = 0;
+        let workspace_loaded = false;
+        let selected_sources = FxHashSet::default();
+        let excluded_sources = FxHashSet::default();
         let position_encoding = PositionEncoding::Utf16;
         let analyzer_capabilities = AnalyzerCapabilities::default();
         let watched_files_dynamic_registration = false;
 
         State {
+            startup_config: Arc::clone(&config),
             config,
             client,
             engine,
@@ -118,6 +136,12 @@ impl State {
             workspace_symbols_cache,
             suggestions_cache,
             root,
+            configuration_scope,
+            configuration_capabilities,
+            configuration_generation,
+            workspace_loaded,
+            selected_sources,
+            excluded_sources,
             position_encoding,
             analyzer_capabilities,
             watched_files_dynamic_registration,
@@ -214,16 +238,18 @@ fn initialize(
     let position_encoding = negotiate_position_encoding(&p.initialize_params);
     state.position_encoding = position_encoding;
     state.analyzer_capabilities = negotiate_analyzer_capabilities(&p.initialize_params);
+    state.configuration_capabilities = negotiate_configuration_capabilities(&p.initialize_params);
     state.watched_files_dynamic_registration =
         watched_files_dynamic_registration(&p.initialize_params.capabilities);
 
-    state.root = p
+    state.configuration_scope = p
         .initialize_params
         .workspace_folders
-        .and_then(|folders| {
-            let folder = folders.first()?;
-            folder.uri.to_file_path().ok()
-        })
+        .and_then(|folders| folders.first().map(|folder| Url::clone(&folder.uri)));
+    state.root = state
+        .configuration_scope
+        .as_ref()
+        .and_then(|uri| uri.to_file_path().ok())
         .or_else(|| env::current_dir().ok());
     async move {
         Ok(InitializeResult {
@@ -308,13 +334,130 @@ fn shutdown(_state: &mut State, (): ()) -> impl Future<Output = Result<(), Respo
 fn initialized(state: &mut State, _: InitializedParams) -> Result<(), LspError> {
     let _span = tracing::info_span!("initialization").entered();
     register_file_watcher(state);
+    register_configuration_changes(state);
 
-    let config = Arc::clone(&state.config);
-    match &config.sources {
-        SourceDiscovery::Spago {} => initialized_spago(state),
-        SourceDiscovery::Command { program, arguments } => {
-            initialized_manual(state, program, arguments)
+    if state.configuration_capabilities.workspace_configuration {
+        request_workspace_configuration(state);
+        Ok(())
+    } else {
+        apply_configuration(state, Arc::clone(&state.startup_config))
+    }
+}
+
+fn register_configuration_changes(state: &State) {
+    if !state.configuration_capabilities.dynamic_registration {
+        return;
+    }
+
+    let registration = Registration {
+        id: "iris-workspace-configuration".to_string(),
+        method: notification::DidChangeConfiguration::METHOD.to_string(),
+        register_options: None,
+    };
+    let parameters = RegistrationParams { registrations: vec![registration] };
+    let mut client = ClientSocket::clone(&state.client);
+    task::spawn(async move {
+        if let Err(error) = client.register_capability(parameters).await {
+            tracing::warn!("Failed to register workspace configuration changes: {error}");
         }
+    });
+}
+
+struct ConfigurationReceived {
+    generation: u64,
+    result: Result<Vec<serde_json::Value>, String>,
+}
+
+fn request_workspace_configuration(state: &mut State) {
+    state.configuration_generation = state.configuration_generation.wrapping_add(1);
+    let generation = state.configuration_generation;
+    let parameters = ConfigurationParams {
+        items: vec![ConfigurationItem {
+            scope_uri: state.configuration_scope.clone(),
+            section: Some("iris.server".to_string()),
+        }],
+    };
+    let mut client = ClientSocket::clone(&state.client);
+    task::spawn(async move {
+        let result = tokio::time::timeout(
+            std::time::Duration::from_secs(10),
+            client.configuration(parameters),
+        )
+        .await
+        .map_err(|_| "workspace/configuration request timed out".to_string())
+        .and_then(|result| result.map_err(|error| error.to_string()));
+        if let Err(error) = client.emit(ConfigurationReceived { generation, result }) {
+            tracing::error!("Failed to deliver workspace configuration: {error}");
+        }
+    });
+}
+
+fn finish_workspace_configuration(
+    state: &mut State,
+    ConfigurationReceived { generation, result }: ConfigurationReceived,
+) -> Result<(), LspError> {
+    if generation != state.configuration_generation {
+        return Ok(());
+    }
+
+    let configuration = result
+        .map_err(|error| format!("Failed to retrieve Iris settings: {error}"))
+        .and_then(|mut values| {
+            if values.len() != 1 {
+                return Err(format!(
+                    "Invalid workspace/configuration response: expected one item, received {}",
+                    values.len()
+                ));
+            }
+            let value = values.pop().expect("invariant violated: expected one configuration item");
+            serde_json::from_value::<Option<ConfigurationSettings>>(value)
+                .map(|settings| settings.unwrap_or_default().apply_to(&state.startup_config))
+                .map_err(|error| format!("Invalid Iris settings: {error}"))
+        });
+
+    match configuration {
+        Ok(configuration) => {
+            if let Err(error) = apply_configuration(state, Arc::new(configuration)) {
+                let error = format!("Failed to apply Iris settings: {error}");
+                report_configuration_error(state, &error);
+                if !state.workspace_loaded {
+                    apply_configuration(state, Arc::clone(&state.startup_config))?;
+                }
+            }
+            Ok(())
+        }
+        Err(error) => {
+            report_configuration_error(state, &error);
+            if state.workspace_loaded {
+                Ok(())
+            } else {
+                apply_configuration(state, Arc::clone(&state.startup_config))
+            }
+        }
+    }
+}
+
+fn did_change_configuration(
+    state: &mut State,
+    _: DidChangeConfigurationParams,
+) -> Result<(), LspError> {
+    if state.configuration_capabilities.workspace_configuration {
+        request_workspace_configuration(state);
+    }
+    Ok(())
+}
+
+fn report_configuration_error(state: &mut State, error: &str) {
+    tracing::error!("{error}");
+    let message = if state.workspace_loaded {
+        format!("{error}. The previous Iris settings remain active.")
+    } else {
+        format!("{error}. Iris will use its startup settings.")
+    };
+    if let Err(error) =
+        state.client.show_message(ShowMessageParams { typ: MessageType::ERROR, message })
+    {
+        tracing::warn!("Failed to report configuration error: {error}");
     }
 }
 
@@ -363,34 +506,31 @@ fn exit(_state: &mut State, (): ()) -> Result<(), LspError> {
     Ok(())
 }
 
-fn initialized_manual(
-    state: &mut State,
+fn discover_manual(
+    root: &std::path::Path,
     program: &str,
     arguments: &[String],
-) -> Result<(), LspError> {
-    let root = Option::clone(&state.root).ok_or(LspError::MissingRoot)?;
-
+) -> Result<Vec<(PathBuf, bool)>, LspError> {
     tracing::info!("Using '{}'", program);
 
     let mut command = process::Command::new(program);
     command.args(arguments);
 
     let output = command.output()?;
+    if !output.status.success() {
+        return Err(LspError::SourceCommandFailed(output.status));
+    }
     let output = str::from_utf8(&output.stdout)?;
 
-    let walk::Walk { files, .. } = walk::walk(&root, output.lines())?;
+    let walk::Walk { files, .. } = walk::walk(root, output.lines())?;
     let files = files.into_iter().map(|file| {
-        let editable = file.starts_with(&root);
+        let editable = file.starts_with(root);
         (file, editable)
     });
-    load_files(state, files)?;
-
-    Ok(())
+    Ok(files.collect())
 }
 
-fn initialized_spago(state: &mut State) -> Result<(), LspError> {
-    let root = state.root.as_ref().ok_or(LspError::MissingRoot)?;
-
+fn discover_spago(root: &std::path::Path) -> Result<Vec<(PathBuf, bool)>, LspError> {
     tracing::info!("Using 'spago.lock'");
 
     let packages = spago::source_files_by_package(root).map_err(LspError::SpagoLock)?;
@@ -399,32 +539,77 @@ fn initialized_spago(state: &mut State) -> Result<(), LspError> {
         package.sources.into_iter().map(move |file| (file, editable))
     });
 
-    let files = files.sorted().collect_vec();
-    load_files(state, files)?;
+    Ok(files.sorted().collect_vec())
+}
 
+fn apply_configuration(
+    state: &mut State,
+    configuration: Arc<Configuration>,
+) -> Result<(), LspError> {
+    if state.workspace_loaded && configuration.sources == state.config.sources {
+        state.config = configuration;
+        return Ok(());
+    }
+    let root = state.root.as_ref().ok_or(LspError::MissingRoot)?;
+    let files = match &configuration.sources {
+        SourceDiscovery::Spago {} => discover_spago(root)?,
+        SourceDiscovery::Command { program, arguments } => {
+            discover_manual(root, program, arguments)?
+        }
+    };
+    let mut prepared = BTreeMap::new();
+    for (path, editable) in files {
+        let content = fs::read_to_string(&path)?;
+        prepared.insert(path, (Arc::<str>::from(content), editable));
+    }
+
+    let refresh_diagnostics = state.workspace_loaded;
+    reconcile_files(state, &prepared, refresh_diagnostics)?;
+    state.config = configuration;
+    state.workspace_loaded = true;
     Ok(())
 }
 
-fn load_files(
+fn reconcile_files(
     state: &mut State,
-    files: impl IntoIterator<Item = (PathBuf, bool)>,
+    files: &BTreeMap<PathBuf, (Arc<str>, bool)>,
+    refresh_diagnostics: bool,
 ) -> Result<(), LspError> {
-    let files = files.into_iter().collect_vec();
     tracing::info!("Loading {} files.", files.len());
 
-    let mut lifecycle_change = LifecycleChange::default();
-    for (file, editable) in &files {
-        let url = url::Url::from_file_path(file).map_err(|_| {
-            let file = PathBuf::clone(file);
-            LspError::PathParseFail(file)
-        })?;
+    let mut selected_sources = FxHashSet::default();
+    for path in files.keys() {
+        let uri =
+            Url::from_file_path(path).map_err(|_| LspError::PathParseFail(PathBuf::clone(path)))?;
+        selected_sources.insert(Arc::from(uri.as_str()));
+    }
 
-        let text = fs::read_to_string(file)?;
-        let unit = source_unit_from_source_uri(&url)?;
+    let mut lifecycle_change = LifecycleChange::default();
+    for source in state.selected_sources.difference(&selected_sources).cloned().collect_vec() {
+        let uri = Url::parse(&source)?;
+        let unit = source_unit_from_source_uri(&uri)?;
+        let event = LifecycleEvent::Source {
+            unit: SourceUnitKey::clone(&unit),
+            event: SourceEvent::DiskObserved { disk: DiskObservation::NotFound, metadata: false },
+        };
+        lifecycle_change.combine(apply_lifecycle_event(state, event));
+        for kind in ForeignSourceKind::ALL {
+            let event = LifecycleEvent::Foreign {
+                unit: SourceUnitKey::clone(&unit),
+                kind,
+                event: ForeignEvent::DiskObserved { disk: DiskObservation::NotFound },
+            };
+            lifecycle_change.combine(apply_lifecycle_event(state, event));
+        }
+    }
+    for (file, (content, editable)) in files {
+        let uri =
+            Url::from_file_path(file).map_err(|_| LspError::PathParseFail(PathBuf::clone(file)))?;
+        let unit = source_unit_from_source_uri(&uri)?;
         let event = LifecycleEvent::Source {
             unit: SourceUnitKey::clone(&unit),
             event: SourceEvent::DiskObserved {
-                disk: DiskObservation::Found(Arc::from(text)),
+                disk: DiskObservation::Found(Arc::clone(content)),
                 metadata: *editable,
             },
         };
@@ -432,6 +617,15 @@ fn load_files(
         lifecycle_change.combine(observe_sibling_foreign(state, &unit)?);
     }
     finish_lifecycle_change(state, &lifecycle_change)?;
+    if refresh_diagnostics {
+        emit_diagnostics_for_change(state, &lifecycle_change)?;
+    }
+
+    state.excluded_sources.extend(state.selected_sources.difference(&selected_sources).cloned());
+    for selected in &selected_sources {
+        state.excluded_sources.remove(selected);
+    }
+    state.selected_sources = selected_sources;
 
     tracing::info!("Loaded {} files.", files.len());
 
@@ -739,7 +933,12 @@ fn did_open(state: &mut State, p: DidOpenTextDocumentParams) -> Result<(), LspEr
 fn did_close(state: &mut State, p: DidCloseTextDocumentParams) -> Result<(), LspError> {
     let uri = p.text_document.uri;
     let (document, unit) = source_unit_from_document_uri(&uri)?;
-    let disk = observe_disk(&uri);
+    let source_uri = Arc::<str>::from(unit.source());
+    let disk = if state.excluded_sources.contains(&source_uri) {
+        DiskObservation::NotFound
+    } else {
+        observe_disk(&uri)
+    };
     let change = match document {
         DocumentKind::Foreign(kind) => {
             let event =
@@ -784,10 +983,17 @@ fn did_change_watched_files(
         match document_kind(&change.uri) {
             Some(DocumentKind::Foreign(kind)) => {
                 let unit = source_unit_from_foreign_uri(&change.uri)?;
+                if state.excluded_sources.contains(unit.source()) {
+                    continue;
+                }
                 foreign_units.insert((unit, kind));
             }
             Some(DocumentKind::Source) => {
-                source_units.insert(source_unit_from_source_uri(&change.uri)?);
+                let unit = source_unit_from_source_uri(&change.uri)?;
+                if state.excluded_sources.contains(unit.source()) {
+                    continue;
+                }
+                source_units.insert(unit);
             }
             None => {}
         }
@@ -1068,11 +1274,12 @@ pub async fn async_start(config: Arc<Configuration>) {
             .notification_ext::<notification::DidOpenTextDocument>(did_open)
             .notification_ext::<notification::DidSaveTextDocument>(did_save)
             .notification_ext::<notification::DidCloseTextDocument>(did_close)
-            .notification_ext::<notification::DidChangeConfiguration>(|_, _| Ok(()))
+            .notification_ext::<notification::DidChangeConfiguration>(did_change_configuration)
             .notification_ext::<notification::DidChangeTextDocument>(did_change)
             .notification_ext::<notification::DidChangeWatchedFiles>(did_change_watched_files)
             .event_ext::<event::CollectDiagnostics>(event::collect_diagnostics)
-            .event_ext::<event::DiagnosticsFinished>(event::finish_diagnostics);
+            .event_ext::<event::DiagnosticsFinished>(event::finish_diagnostics)
+            .event_ext::<ConfigurationReceived>(finish_workspace_configuration);
 
         ServiceBuilder::new()
             .layer(LifecycleLayer::default())

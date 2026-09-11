@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-use std::{io, str};
+use std::{io, process, str};
 
 use analyzer::AnalyzerError;
 use async_lsp::ErrorCode;
@@ -37,6 +37,8 @@ pub enum LspError {
     JoinError(#[from] task::JoinError),
     #[error("Utf8Error: {0}")]
     Utf8Error(#[from] str::Utf8Error),
+    #[error("Source discovery command failed with {0}")]
+    SourceCommandFailed(process::ExitStatus),
     #[error("GlobSetError: {0}")]
     GlobSetError(#[from] globset::Error),
     #[error("WalkError: {0}")]
