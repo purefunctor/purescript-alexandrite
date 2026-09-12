@@ -2,6 +2,27 @@ use analyzer::AnalyzerCapabilities;
 use analyzer::position::PositionEncoding;
 use lsp_types::{InitializeParams, PositionEncodingKind};
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct ConfigurationCapabilities {
+    pub workspace_configuration: bool,
+    pub dynamic_registration: bool,
+}
+
+pub fn negotiate_configuration_capabilities(
+    params: &InitializeParams,
+) -> ConfigurationCapabilities {
+    let Some(workspace) = &params.capabilities.workspace else {
+        return ConfigurationCapabilities::default();
+    };
+    let workspace_configuration = workspace.configuration == Some(true);
+    let dynamic_registration = workspace_configuration
+        && workspace
+            .did_change_configuration
+            .as_ref()
+            .is_some_and(|capability| capability.dynamic_registration == Some(true));
+    ConfigurationCapabilities { workspace_configuration, dynamic_registration }
+}
+
 pub fn negotiate_analyzer_capabilities(params: &InitializeParams) -> AnalyzerCapabilities {
     let workspace_edit = params
         .capabilities
@@ -50,7 +71,10 @@ pub fn negotiate_position_encoding(params: &InitializeParams) -> PositionEncodin
 
 #[cfg(test)]
 mod tests {
-    use lsp_types::{ClientCapabilities, GeneralClientCapabilities};
+    use lsp_types::{
+        ClientCapabilities, DynamicRegistrationClientCapabilities, GeneralClientCapabilities,
+        WorkspaceClientCapabilities,
+    };
 
     use super::*;
 
@@ -101,5 +125,46 @@ mod tests {
 
         let encoding = negotiate_position_encoding(&params);
         assert_eq!(encoding, PositionEncoding::Utf32);
+    }
+
+    #[test]
+    fn workspace_configuration_and_registration_are_negotiated_independently() {
+        let params = InitializeParams {
+            capabilities: ClientCapabilities {
+                workspace: Some(WorkspaceClientCapabilities {
+                    configuration: Some(true),
+                    did_change_configuration: Some(DynamicRegistrationClientCapabilities {
+                        dynamic_registration: Some(true),
+                    }),
+                    ..WorkspaceClientCapabilities::default()
+                }),
+                ..ClientCapabilities::default()
+            },
+            ..InitializeParams::default()
+        };
+
+        assert_eq!(
+            negotiate_configuration_capabilities(&params),
+            ConfigurationCapabilities { workspace_configuration: true, dynamic_registration: true }
+        );
+
+        let params = InitializeParams {
+            capabilities: ClientCapabilities {
+                workspace: Some(WorkspaceClientCapabilities {
+                    configuration: Some(false),
+                    did_change_configuration: Some(DynamicRegistrationClientCapabilities {
+                        dynamic_registration: Some(true),
+                    }),
+                    ..WorkspaceClientCapabilities::default()
+                }),
+                ..ClientCapabilities::default()
+            },
+            ..InitializeParams::default()
+        };
+
+        assert_eq!(
+            negotiate_configuration_capabilities(&params),
+            ConfigurationCapabilities::default()
+        );
     }
 }

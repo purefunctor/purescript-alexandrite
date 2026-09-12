@@ -31,8 +31,18 @@ iris lsp --stdio --config-file ./iris.json
 `--config` and `--config-file` are mutually exclusive and replace `--source-command` and
 `--diagnostics-on-open`, `--diagnostics-on-save`, and `--diagnostics-on-change`. File paths are
 relative to the process working directory, not the editor's workspace or the configuration file's
-directory. Settings are read once before the server starts; changing them requires a restart.
-Configuration files are not watched, and LSP configuration notifications do not reload settings.
+directory. Startup configuration files are read once and are not watched.
+
+Editors that advertise the LSP `workspace.configuration` capability can provide the same settings
+object in the `iris.server` workspace configuration section. Iris requests that section for the first
+workspace folder after initialization and requests it again after each
+`workspace/didChangeConfiguration` notification; the notification's `settings` value is only an
+invalidation signal. Runtime settings take precedence over startup settings. Each response is a
+complete runtime layer, so omitted or `null` fields inherit from the startup configuration rather
+than from the preceding response. Invalid updates are shown in the editor and leave the last valid
+configuration active. Source-setting updates rediscover and reconcile the loaded workspace without
+discarding open buffers. Clients without workspace-configuration support continue using only the
+startup configuration.
 
 The defaults are:
 
