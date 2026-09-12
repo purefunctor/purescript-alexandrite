@@ -8,7 +8,9 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use async_lsp::router::Router;
-use async_lsp::{Error, ErrorCode, LanguageServer as LanguageServerClient, ServerSocket};
+use async_lsp::{
+    Error, ErrorCode, LanguageServer as LanguageServerClient, ResponseError, ServerSocket,
+};
 use lsp_types::notification::{PublishDiagnostics, ShowMessage};
 use lsp_types::request::{RegisterCapability, WorkspaceConfiguration, WorkspaceSymbolRequest};
 use lsp_types::{
@@ -16,7 +18,7 @@ use lsp_types::{
     WorkspaceSymbolParams,
 };
 use serde_json::{Value, json};
-use tokio::runtime::Runtime;
+use tokio::runtime::{Builder, Runtime};
 use tokio::task::JoinHandle;
 use tokio::time::timeout;
 use tokio_util::compat::{TokioAsyncReadCompatExt, TokioAsyncWriteCompatExt};
@@ -31,10 +33,9 @@ struct ClientState {
     configuration: Mutex<Option<Value>>,
     configuration_requests: AtomicUsize,
     registrations: Mutex<Vec<Registration>>,
+    unexpected_requests: Mutex<Vec<String>>,
     notifications: mpsc::Sender<Value>,
 }
-
-struct Stop;
 
 struct LanguageServer {
     child: tokio::process::Child,
@@ -78,6 +79,7 @@ impl LanguageServer {
             configuration: Mutex::new(configuration),
             configuration_requests: AtomicUsize::new(0),
             registrations: Mutex::new(Vec::new()),
+            unexpected_requests: Mutex::new(Vec::new()),
             notifications,
         });
         let client_state = Arc::clone(&client);
@@ -113,11 +115,20 @@ impl LanguageServer {
                         .unwrap();
                     ControlFlow::Continue(())
                 })
-                .event(|_, _: Stop| ControlFlow::Break(Ok(())));
+                .unhandled_request(|state, request| {
+                    let method = request.method;
+                    state.unexpected_requests.lock().unwrap().push(method.clone());
+                    async move {
+                        Err(ResponseError::new(
+                            ErrorCode::METHOD_NOT_FOUND,
+                            format_args!("unexpected server request {method}"),
+                        ))
+                    }
+                });
             router
         });
 
-        let runtime = Runtime::new().unwrap();
+        let runtime = Builder::new_multi_thread().worker_threads(1).enable_all().build().unwrap();
         let command = workspace.command_builder(directory, &arguments);
         let mut command = tokio::process::Command::from(command);
         command
@@ -279,14 +290,23 @@ impl LanguageServer {
                 notification["method"] == "textDocument/publishDiagnostics"
                     && notification["params"]["uri"] == uri.as_str()
             }));
-            match self.messages.recv_timeout(Duration::from_millis(500)) {
-                Ok(message) if message.get("method").is_some() => {
-                    assert_ne!(message["params"]["uri"], uri.as_str(), "{message}");
-                    self.notifications.push(message);
+            let deadline = Instant::now() + Duration::from_millis(500);
+            loop {
+                let Some(remaining) = deadline.checked_duration_since(Instant::now()) else {
+                    break;
+                };
+                match self.messages.recv_timeout(remaining) {
+                    Ok(message) => {
+                        assert!(
+                            message["method"] != "textDocument/publishDiagnostics"
+                                || message["params"]["uri"] != uri.as_str(),
+                            "{message}"
+                        );
+                        self.notifications.push(message);
+                    }
+                    Err(RecvTimeoutError::Timeout) => break,
+                    Err(error) => panic!("language server disconnected: {error}"),
                 }
-                Ok(message) => panic!("unexpected message while checking diagnostics: {message}"),
-                Err(RecvTimeoutError::Timeout) => {}
-                Err(error) => panic!("language server disconnected: {error}"),
             }
         }
     }
@@ -299,18 +319,26 @@ impl LanguageServer {
                 .unwrap();
         });
         self.server.exit(()).unwrap();
-        self.server.emit(Stop).unwrap();
         let mainloop = self.mainloop.take().unwrap();
-        self.runtime
+        let mainloop = self
+            .runtime
             .block_on(async { timeout(Duration::from_secs(10), mainloop).await })
             .expect("timed out stopping language client")
-            .unwrap()
             .unwrap();
+        match mainloop {
+            Ok(()) | Err(Error::Eof) => {}
+            Err(error) => panic!("language client failed while stopping: {error}"),
+        }
         let status = self
             .runtime
             .block_on(async { timeout(Duration::from_secs(10), self.child.wait()).await })
             .expect("timed out stopping language server")
             .unwrap();
+        let unexpected_requests = self.client.unexpected_requests.lock().unwrap();
+        assert!(
+            unexpected_requests.is_empty(),
+            "unexpected server requests: {unexpected_requests:?}"
+        );
         assert!(status.success(), "language server exited with {status}");
     }
 }
