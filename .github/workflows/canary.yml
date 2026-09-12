@@ -1,0 +1,186 @@
+name: Canary Release
+
+on:
+  workflow_run:
+    workflows:
+      - Cargo Build & Test
+    branches:
+      - main
+    types:
+      - completed
+
+permissions: {}
+
+concurrency:
+  group: canary-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Prepare canary release
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      revision: ${{ steps.canary.outputs.revision }}
+      tag: ${{ steps.canary.outputs.tag }}
+      version: ${{ steps.canary.outputs.version }}
+
+    steps:
+      - name: Checkout successful revision
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+
+      - name: Derive canary version
+        id: canary
+        env:
+          COMMIT_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          package_version=$(cargo metadata --format-version 1 --no-deps |
+            jq -r '.packages[] | select(.name == "purescript-iris") | .version')
+          if [[ ! "$package_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Package version must be a stable semantic version, found $package_version." >&2
+            exit 1
+          fi
+
+          revision=${COMMIT_SHA:0:12}
+          version="$package_version-dev.$revision"
+          echo "revision=$revision" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  create-release:
+    name: Create draft canary release
+    needs: prepare
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Create draft release
+        env:
+          COMMIT_SHA: ${{ github.event.workflow_run.head_sha }}
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+        run: |
+          if release=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" \
+            --json isDraft,targetCommitish); then
+            if [[ $(jq -r '.isDraft' <<< "$release") != true ]]; then
+              echo "Canary release $TAG is already published and cannot be rebuilt." >&2
+              exit 1
+            fi
+            if [[ $(jq -r '.targetCommitish' <<< "$release") != "$COMMIT_SHA" ]]; then
+              echo "Draft canary release $TAG targets a different commit." >&2
+              exit 1
+            fi
+            echo "Reusing draft canary release $TAG."
+            exit 0
+          fi
+
+          gh release create "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$COMMIT_SHA" \
+            --title "$TAG" \
+            --notes "Automated canary build of commit \`$COMMIT_SHA\`." \
+            --draft \
+            --prerelease \
+            --latest=false
+
+  build-and-upload:
+    name: Build canary
+    needs:
+      - prepare
+      - create-release
+    runs-on: ${{ matrix.os }}
+    permissions:
+      attestations: write
+      contents: write
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+
+          - os: macos-latest
+            target: universal-apple-darwin
+
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+
+    steps:
+      - name: Checkout successful revision
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+
+      - name: Install cross-compilation tools
+        uses: taiki-e/setup-cross-toolchain-action@v1
+        if: startsWith(matrix.os, 'ubuntu')
+        with:
+          target: ${{ matrix.target }}
+
+      - name: Build and upload archive
+        id: release
+        uses: taiki-e/upload-rust-binary-action@v1
+        env:
+          IRIS_BUILD_REVISION: ${{ needs.prepare.outputs.revision }}
+        with:
+          bin: iris
+          package: purescript-iris
+          archive: iris-$target
+          include: README.md,LICENSE,ACKNOWLEDGEMENTS.md,THIRDPARTY.toml
+          leading-dir: true
+          locked: true
+          ref: refs/tags/${{ needs.prepare.outputs.tag }}
+          target: ${{ matrix.target }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Attest canary archive
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: ${{ steps.release.outputs.tar || steps.release.outputs.zip }}
+
+  publish-release:
+    name: Publish canary release
+    needs:
+      - prepare
+      - build-and-upload
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+        run: >-
+          gh release edit "$TAG"
+          --repo "$GITHUB_REPOSITORY"
+          --draft=false
+          --prerelease
+
+  test-installers:
+    name: Test canary installers
+    needs:
+      - prepare
+      - publish-release
+    permissions:
+      attestations: read
+      contents: read
+    uses: ./.github/workflows/installers.yml
+    with:
+      revision: ${{ github.event.workflow_run.head_sha }}
+      version: ${{ needs.prepare.outputs.tag }}

@@ -7,6 +7,10 @@ on:
         description: Release tag to install
         required: true
         type: string
+      revision:
+        description: Repository revision containing the installer
+        required: false
+        type: string
   workflow_dispatch:
     inputs:
       version:
@@ -35,6 +39,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.revision }}
 
       - name: Require GitHub attestation verification
         shell: bash
@@ -47,7 +53,12 @@ jobs:
           IRIS_VERSION: ${{ inputs.version }}
         run: |
           sh ./install.sh
-          "$IRIS_INSTALL_DIR/iris" --version
+          installed_version=$("$IRIS_INSTALL_DIR/iris" --version)
+          printf 'Installed %s\n' "$installed_version"
+          if [ "$IRIS_VERSION" != latest ] && [ "$installed_version" != "iris ${IRIS_VERSION#v}" ]; then
+            printf 'Expected iris %s, found %s\n' "${IRIS_VERSION#v}" "$installed_version" >&2
+            exit 1
+          fi
           test ! -e "$IRIS_INSTALL_DIR/purescript-analyzer"
           test ! -e "$IRIS_INSTALL_DIR/purescript-iris"
 
@@ -59,8 +70,15 @@ jobs:
           IRIS_VERSION: ${{ inputs.version }}
         run: |
           & ./install.ps1
-          & "$env:IRIS_INSTALL_DIR\iris.exe" --version
+          $InstalledVersion = & "$env:IRIS_INSTALL_DIR\iris.exe" --version
           if ($LASTEXITCODE -ne 0) { throw "iris --version failed" }
+          Write-Host "Installed $InstalledVersion"
+          if ($env:IRIS_VERSION -ne "latest") {
+            $ExpectedVersion = "iris " + $env:IRIS_VERSION.Substring(1)
+            if ($InstalledVersion -ne $ExpectedVersion) {
+              throw "Expected $ExpectedVersion, found $InstalledVersion"
+            }
+          }
           foreach ($LegacyBinary in @("purescript-analyzer.exe", "purescript-iris.exe")) {
             if (Test-Path "$env:IRIS_INSTALL_DIR\$LegacyBinary") {
               throw "Installer created legacy executable $LegacyBinary"

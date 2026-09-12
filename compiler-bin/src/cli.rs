@@ -32,7 +32,7 @@ fn absolute_path(value: PathBuf) -> io::Result<PathBuf> {
 #[usage(
     bin = "iris",
     about = env!("CARGO_PKG_DESCRIPTION"),
-    version,
+    version = crate::VERSION,
     unknown_flags = "error",
     args_override_self = false
 )]

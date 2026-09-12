@@ -13,6 +13,9 @@ pub mod walk;
 mod watch;
 mod workspace;
 
+pub(crate) const PACKAGE_NAME: &str = env!("CARGO_PKG_NAME");
+pub(crate) const VERSION: &str = env!("IRIS_VERSION");
+
 pub fn run() {
     let program = cli::Program::parse_with_diagnostics();
 

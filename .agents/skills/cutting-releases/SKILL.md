@@ -5,7 +5,7 @@ description: "Cuts Iris GitHub releases through the version-bump PR, merge commi
 
 # Cutting Iris Releases
 
-Use this workflow for `purescript-iris` releases. A pushed `v*` tag triggers `.github/workflows/release.yml`, which creates the GitHub release, builds and attests four archives, and tests the installers on Linux, macOS, and Windows.
+Use this workflow for stable `purescript-iris` releases. A pushed stable `v*` tag triggers `.github/workflows/release.yml`, which creates the GitHub release, builds and attests four archives, and tests the installers on Linux, macOS, and Windows. Automated `v<version>-dev.<revision>` canaries are owned by `.github/workflows/canary.yml`; do not use this manual workflow to prepare or repair them.
 
 Merging and pushing the release tag are shared, high-impact actions. Obtain explicit approval before each unless the user has already authorized that stage. Never move or delete a published release tag to repair a failed workflow.
 
@@ -19,12 +19,13 @@ git fetch origin main --tags
 gh auth status
 ```
 
-Set the requested version without the `v` prefix. Determine the previous release from the repository rather than assuming it:
+Set the requested version without the `v` prefix. Determine the previous stable release from GitHub rather than assuming it or selecting an automated canary tag:
 
 ```bash
 version=0.0.16
 tag="v$version"
-previous_tag=$(git tag --list 'v[0-9]*' --sort=-version:refname | head -1)
+previous_tag=$(gh release list --exclude-drafts --exclude-pre-releases \
+  --limit 1 --json tagName --jq '.[0].tagName')
 printf 'Release range: %s...%s\n' "$previous_tag" "$tag"
 ```
 

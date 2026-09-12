@@ -43,7 +43,7 @@ impl Program {
                 std::process::exit(0);
             }
             usage::Error::Version { .. } => {
-                println!("iris {}", env!("CARGO_PKG_VERSION"));
+                println!("iris {}", crate::VERSION);
                 std::process::exit(0);
             }
             usage::Error::MissingArgsHelp { cmd } => {

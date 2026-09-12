@@ -228,9 +228,6 @@ impl AnalyzerHost for LspAnalyzerHost<'_> {
     }
 }
 
-const PACKAGE_NAME: &str = env!("CARGO_PKG_NAME");
-const PACKAGE_VERSION: &str = env!("CARGO_PKG_VERSION");
-
 fn initialize(
     state: &mut State,
     p: extension::CustomInitializeParams,
@@ -254,8 +251,8 @@ fn initialize(
     async move {
         Ok(InitializeResult {
             server_info: Some(ServerInfo {
-                name: PACKAGE_NAME.to_string(),
-                version: Some(PACKAGE_VERSION.to_string()),
+                name: crate::PACKAGE_NAME.to_owned(),
+                version: Some(crate::VERSION.to_owned()),
             }),
             capabilities: ServerCapabilities {
                 completion_provider: Some(CompletionOptions {
