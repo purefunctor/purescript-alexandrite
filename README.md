@@ -191,3 +191,13 @@ The installers verify the release's GitHub build-provenance attestation when
 installed. These installers require v0.1.0 or later; to install v0.0.x, use the installer from that
 release's Git tag. Set `IRIS_VERSION` to a release tag or
 `IRIS_INSTALL_DIR` to an installation directory to override the defaults.
+
+Successful builds of the `main` branch are published as GitHub prereleases tagged
+`v<version>-dev.<revision>`. Consumers testing against the canary channel should resolve the newest
+published, non-draft prerelease and pass its exact tag through `IRIS_VERSION`. Stable installations
+continue to use GitHub's latest release.
+
+Iris keeps its package version separate from source provenance. Packagers can set
+`IRIS_BUILD_REVISION` to a Git revision when invoking Cargo to include that revision in the reported
+CLI and language-server versions. The value is read at compile time; builds that omit it report the
+version from `compiler-bin/Cargo.toml` unchanged.

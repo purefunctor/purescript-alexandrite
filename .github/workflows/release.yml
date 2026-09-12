@@ -3,7 +3,8 @@ name: Cargo Build & Release
 on:
   push:
     tags:
-      - v[0-9]+.*
+      - 'v[0-9]+.*'
+      - '!v[0-9]+.*-dev.*'
 
 jobs:
   create-release:
