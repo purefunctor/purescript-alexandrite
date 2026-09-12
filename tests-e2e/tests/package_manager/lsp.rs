@@ -3,7 +3,7 @@ use std::path::Path;
 use std::process::Child;
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError};
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use serde_json::{Value, json};
 use url::Url;
@@ -103,10 +103,13 @@ impl LanguageServer {
         self.send(json!({"jsonrpc": "2.0", "method": method, "params": parameters}));
     }
 
+    #[track_caller]
     fn request(&mut self, method: &str, parameters: Value) -> Value {
         for _ in 0..20 {
             let request = self.next_request;
             self.next_request += 1;
+            let deadline = Instant::now() + Duration::from_secs(10);
+            let waiting_for = format!("response to {method} request");
             self.send(json!({
                 "jsonrpc": "2.0",
                 "id": request,
@@ -114,7 +117,7 @@ impl LanguageServer {
                 "params": parameters
             }));
             loop {
-                let message = self.messages.recv_timeout(Duration::from_secs(10)).unwrap();
+                let message = self.receive_before(deadline, &waiting_for);
                 if message.get("method").is_some() {
                     self.handle_server_message(message);
                     continue;
@@ -126,7 +129,7 @@ impl LanguageServer {
                     assert!(message.get("error").is_none(), "{message}");
                     return message["result"].clone();
                 }
-                self.notifications.push(message);
+                panic!("unexpected response while waiting for {waiting_for}: {message}");
             }
             thread::sleep(Duration::from_millis(10));
         }
@@ -173,19 +176,46 @@ impl LanguageServer {
         panic!("symbol {name:?} presence did not become {present}");
     }
 
+    #[track_caller]
     fn wait_for_notification(&mut self, method: &str) -> Value {
-        for _ in 0..20 {
-            if let Some(index) =
-                self.notifications.iter().position(|notification| notification["method"] == method)
-            {
+        self.wait_for_notification_matching(method, |_| true)
+    }
+
+    #[track_caller]
+    fn wait_for_notification_matching(
+        &mut self,
+        method: &str,
+        predicate: impl Fn(&Value) -> bool,
+    ) -> Value {
+        let deadline = Instant::now() + Duration::from_secs(10);
+        let waiting_for = format!("notification {method}");
+        loop {
+            if let Some(index) = self.notifications.iter().position(|notification| {
+                notification["method"] == method && predicate(notification)
+            }) {
                 return self.notifications.remove(index);
             }
-            let message = self.messages.recv_timeout(Duration::from_millis(500)).unwrap();
+            let message = self.receive_before(deadline, &waiting_for);
             if message.get("method").is_some() {
                 self.handle_server_message(message);
+            } else {
+                panic!("unexpected response while waiting for notification {method}: {message}")
             }
         }
-        panic!("did not receive notification {method}");
+    }
+
+    #[track_caller]
+    fn receive_before(&self, deadline: Instant, waiting_for: &str) -> Value {
+        let remaining = deadline
+            .checked_duration_since(Instant::now())
+            .unwrap_or_else(|| panic!("timed out waiting for {waiting_for}"));
+        match self.messages.recv_timeout(remaining) {
+            Ok(message) => message,
+            Err(RecvTimeoutError::Timeout) => panic!("timed out waiting for {waiting_for}"),
+            Err(RecvTimeoutError::Disconnected) => {
+                panic!("language server disconnected while waiting for {waiting_for}")
+            }
+        }
     }
 
     fn assert_diagnostics(&mut self, uri: &Url, version: i32, enabled: bool) {
@@ -193,18 +223,10 @@ impl LanguageServer {
         // the bounded wait for asynchronous diagnostics, including when none are expected.
         self.request("workspace/symbol", json!({"query": "noSuchSymbol"}));
         if enabled {
-            let message = loop {
-                if let Some(index) = self.notifications.iter().position(|notification| {
-                    notification["method"] == "textDocument/publishDiagnostics"
-                        && notification["params"]["uri"] == uri.as_str()
-                }) {
-                    break self.notifications.remove(index);
-                }
-                let message = self.messages.recv_timeout(Duration::from_secs(10)).unwrap();
-                if message.get("method").is_some() {
-                    self.handle_server_message(message);
-                }
-            };
+            let message = self.wait_for_notification_matching(
+                "textDocument/publishDiagnostics",
+                |notification| notification["params"]["uri"] == uri.as_str(),
+            );
             assert_eq!(message["params"]["uri"], uri.as_str());
             assert_eq!(message["params"]["version"], version);
             let diagnostics = message["params"]["diagnostics"].as_array().unwrap();
@@ -219,7 +241,9 @@ impl LanguageServer {
                     assert_ne!(message["params"]["uri"], uri.as_str(), "{message}");
                     self.handle_server_message(message);
                 }
-                Ok(message) => self.notifications.push(message),
+                Ok(message) => {
+                    panic!("unexpected response while checking diagnostics are disabled: {message}")
+                }
                 Err(RecvTimeoutError::Timeout) => {}
                 Err(error) => panic!("language server disconnected: {error}"),
             }
@@ -430,6 +454,15 @@ fn invalid_runtime_configuration_preserves_the_previous_workspace() {
         r#"{"workspace":{"packages":{"application":{"path":"."}}},"packages":{}}"#,
     );
     workspace.write("src/Library.purs", "module Library where\nstillLoaded = 42\n");
+    workspace.write(
+        "slow failure.mjs",
+        r#"
+setTimeout(() => {
+  process.stderr.write("slow failure\n");
+  process.exit(1);
+}, 1000);
+"#,
+    );
     let mut server = LanguageServer::start_with_capabilities(
         &workspace,
         "",
@@ -457,7 +490,11 @@ fn invalid_runtime_configuration_preserves_the_previous_workspace() {
     server.wait_for_symbol("stillLoaded", true);
 
     server.set_configuration(json!({
-        "sources": {"kind": "command", "program": "iris-missing-source-command"}
+        "sources": {
+            "kind": "command",
+            "program": "node",
+            "arguments": ["slow failure.mjs"]
+        }
     }));
     let message = server.wait_for_notification("window/showMessage");
     assert!(
