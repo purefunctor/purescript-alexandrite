@@ -2,17 +2,11 @@
 mod add;
 #[path = "package_manager/build.rs"]
 mod build;
-#[path = "package_manager/cli.rs"]
-mod cli;
-#[path = "package_manager/lsp.rs"]
-mod lsp;
 #[path = "package_manager/new.rs"]
 mod new;
 #[path = "package_manager/run.rs"]
 mod run;
-#[path = "package_manager/stylex.rs"]
-mod stylex;
-#[path = "package_manager/support.rs"]
+#[path = "support.rs"]
 mod support;
 #[path = "package_manager/test.rs"]
 mod test;
