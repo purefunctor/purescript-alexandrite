@@ -4,6 +4,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Output, Stdio};
 
+use itertools::Itertools;
+
 pub struct TestWorkspace {
     temporary: tempfile::TempDir,
 }
@@ -95,7 +97,7 @@ impl TestWorkspace {
             let actual_directory = fields.next().unwrap();
             let actual_directory = fs::canonicalize(actual_directory).unwrap();
             assert_eq!(actual_directory, expected_directory);
-            actual_arguments.push(fields.collect::<Vec<_>>());
+            actual_arguments.push(fields.collect_vec());
         }
         assert_eq!(actual_arguments, expected);
     }

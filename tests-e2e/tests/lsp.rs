@@ -73,7 +73,7 @@ impl LanguageServer {
         configuration: Option<Value>,
     ) -> LanguageServer {
         let mut arguments = arguments.to_vec();
-        arguments.extend(["--stdio", "--lsp-log", "off"]);
+        arguments.extend(["--lsp-log", "off"]);
         let (notifications, messages) = mpsc::channel();
         let client = Arc::new(ClientState {
             configuration: Mutex::new(configuration),
@@ -163,7 +163,7 @@ impl LanguageServer {
                 }),
             )
             .await
-            .expect("timed out waiting for initialize response")
+            .expect("invariant violated: timed out waiting for initialize response")
             .unwrap()
         });
         assert_ne!(result.capabilities, Default::default());
@@ -315,7 +315,7 @@ impl LanguageServer {
         self.runtime.block_on(async {
             timeout(Duration::from_secs(10), self.server.shutdown(()))
                 .await
-                .expect("timed out waiting for shutdown response")
+                .expect("invariant violated: timed out waiting for shutdown response")
                 .unwrap();
         });
         self.server.exit(()).unwrap();
@@ -323,7 +323,7 @@ impl LanguageServer {
         let mainloop = self
             .runtime
             .block_on(async { timeout(Duration::from_secs(10), mainloop).await })
-            .expect("timed out stopping language client")
+            .expect("invariant violated: timed out stopping language client")
             .unwrap();
         match mainloop {
             Ok(()) | Err(Error::Eof) => {}
@@ -332,7 +332,7 @@ impl LanguageServer {
         let status = self
             .runtime
             .block_on(async { timeout(Duration::from_secs(10), self.child.wait()).await })
-            .expect("timed out stopping language server")
+            .expect("invariant violated: timed out stopping language server")
             .unwrap();
         let unexpected_requests = self.client.unexpected_requests.lock().unwrap();
         assert!(
@@ -407,6 +407,7 @@ fn empty_configuration_preserves_spago_and_default_diagnostics() {
 
     let cases: &[&[&str]] = &[
         &["lsp"],
+        &["lsp", "--stdio"],
         &["lsp", "--config", "null"],
         &["lsp", "--config-file", "config/empty.json"],
         &[
